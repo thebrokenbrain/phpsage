@@ -174,6 +174,7 @@ Estado actual:
 - resumen de dashboard muestra estado y timestamp de último auto-run
 - estado y intervalo de auto-run persistidos en URL
 - acción `Run now` en cabecera usando el `targetPath` actual
+- auto-run no se dispara cuando `targetPath` está vacío
 - acción `Copy link` para compartir el estado actual del dashboard
 - acción `Reset controls` para restaurar controles del dashboard
 - acción rápida `API docs` desde cabecera del dashboard

@@ -793,6 +793,10 @@ export function App(): JSX.Element {
     }
 
     const intervalId = window.setInterval(() => {
+      if (startRunTargetPath.trim().length === 0) {
+        return;
+      }
+
       const hasRunningRun = runs.some((run) => run.status === "running");
       if (hasRunningRun || startRunLoading) {
         return;
@@ -807,7 +811,7 @@ export function App(): JSX.Element {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [autoRunIntervalMs, isAutoRunEnabled, runs, startRunLoading]);
+  }, [autoRunIntervalMs, isAutoRunEnabled, runs, startRunLoading, startRunTargetPath]);
 
   useEffect(() => {
     if (!selectedRun) {
