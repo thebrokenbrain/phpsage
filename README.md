@@ -48,6 +48,7 @@ docker compose up --build -d phpsage-server
 ```bash
 docker compose run --rm phpsage-cli npm run build
 docker compose up --build -d phpsage-server
+docker compose up --build -d api-docs
 curl http://localhost:8080/healthz
 docker compose down --remove-orphans
 ```
@@ -111,6 +112,7 @@ Estado actual:
 - listado de archivos por run implementado: `GET /api/runs/:runId/files`
 - ejecución real de PHPStan desde server habilitada con `POST /api/runs/start` usando `execute=true`
 - CLI base implementada: `phpsage phpstan analyse <path>` con sincronización `start/log/finish`
+- contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 
 ### Verificación rápida del endpoint inicial
 

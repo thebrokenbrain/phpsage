@@ -2,6 +2,8 @@
 
 Living operational API contract.
 
+Formal OpenAPI contract: `docs/openapi.yaml`.
+
 ## Current status
 
 Initial HTTP API scaffold is implemented.

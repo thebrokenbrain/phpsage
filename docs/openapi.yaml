@@ -1,0 +1,324 @@
+openapi: 3.1.0
+info:
+  title: PHPSage API
+  version: 0.1.0
+  description: HTTP API for PHPSage run lifecycle and source exploration.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+  /api/runs:
+    get:
+      summary: List run summaries
+      responses:
+        '200':
+          description: List of runs sorted by creation date descending
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RunSummary'
+  /api/runs/start:
+    post:
+      summary: Start a new run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetPath]
+              properties:
+                targetPath:
+                  type: string
+                execute:
+                  type: boolean
+                  default: false
+      responses:
+        '201':
+          description: Run created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunRecord'
+        '400':
+          description: Invalid target path
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/runs/{runId}:
+    get:
+      summary: Get run detail by id
+      parameters:
+        - in: path
+          name: runId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Run detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunRecord'
+        '404':
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/runs/{runId}/log:
+    post:
+      summary: Append log line to run
+      parameters:
+        - in: path
+          name: runId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stream, message]
+              properties:
+                stream:
+                  type: string
+                  enum: [stdout, stderr]
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Updated run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunRecord'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/runs/{runId}/finish:
+    post:
+      summary: Mark run as finished
+      parameters:
+        - in: path
+          name: runId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [issues, exitCode]
+              properties:
+                issues:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/RunIssue'
+                exitCode:
+                  type: integer
+      responses:
+        '200':
+          description: Updated run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunRecord'
+        '400':
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/runs/{runId}/source:
+    get:
+      summary: Read source file content for a run
+      parameters:
+        - in: path
+          name: runId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: file
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Source content
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [file, content]
+                properties:
+                  file:
+                    type: string
+                  content:
+                    type: string
+        '400':
+          description: Missing file query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Run or source not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/runs/{runId}/files:
+    get:
+      summary: List files in run target with issue counters
+      parameters:
+        - in: path
+          name: runId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File list with issue counters
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [targetPath, files]
+                properties:
+                  targetPath:
+                    type: string
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      required: [path, issueCount, hasIssues]
+                      properties:
+                        path:
+                          type: string
+                        issueCount:
+                          type: integer
+                        hasIssues:
+                          type: boolean
+        '404':
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    RunIssue:
+      type: object
+      required: [file, line, message]
+      properties:
+        file:
+          type: string
+        line:
+          type: integer
+        message:
+          type: string
+        identifier:
+          type: string
+    RunLogEntry:
+      type: object
+      required: [timestamp, stream, message]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        stream:
+          type: string
+          enum: [stdout, stderr]
+        message:
+          type: string
+    RunRecord:
+      type: object
+      required: [runId, targetPath, createdAt, updatedAt, status, logs, issues, exitCode]
+      properties:
+        runId:
+          type: string
+        targetPath:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [running, finished]
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunLogEntry'
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunIssue'
+        exitCode:
+          type: integer
+          nullable: true
+    RunSummary:
+      type: object
+      required: [runId, targetPath, status, createdAt, updatedAt, exitCode, issueCount]
+      properties:
+        runId:
+          type: string
+        targetPath:
+          type: string
+        status:
+          type: string
+          enum: [running, finished]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        exitCode:
+          type: integer
+          nullable: true
+        issueCount:
+          type: integer
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
