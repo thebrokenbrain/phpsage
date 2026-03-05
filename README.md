@@ -142,6 +142,7 @@ Estado actual:
 - acción rápida `Clear log filters` en panel de logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - filtro local de texto en panel de issues
+- sección `Issues` colapsable/expandible en detalle
 - filtro de issues persistido en URL
 - filtro de presencia de identificador en panel de issues
 - filtro de identificador de issues persistido en URL

@@ -29,6 +29,7 @@ A minimal Dashboard is implemented with:
 - logs panel includes `Clear log filters` action
 - issue rows display PHPStan identifier when available
 - issues panel includes local text filter with paginated result set
+- Issues section can be collapsed/expanded
 - issue text filter is persisted in URL query-state (`issueQuery`)
 - issues panel supports identifier presence filter (`all`, `with`, `without`)
 - issue identifier filter is persisted in URL query-state (`issueIdentifier`)

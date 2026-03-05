@@ -156,6 +156,7 @@ export function App(): JSX.Element {
   const [issuePage, setIssuePage] = useState(0);
   const [issueSearchTerm, setIssueSearchTerm] = useState(initialSelection.issueSearchTerm);
   const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
+  const [isIssuesSectionOpen, setIsIssuesSectionOpen] = useState(true);
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
   const [logSearchTerm, setLogSearchTerm] = useState(initialSelection.logSearchTerm);
   const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">(initialSelection.logStreamFilter);
@@ -1090,6 +1091,13 @@ export function App(): JSX.Element {
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Issues</h3>
+                  <button
+                    onClick={() => {
+                      setIsIssuesSectionOpen((isOpen) => !isOpen);
+                    }}
+                  >
+                    {isIssuesSectionOpen ? "Hide" : "Show"}
+                  </button>
                   <div className="detail-actions">
                     <button
                       onClick={() => {
@@ -1129,7 +1137,7 @@ export function App(): JSX.Element {
                       }}
                     />
                   </div>
-                  {filteredIssueEntries.length > detailPageSize ? (
+                  {isIssuesSectionOpen && filteredIssueEntries.length > detailPageSize ? (
                     <div className="pager">
                       <button
                         onClick={() => {
@@ -1157,7 +1165,8 @@ export function App(): JSX.Element {
                   ) : null}
                 </div>
 
-                {filteredIssueEntries.length > 0 ? (
+                {isIssuesSectionOpen ? (
+                  filteredIssueEntries.length > 0 ? (
                   <ul className="detail-list">
                     {filteredIssueEntries
                       .slice(issuePage * detailPageSize, (issuePage + 1) * detailPageSize)
@@ -1181,7 +1190,7 @@ export function App(): JSX.Element {
                   <p className="empty">No issues match current filter.</p>
                 ) : (
                   <p className="empty">No issues in selected run.</p>
-                )}
+                ) : null}
               </section>
 
               <section className="detail-block">
