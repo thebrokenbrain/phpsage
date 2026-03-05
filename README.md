@@ -109,6 +109,7 @@ Estado actual:
 - lectura de source por run implementada: `GET /api/runs/:runId/source?file=...`
 - listado de archivos por run implementado: `GET /api/runs/:runId/files`
 - ejecución real de PHPStan desde server habilitada con `POST /api/runs/start` usando `execute=true`
+- CLI base implementada: `phpsage phpstan analyse <path>` con sincronización `start/log/finish`
 
 ### Verificación rápida del endpoint inicial
 
