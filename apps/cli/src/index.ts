@@ -12,6 +12,7 @@ interface CliOptions {
 	readonly phpstanBin: string;
 	readonly cwd: string;
 	readonly memoryLimit?: string;
+	readonly timeoutMs: number | null;
 	readonly openBrowser: boolean;
 	readonly watch: boolean;
 	readonly watchIntervalMs: number;
@@ -303,6 +304,23 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 		stdio: ["ignore", "pipe", "pipe"]
 	});
 
+	let timedOut = false;
+	let forceKillTimer: NodeJS.Timeout | null = null;
+	let timeoutTimer: NodeJS.Timeout | null = null;
+
+	if (options.timeoutMs) {
+		timeoutTimer = setTimeout(() => {
+			timedOut = true;
+			const timeoutMessage = `PHPStan execution timeout after ${options.timeoutMs}ms`;
+			process.stderr.write(`${timeoutMessage}\n`);
+			child.kill("SIGTERM");
+
+			forceKillTimer = setTimeout(() => {
+				child.kill("SIGKILL");
+			}, 2000);
+		}, options.timeoutMs);
+	}
+
 	let streamQueue = Promise.resolve();
 	const queueLog = (stream: "stdout" | "stderr", chunk: string) => {
 		const message = chunk.trimEnd();
@@ -342,6 +360,19 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 		});
 
 		child.on("close", (code) => {
+			if (timeoutTimer) {
+				clearTimeout(timeoutTimer);
+			}
+
+			if (forceKillTimer) {
+				clearTimeout(forceKillTimer);
+			}
+
+			if (timedOut) {
+				resolveExitCode(124);
+				return;
+			}
+
 			resolveExitCode(typeof code === "number" ? code : 1);
 		});
 	});
@@ -576,6 +607,7 @@ function parseArguments(args: string[]): CliCommand | null {
 		"--cwd",
 		"--phpstan-bin",
 		"--memory-limit",
+		"--timeout-ms",
 		"--watch",
 		"--watch-interval",
 		"--watch-debounce",
@@ -592,6 +624,7 @@ function parseArguments(args: string[]): CliCommand | null {
 		"--cwd",
 		"--phpstan-bin",
 		"--memory-limit",
+		"--timeout-ms",
 		"--watch-interval",
 		"--watch-debounce",
 		"--watch-ignore",
@@ -612,6 +645,7 @@ function parseArguments(args: string[]): CliCommand | null {
 	const phpstanBin = getFlagValue(args, "--phpstan-bin") ?? process.env.PHPSAGE_PHPSTAN_BIN ?? "phpstan";
 	const cwd = resolve(getFlagValue(args, "--cwd") ?? process.cwd());
 	const memoryLimit = getFlagValue(args, "--memory-limit");
+	const timeoutMs = parsePositiveIntegerFlagOrNull(args, "--timeout-ms");
 	const openBrowser = !args.includes("--no-open");
 	const watch = args.includes("--watch");
 	const watchIntervalMs = parsePositiveIntegerFlag(args, "--watch-interval", 2000);
@@ -639,6 +673,7 @@ function parseArguments(args: string[]): CliCommand | null {
 			phpstanBin,
 			cwd,
 			memoryLimit,
+			timeoutMs,
 			openBrowser,
 			watch,
 			watchIntervalMs,
@@ -764,7 +799,7 @@ function printUsage(): void {
 			+ "  phpsage --help | -h\n"
 			+ "  phpsage --version | -v\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
-			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-ext <php,inc>] [--watch-files <phpstan.neon,composer.json>] [--watch-max-cycles <n>] [--docker] [--server-url <url>]\n"
+			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--timeout-ms <ms>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-ext <php,inc>] [--watch-files <phpstan.neon,composer.json>] [--watch-max-cycles <n>] [--docker] [--server-url <url>]\n"
 	);
 }
 
