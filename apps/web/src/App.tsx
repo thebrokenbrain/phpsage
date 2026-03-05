@@ -105,6 +105,7 @@ export function App(): JSX.Element {
   const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(true);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
   const [startRunLoading, setStartRunLoading] = useState(false);
   const [startRunError, setStartRunError] = useState<string | null>(null);
@@ -415,7 +416,7 @@ export function App(): JSX.Element {
       }
     }
 
-    if (!selectedRunId || !selectedRun || selectedRun.status !== "running") {
+    if (!isLivePollingEnabled || !selectedRunId || !selectedRun || selectedRun.status !== "running") {
       return;
     }
 
@@ -426,7 +427,7 @@ export function App(): JSX.Element {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [apiBaseUrl, selectedRun, selectedRunId]);
+  }, [apiBaseUrl, isLivePollingEnabled, selectedRun, selectedRunId]);
 
   useEffect(() => {
     if (!selectedRun) {
@@ -576,6 +577,16 @@ export function App(): JSX.Element {
               <option value="running">Running</option>
               <option value="finished">Finished</option>
             </select>
+          </label>
+          <label className="toggle-label">
+            <input
+              type="checkbox"
+              checked={isLivePollingEnabled}
+              onChange={(event) => {
+                setIsLivePollingEnabled(event.target.checked);
+              }}
+            />
+            Live polling
           </label>
           <button onClick={() => void loadRuns()} disabled={loading}>
             {loading ? "Loading..." : "Refresh"}

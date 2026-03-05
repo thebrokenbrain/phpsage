@@ -67,6 +67,10 @@ body {
   font-size: 0.85rem;
 }
 
+.header-actions .toggle-label {
+  gap: 6px;
+}
+
 select {
   border: 1px solid #d1d5db;
   background: #fff;
