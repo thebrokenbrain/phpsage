@@ -172,6 +172,7 @@ export function App(): JSX.Element {
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(initialSelection.isAutoRunEnabled);
   const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(initialSelection.autoRunIntervalMs ?? 15000);
+  const [autoRunCountdownSec, setAutoRunCountdownSec] = useState(Math.ceil((initialSelection.autoRunIntervalMs ?? 15000) / 1000));
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
@@ -797,6 +798,30 @@ export function App(): JSX.Element {
   }, [apiBaseUrl, isLivePollingEnabled, livePollingIntervalMs, selectedRun, selectedRunId]);
 
   useEffect(() => {
+    setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
+  }, [autoRunIntervalMs]);
+
+  useEffect(() => {
+    if (!isAutoRunEnabled) {
+      return;
+    }
+
+    const timerId = window.setInterval(() => {
+      setAutoRunCountdownSec((currentValue) => {
+        if (currentValue <= 1) {
+          return Math.ceil(autoRunIntervalMs / 1000);
+        }
+
+        return currentValue - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [autoRunIntervalMs, isAutoRunEnabled]);
+
+  useEffect(() => {
     if (!isAutoRunEnabled) {
       return;
     }
@@ -1182,6 +1207,7 @@ export function App(): JSX.Element {
         <span>Finished: {runsSummary.finished}</span>
         {lastRefreshAt ? <span>Last refresh: {new Date(lastRefreshAt).toLocaleTimeString()}</span> : null}
         <span>Auto-run: {isAutoRunEnabled ? "ON" : "OFF"}</span>
+        {isAutoRunEnabled ? <span>Next auto-run in: {autoRunCountdownSec}s</span> : null}
         {isAutoRunEnabled && runsSummary.running > 0 ? <span>Auto-run waiting for active run</span> : null}
         {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
       </section>
