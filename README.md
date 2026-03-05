@@ -123,6 +123,7 @@ Estado actual:
 - navegación atrás/adelante del navegador restaurando ese mismo estado URL
 - navegación de issue/log en detalle sin refetch innecesario del run cuando no cambia `runId`
 - auto-refresh ligero en web cada 2s para run seleccionado en estado `running` (lista + detalle)
+- refresco en vivo del navegador de archivos en ese ciclo de auto-refresh
 
 ### Verificación rápida del endpoint inicial
 

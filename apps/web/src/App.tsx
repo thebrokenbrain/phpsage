@@ -234,9 +234,10 @@ export function App(): JSX.Element {
   useEffect(() => {
     async function pollRunningRun(runId: string): Promise<void> {
       try {
-        const [runsResponse, detailResponse] = await Promise.all([
+        const [runsResponse, detailResponse, filesResponse] = await Promise.all([
           fetch(`${apiBaseUrl}/api/runs`),
-          fetch(`${apiBaseUrl}/api/runs/${runId}`)
+          fetch(`${apiBaseUrl}/api/runs/${runId}`),
+          fetch(`${apiBaseUrl}/api/runs/${runId}/files`)
         ]);
 
         if (!runsResponse.ok) {
@@ -247,11 +248,18 @@ export function App(): JSX.Element {
           throw new Error(`HTTP ${detailResponse.status}`);
         }
 
+        if (!filesResponse.ok) {
+          throw new Error(`HTTP ${filesResponse.status}`);
+        }
+
         const runsPayload = (await runsResponse.json()) as RunSummary[];
         const detailPayload = (await detailResponse.json()) as RunRecord;
+        const filesPayload = (await filesResponse.json()) as RunFilesPayload;
 
         setRuns(runsPayload);
         setSelectedRun(detailPayload);
+        setRunFiles(filesPayload.files);
+        setFilesError(null);
         setDetailError(null);
         setSelectedSourceFilePath((currentPath) => {
           if (!currentPath) {
