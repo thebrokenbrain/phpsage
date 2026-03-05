@@ -23,6 +23,7 @@ A minimal Dashboard is implemented with:
 - paginated issues and logs sections in run detail
 - logs panel includes local text filter with paginated result set
 - log text filter is persisted in URL query-state (`logQuery`)
+- logs panel supports stream filter (`all`, `stdout`, `stderr`)
 - issue rows display PHPStan identifier when available
 - issues panel includes local text filter with paginated result set
 - issue text filter is persisted in URL query-state (`issueQuery`)

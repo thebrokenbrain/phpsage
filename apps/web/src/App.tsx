@@ -154,6 +154,7 @@ export function App(): JSX.Element {
   const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
   const [logSearchTerm, setLogSearchTerm] = useState(initialSelection.logSearchTerm);
+  const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">("all");
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
   const [fileSearchTerm, setFileSearchTerm] = useState(initialSelection.fileSearchTerm);
@@ -267,14 +268,19 @@ export function App(): JSX.Element {
     }
 
     const normalizedSearchTerm = logSearchTerm.trim().toLowerCase();
-    if (normalizedSearchTerm.length === 0) {
-      return selectedRun.logs;
-    }
 
     return selectedRun.logs.filter((logEntry) => {
+      if (logStreamFilter !== "all" && logEntry.stream !== logStreamFilter) {
+        return false;
+      }
+
+      if (normalizedSearchTerm.length === 0) {
+        return true;
+      }
+
       return `${logEntry.stream} ${logEntry.message}`.toLowerCase().includes(normalizedSearchTerm);
     });
-  }, [logSearchTerm, selectedRun]);
+  }, [logSearchTerm, logStreamFilter, selectedRun]);
 
   async function loadRuns(): Promise<void> {
     setLoading(true);
@@ -1190,6 +1196,24 @@ export function App(): JSX.Element {
                 <div className="detail-block-header">
                   <h3>Logs</h3>
                   <div className="detail-actions">
+                    <select
+                      value={logStreamFilter}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        if (value === "stdout" || value === "stderr") {
+                          setLogStreamFilter(value);
+                          setLogPage(0);
+                          return;
+                        }
+
+                        setLogStreamFilter("all");
+                        setLogPage(0);
+                      }}
+                    >
+                      <option value="all">All streams</option>
+                      <option value="stdout">stdout</option>
+                      <option value="stderr">stderr</option>
+                    </select>
                     <input
                       type="search"
                       placeholder="Filter logs"
