@@ -1,6 +1,6 @@
 // This file contains run lifecycle use cases orchestrated by the API layer.
 import { randomUUID } from "node:crypto";
-import type { RunRecord } from "../domain/run.js";
+import type { RunIssue, RunLogEntry, RunRecord } from "../domain/run.js";
 import type { RunRepository } from "../ports/run-repository.js";
 
 export class RunService {
@@ -21,5 +21,65 @@ export class RunService {
 
     await this.runRepository.save(run);
     return run;
+  }
+
+  public async appendLog(runId: string, stream: "stdout" | "stderr", message: string): Promise<RunRecord | null> {
+    const run = await this.runRepository.findById(runId);
+    if (!run) {
+      return null;
+    }
+
+    const nextLog: RunLogEntry = {
+      timestamp: new Date().toISOString(),
+      stream,
+      message
+    };
+
+    const updated: RunRecord = {
+      ...run,
+      updatedAt: new Date().toISOString(),
+      logs: [...run.logs, nextLog]
+    };
+
+    await this.runRepository.save(updated);
+    return updated;
+  }
+
+  public async finish(runId: string, issues: RunIssue[], exitCode: number): Promise<RunRecord | null> {
+    const run = await this.runRepository.findById(runId);
+    if (!run) {
+      return null;
+    }
+
+    const updated: RunRecord = {
+      ...run,
+      updatedAt: new Date().toISOString(),
+      status: "finished",
+      issues,
+      exitCode
+    };
+
+    await this.runRepository.save(updated);
+    return updated;
+  }
+
+  public static isRunIssueList(value: unknown): value is RunIssue[] {
+    if (!Array.isArray(value)) {
+      return false;
+    }
+
+    return value.every((item) => {
+      if (!item || typeof item !== "object") {
+        return false;
+      }
+
+      const candidate = item as Record<string, unknown>;
+      return (
+        typeof candidate.file === "string" &&
+        typeof candidate.line === "number" &&
+        typeof candidate.message === "string" &&
+        (candidate.identifier === undefined || typeof candidate.identifier === "string")
+      );
+    });
   }
 }

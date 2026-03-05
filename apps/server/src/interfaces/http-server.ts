@@ -3,10 +3,21 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { URL } from "node:url";
-import type { RunService } from "../application/run-service.js";
+import { RunService } from "../application/run-service.js";
+import type { RunIssue } from "../domain/run.js";
 
 interface StartRunBody {
   targetPath: string;
+}
+
+interface AppendLogBody {
+  stream: "stdout" | "stderr";
+  message: string;
+}
+
+interface FinishRunBody {
+  issues: RunIssue[];
+  exitCode: number;
 }
 
 interface TargetPathValidationResult {
@@ -45,8 +56,55 @@ export function createHttpServer(runService: RunService) {
       return;
     }
 
+    const runIdForLog = getRunIdByAction(requestUrl.pathname, "log");
+    if (method === "POST" && runIdForLog) {
+      const body = await readJsonBody(request) as AppendLogBody | null;
+      const stream = body?.stream;
+      const message = body?.message;
+
+      if ((stream !== "stdout" && stream !== "stderr") || typeof message !== "string" || !message) {
+        writeJson(response, 400, { error: "stream and message are required" });
+        return;
+      }
+
+      const run = await runService.appendLog(runIdForLog, stream, message);
+      if (!run) {
+        writeJson(response, 404, { error: "Run not found" });
+        return;
+      }
+
+      writeJson(response, 200, run);
+      return;
+    }
+
+    const runIdForFinish = getRunIdByAction(requestUrl.pathname, "finish");
+    if (method === "POST" && runIdForFinish) {
+      const body = await readJsonBody(request) as FinishRunBody | null;
+      const issues = body?.issues;
+      const exitCode = body?.exitCode;
+
+      if (!RunService.isRunIssueList(issues) || typeof exitCode !== "number") {
+        writeJson(response, 400, { error: "issues and exitCode are required" });
+        return;
+      }
+
+      const run = await runService.finish(runIdForFinish, issues, exitCode);
+      if (!run) {
+        writeJson(response, 404, { error: "Run not found" });
+        return;
+      }
+
+      writeJson(response, 200, run);
+      return;
+    }
+
     writeJson(response, 404, { error: "Not Found" });
   });
+}
+
+function getRunIdByAction(pathname: string, action: "log" | "finish"): string | null {
+  const match = pathname.match(new RegExp(`^/api/runs/([^/]+)/${action}$`));
+  return match?.[1] ?? null;
 }
 
 function validateRunTargetPath(rawTargetPath: unknown): TargetPathValidationResult {

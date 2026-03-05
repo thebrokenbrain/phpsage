@@ -104,6 +104,7 @@ Estado actual:
 - estructura base preparada para desarrollo por fases
 - endpoint inicial de servidor implementado: `GET /healthz`
 - inicio de runs implementado: `POST /api/runs/start` con persistencia en `data/runs`
+- lifecycle parcial de runs implementado: `POST /api/runs/:runId/log` y `POST /api/runs/:runId/finish`
 
 ### Verificación rápida del endpoint inicial
 

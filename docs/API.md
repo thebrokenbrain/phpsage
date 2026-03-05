@@ -44,3 +44,38 @@ This document must be updated in the same iteration where any endpoint is added 
 
 - Response `201`: persisted run record with `status: "running"`
 - Response `400`: invalid `targetPath` (`required`, `does not exist`, `must be a directory`)
+
+- `POST /api/runs/:runId/log`
+- Body:
+
+```json
+{
+	"stream": "stdout",
+	"message": "Running PHPStan..."
+}
+```
+
+- Response `200`: updated run with appended log entry
+- Response `400`: invalid payload (`stream` and `message` required)
+- Response `404`: run not found
+
+- `POST /api/runs/:runId/finish`
+- Body:
+
+```json
+{
+	"issues": [
+		{
+			"file": "src/Example.php",
+			"line": 12,
+			"message": "Example issue",
+			"identifier": "example.identifier"
+		}
+	],
+	"exitCode": 1
+}
+```
+
+- Response `200`: updated run with `status: "finished"`
+- Response `400`: invalid payload (`issues` and `exitCode` required)
+- Response `404`: run not found
