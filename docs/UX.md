@@ -57,12 +57,15 @@ A minimal Dashboard is implemented with:
 - auto-run supports target mode (`starter` or `selected run target`)
 - auto-run scheduler starts analysis at configured interval when no run is currently `running`
 - dashboard summary shows auto-run status and last auto-run timestamp
-- auto-run toggle and interval are persisted in URL query-state (`auto`, `autoInterval`)
+- auto-run toggle, interval and target mode are persisted in URL query-state (`auto`, `autoInterval`, `autoTarget`)
+- auto-run settings are restored from localStorage when URL has no explicit auto-run query-state
 - dashboard indicates when auto-run is waiting for an active run to finish
 - dashboard shows countdown to next auto-run while enabled
 - countdown resets after a successful run start
-- dashboard summary includes auto-run trigger count for current session
+- dashboard summary includes successful auto-run trigger count for current session
 - header includes `Reset auto count` action
+- header includes `Clear auto status` action to remove last auto-run timestamp
+- auto-run is automatically disabled if auto-triggered run start fails
 - header includes `Run now` action using current starter target
 - auto-run scheduler is skipped while starter target path is empty
 - header includes `Copy link` action for sharing current dashboard URL state

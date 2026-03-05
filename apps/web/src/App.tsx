@@ -58,6 +58,7 @@ const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 const defaultRunningPollIntervalMs = 2000;
 const starterTargetStorageKey = "phpsage.runStarter.targetPath";
+const autoRunSettingsStorageKey = "phpsage.dashboard.autoRun.settings";
 const starterTargetPresets = ["/workspace/examples/php-sample", "/workspace/examples/php-sample-ok"];
 
 function readInitialQuerySelection(): {
@@ -78,6 +79,7 @@ function readInitialQuerySelection(): {
   isLogsSectionOpen: boolean;
   isAutoRunEnabled: boolean;
   autoRunIntervalMs: number | null;
+  autoRunTargetMode: "starter" | "selected";
   startTargetPath: string | null;
   isLivePollingEnabled: boolean;
   livePollingIntervalMs: number | null;
@@ -101,6 +103,7 @@ function readInitialQuerySelection(): {
       isLogsSectionOpen: true,
       isAutoRunEnabled: false,
       autoRunIntervalMs: null,
+      autoRunTargetMode: "starter",
       startTargetPath: null,
       isLivePollingEnabled: true,
       livePollingIntervalMs: null
@@ -125,6 +128,7 @@ function readInitialQuerySelection(): {
   const logsOpen = searchParams.get("logsOpen");
   const auto = searchParams.get("auto");
   const autoInterval = searchParams.get("autoInterval");
+  const autoTarget = searchParams.get("autoTarget");
   const target = searchParams.get("target");
   const live = searchParams.get("live");
   const interval = searchParams.get("interval");
@@ -151,6 +155,7 @@ function readInitialQuerySelection(): {
     isLogsSectionOpen: logsOpen !== "0",
     isAutoRunEnabled: auto === "1",
     autoRunIntervalMs: Number.isFinite(parsedAutoInterval) && parsedAutoInterval > 0 ? parsedAutoInterval : null,
+    autoRunTargetMode: autoTarget === "selected" ? "selected" : "starter",
     startTargetPath: target && target.trim().length > 0 ? target : null,
     isLivePollingEnabled: live !== "0",
     livePollingIntervalMs: Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval : null
@@ -172,7 +177,7 @@ export function App(): JSX.Element {
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(initialSelection.isAutoRunEnabled);
   const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(initialSelection.autoRunIntervalMs ?? 15000);
-  const [autoRunTargetMode, setAutoRunTargetMode] = useState<"starter" | "selected">("starter");
+  const [autoRunTargetMode, setAutoRunTargetMode] = useState<"starter" | "selected">(initialSelection.autoRunTargetMode);
   const [autoRunCountdownSec, setAutoRunCountdownSec] = useState(Math.ceil((initialSelection.autoRunIntervalMs ?? 15000) / 1000));
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
   const [autoRunTriggerCount, setAutoRunTriggerCount] = useState(0);
@@ -284,6 +289,9 @@ export function App(): JSX.Element {
       if (autoRunIntervalMs !== 15000) {
         labels.push(`autoInterval:${autoRunIntervalMs}`);
       }
+      if (autoRunTargetMode !== "starter") {
+        labels.push(`autoTarget:${autoRunTargetMode}`);
+      }
     }
 
     return labels;
@@ -297,6 +305,7 @@ export function App(): JSX.Element {
     livePollingIntervalMs,
     logSearchTerm,
     logStreamFilter,
+    autoRunTargetMode,
     runsSortOrder,
     runsStatusFilter
   ]);
@@ -423,7 +432,7 @@ export function App(): JSX.Element {
     }
   }
 
-  async function startRunFromUi(targetPathOverride?: string): Promise<void> {
+  async function startRunFromUi(targetPathOverride?: string, triggerSource: "manual" | "auto" = "manual"): Promise<boolean> {
     const normalizedTargetPath = (targetPathOverride ?? startRunTargetPath).trim();
     if (normalizedTargetPath.length === 0) {
       setStartRunError("Target path is required.");
@@ -453,9 +462,14 @@ export function App(): JSX.Element {
       setSelectedRunId(payload.runId);
       setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
       await loadRuns();
+      return true;
     } catch (startError) {
       const message = startError instanceof Error ? startError.message : String(startError);
       setStartRunError(message);
+      if (triggerSource === "auto") {
+        setIsAutoRunEnabled(false);
+      }
+      return false;
     } finally {
       setStartRunLoading(false);
     }
@@ -528,6 +542,40 @@ export function App(): JSX.Element {
     if (storedTargetPath && storedTargetPath.trim().length > 0) {
       setStartRunTargetPath(storedTargetPath);
     }
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasAutoQueryState =
+      searchParams.has("auto") || searchParams.has("autoInterval") || searchParams.has("autoTarget");
+    if (hasAutoQueryState) {
+      return;
+    }
+
+    const storedAutoRunSettingsRaw = window.localStorage.getItem(autoRunSettingsStorageKey);
+    if (!storedAutoRunSettingsRaw) {
+      return;
+    }
+
+    try {
+      const parsedSettings = JSON.parse(storedAutoRunSettingsRaw) as {
+        isEnabled?: unknown;
+        intervalMs?: unknown;
+        targetMode?: unknown;
+      };
+
+      if (typeof parsedSettings.isEnabled === "boolean") {
+        setIsAutoRunEnabled(parsedSettings.isEnabled);
+      }
+
+      if (typeof parsedSettings.intervalMs === "number" && Number.isFinite(parsedSettings.intervalMs) && parsedSettings.intervalMs > 0) {
+        setAutoRunIntervalMs(parsedSettings.intervalMs);
+      }
+
+      if (parsedSettings.targetMode === "selected" || parsedSettings.targetMode === "starter") {
+        setAutoRunTargetMode(parsedSettings.targetMode);
+      }
+    } catch {
+      window.localStorage.removeItem(autoRunSettingsStorageKey);
+    }
   }, [initialSelection.startTargetPath]);
 
   useEffect(() => {
@@ -537,6 +585,21 @@ export function App(): JSX.Element {
 
     window.localStorage.setItem(starterTargetStorageKey, startRunTargetPath);
   }, [startRunTargetPath]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(
+      autoRunSettingsStorageKey,
+      JSON.stringify({
+        isEnabled: isAutoRunEnabled,
+        intervalMs: autoRunIntervalMs,
+        targetMode: autoRunTargetMode
+      })
+    );
+  }, [autoRunIntervalMs, autoRunTargetMode, isAutoRunEnabled]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -562,6 +625,7 @@ export function App(): JSX.Element {
       setIsLogsSectionOpen(selection.isLogsSectionOpen);
       setIsAutoRunEnabled(selection.isAutoRunEnabled);
       setAutoRunIntervalMs(selection.autoRunIntervalMs ?? 15000);
+      setAutoRunTargetMode(selection.autoRunTargetMode);
       setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
       setIsLivePollingEnabled(selection.isLivePollingEnabled);
       setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
@@ -665,6 +729,12 @@ export function App(): JSX.Element {
       url.searchParams.set("autoInterval", String(autoRunIntervalMs));
     }
 
+    if (autoRunTargetMode === "starter") {
+      url.searchParams.delete("autoTarget");
+    } else {
+      url.searchParams.set("autoTarget", autoRunTargetMode);
+    }
+
     if (startRunTargetPath.trim().length > 0) {
       url.searchParams.set("target", startRunTargetPath);
     } else {
@@ -702,7 +772,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [autoRunIntervalMs, fileSearchTerm, isAutoRunEnabled, isFilesSectionOpen, isIssuesSectionOpen, isLivePollingEnabled, isLogsSectionOpen, isSourceSectionOpen, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
+  }, [autoRunIntervalMs, autoRunTargetMode, fileSearchTerm, isAutoRunEnabled, isFilesSectionOpen, isIssuesSectionOpen, isLivePollingEnabled, isLogsSectionOpen, isSourceSectionOpen, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
@@ -845,9 +915,11 @@ export function App(): JSX.Element {
       }
 
       void (async () => {
-        await startRunFromUi(resolvedAutoTargetPath);
-        setLastAutoRunAt(new Date().toISOString());
-        setAutoRunTriggerCount((currentValue) => currentValue + 1);
+        const didStart = await startRunFromUi(resolvedAutoTargetPath, "auto");
+        if (didStart) {
+          setLastAutoRunAt(new Date().toISOString());
+          setAutoRunTriggerCount((currentValue) => currentValue + 1);
+        }
       })();
     }, autoRunIntervalMs);
 
@@ -1132,6 +1204,14 @@ export function App(): JSX.Element {
             disabled={autoRunTriggerCount === 0}
           >
             Reset auto count
+          </button>
+          <button
+            onClick={() => {
+              setLastAutoRunAt(null);
+            }}
+            disabled={!lastAutoRunAt}
+          >
+            Clear auto status
           </button>
           <button
             onClick={() => {
