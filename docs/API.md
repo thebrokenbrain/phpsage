@@ -33,6 +33,13 @@ This document must be updated in the same iteration where any endpoint is added 
 
 ### Runs
 
+- `GET /api/runs`
+- Response `200`: array of run summaries sorted by `createdAt` desc
+
+- `GET /api/runs/:runId`
+- Response `200`: full run record
+- Response `404`: run not found
+
 - `POST /api/runs/start`
 - Body:
 

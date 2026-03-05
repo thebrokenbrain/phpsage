@@ -1,6 +1,6 @@
 // This file contains run lifecycle use cases orchestrated by the API layer.
 import { randomUUID } from "node:crypto";
-import type { RunIssue, RunLogEntry, RunRecord } from "../domain/run.js";
+import type { RunIssue, RunLogEntry, RunRecord, RunSummary } from "../domain/run.js";
 import type { RunRepository } from "../ports/run-repository.js";
 
 export class RunService {
@@ -61,6 +61,14 @@ export class RunService {
 
     await this.runRepository.save(updated);
     return updated;
+  }
+
+  public async getById(runId: string): Promise<RunRecord | null> {
+    return this.runRepository.findById(runId);
+  }
+
+  public async list(): Promise<RunSummary[]> {
+    return this.runRepository.listSummaries();
   }
 
   public static isRunIssueList(value: unknown): value is RunIssue[] {

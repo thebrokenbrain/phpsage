@@ -43,6 +43,24 @@ export function createHttpServer(runService: RunService) {
       return;
     }
 
+    if (method === "GET" && requestUrl.pathname === "/api/runs") {
+      const runs = await runService.list();
+      writeJson(response, 200, runs);
+      return;
+    }
+
+    const runIdFromPath = getRunIdFromPath(requestUrl.pathname);
+    if (method === "GET" && runIdFromPath) {
+      const run = await runService.getById(runIdFromPath);
+      if (!run) {
+        writeJson(response, 404, { error: "Run not found" });
+        return;
+      }
+
+      writeJson(response, 200, run);
+      return;
+    }
+
     if (method === "POST" && requestUrl.pathname === "/api/runs/start") {
       const body = (await readJsonBody(request)) as StartRunBody | null;
       const targetPathValidation = validateRunTargetPath(body?.targetPath);
@@ -104,6 +122,11 @@ export function createHttpServer(runService: RunService) {
 
 function getRunIdByAction(pathname: string, action: "log" | "finish"): string | null {
   const match = pathname.match(new RegExp(`^/api/runs/([^/]+)/${action}$`));
+  return match?.[1] ?? null;
+}
+
+function getRunIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/^\/api\/runs\/([^/]+)$/);
   return match?.[1] ?? null;
 }
 
