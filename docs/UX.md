@@ -52,6 +52,7 @@ A minimal Dashboard is implemented with:
 - selected polling interval is persisted in URL query-state (`interval`)
 - header includes `Copy link` action for sharing current dashboard URL state
 - header includes `Reset controls` action to restore default dashboard controls
+- header includes `API docs` quick access action
 - manual refresh action
 - UI can start a run by target path (`POST /api/runs/start` with `execute=true`)
 - run starter target path is persisted in URL query-state (`target`)

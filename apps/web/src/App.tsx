@@ -974,6 +974,15 @@ export function App(): JSX.Element {
           </button>
           <button
             onClick={() => {
+              if (typeof window !== "undefined") {
+                window.open("http://localhost:8081", "_blank", "noopener,noreferrer");
+              }
+            }}
+          >
+            API docs
+          </button>
+          <button
+            onClick={() => {
               if (latestRunningRunId) {
                 setSelectedRunId(latestRunningRunId);
                 setSelectedIssueIndex(0);

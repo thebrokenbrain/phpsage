@@ -169,6 +169,7 @@ Estado actual:
 - intervalo de polling persistido en URL
 - acción `Copy link` para compartir el estado actual del dashboard
 - acción `Reset controls` para restaurar controles del dashboard
+- acción rápida `API docs` desde cabecera del dashboard
 
 ### Verificación rápida del endpoint inicial
 
