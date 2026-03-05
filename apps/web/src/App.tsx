@@ -449,6 +449,7 @@ export function App(): JSX.Element {
 
       const payload = (await response.json()) as StartRunPayload;
       setSelectedRunId(payload.runId);
+      setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
       await loadRuns();
     } catch (startError) {
       const message = startError instanceof Error ? startError.message : String(startError);

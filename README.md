@@ -176,6 +176,7 @@ Estado actual:
 - estado y intervalo de auto-run persistidos en URL
 - indicador visual cuando auto-run está esperando a que termine un run activo
 - contador visible del tiempo restante hasta el próximo auto-run
+- el contador de auto-run se reinicia tras un inicio de run exitoso
 - acción `Run now` en cabecera usando el `targetPath` actual
 - auto-run no se dispara cuando `targetPath` está vacío
 - acción `Copy link` para compartir el estado actual del dashboard
