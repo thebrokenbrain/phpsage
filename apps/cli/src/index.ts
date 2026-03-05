@@ -1,6 +1,6 @@
 // This file provides the PHPSage CLI command for running PHPStan and syncing run lifecycle events.
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { parsePhpstanJsonOutput, type ParsedPhpstanIssue } from "@phpsage/shared";
 
@@ -11,6 +11,8 @@ interface CliOptions {
 	readonly cwd: string;
 	readonly memoryLimit?: string;
 	readonly openBrowser: boolean;
+	readonly watch: boolean;
+	readonly watchIntervalMs: number;
 }
 
 interface AppCommandOptions {
@@ -58,11 +60,67 @@ async function main(): Promise<void> {
 		process.stdout.write(`PHPSage UI available at ${options.serverUrl}\n`);
 	}
 
+	if (options.watch) {
+		await runWatchMode(options);
+		return;
+	}
+
+	const exitCode = await runAnalyseCycle(options);
+	process.exitCode = exitCode;
+}
+
+async function runWatchMode(options: CliOptions): Promise<void> {
+	process.stdout.write(`Watch mode enabled for ${options.targetPath} (${options.watchIntervalMs}ms)\n`);
+	let isRunning = false;
+	let rerunRequested = false;
+	let lastSnapshot = createTargetSnapshot(options.targetPath);
+
+	const executeCycle = async () => {
+		if (isRunning) {
+			rerunRequested = true;
+			return;
+		}
+
+		isRunning = true;
+		try {
+			const exitCode = await runAnalyseCycle(options);
+			process.stdout.write(`Watch cycle finished with exitCode=${exitCode}\n`);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			process.stderr.write(`Watch cycle error: ${message}\n`);
+		} finally {
+			isRunning = false;
+			if (rerunRequested) {
+				rerunRequested = false;
+				await executeCycle();
+			}
+		}
+	};
+
+	await executeCycle();
+
+	setInterval(() => {
+		const nextSnapshot = createTargetSnapshot(options.targetPath);
+		if (nextSnapshot === lastSnapshot) {
+			return;
+		}
+
+		lastSnapshot = nextSnapshot;
+		process.stdout.write("Changes detected. Scheduling analysis...\n");
+		void executeCycle();
+	}, options.watchIntervalMs);
+
+	await new Promise<void>(() => {
+		// Keep process alive while watching.
+	});
+}
+
+async function runAnalyseCycle(options: CliOptions): Promise<number> {
 	const run = await postJson<StartRunResponse>(`${options.serverUrl}/api/runs/start`, {
 		targetPath: options.targetPath
 	});
 
-	await runPhpstanAndFinalize(options, run.runId);
+	return runPhpstanAndFinalize(options, run.runId);
 }
 
 function startAppExperience(options: AppCommandOptions): void {
@@ -73,7 +131,7 @@ function startAppExperience(options: AppCommandOptions): void {
 	process.stdout.write("Use the Dashboard target selector to choose a folder and click Run.\n");
 }
 
-async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promise<void> {
+async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promise<number> {
 	const phpstanArgs = buildPhpstanArgs(options);
 	const stdoutChunks: string[] = [];
 	const stderrChunks: string[] = [];
@@ -135,7 +193,55 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 	});
 
 	process.stdout.write(`Run finished. runId=${runId} exitCode=${exitCode} issues=${issues.length}\n`);
-	process.exitCode = exitCode;
+	return exitCode;
+}
+
+function createTargetSnapshot(targetPath: string): string {
+	const entries: string[] = [];
+
+	function walk(currentPath: string): void {
+		let directoryEntries: ReturnType<typeof readdirSync>;
+		try {
+			directoryEntries = readdirSync(currentPath, { withFileTypes: true });
+		} catch {
+			return;
+		}
+
+		for (const entry of directoryEntries) {
+			if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "vendor") {
+				continue;
+			}
+
+			const fullPath = resolve(currentPath, entry.name);
+			if (entry.isDirectory()) {
+				walk(fullPath);
+				continue;
+			}
+
+			if (!isWatchedPath(entry.name)) {
+				continue;
+			}
+
+			try {
+				const fileStat = statSync(fullPath);
+				entries.push(`${fullPath}:${fileStat.mtimeMs}:${fileStat.size}`);
+			} catch {
+				// Ignore transient file access errors.
+			}
+		}
+	}
+
+	walk(targetPath);
+	entries.sort((leftEntry, rightEntry) => leftEntry.localeCompare(rightEntry));
+	return entries.join("|");
+}
+
+function isWatchedPath(fileName: string): boolean {
+	if (fileName.endsWith(".php")) {
+		return true;
+	}
+
+	return fileName === "phpstan.neon" || fileName === "phpstan.neon.dist" || fileName === "composer.json";
 }
 
 function buildPhpstanArgs(options: CliOptions): string[] {
@@ -235,6 +341,8 @@ function parseArguments(args: string[]): CliCommand | null {
 	const cwd = resolve(getFlagValue(args, "--cwd") ?? process.cwd());
 	const memoryLimit = getFlagValue(args, "--memory-limit");
 	const openBrowser = !args.includes("--no-open");
+	const watch = args.includes("--watch");
+	const watchIntervalMs = parsePositiveIntegerFlag(args, "--watch-interval", 2000);
 	const serverUrlFromEnv = process.env.PHPSAGE_SERVER_URL;
 
 	const defaultPort = portFromFlag ?? "8080";
@@ -252,9 +360,25 @@ function parseArguments(args: string[]): CliCommand | null {
 			phpstanBin,
 			cwd,
 			memoryLimit,
-			openBrowser
+			openBrowser,
+			watch,
+			watchIntervalMs
 		}
 	};
+}
+
+function parsePositiveIntegerFlag(args: string[], flag: string, defaultValue: number): number {
+	const rawValue = getFlagValue(args, flag);
+	if (!rawValue) {
+		return defaultValue;
+	}
+
+	const parsedValue = Number.parseInt(rawValue, 10);
+	if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+		return defaultValue;
+	}
+
+	return parsedValue;
 }
 
 function parseAppArguments(args: string[]): AppCommandOptions | null {
@@ -292,7 +416,7 @@ function printUsage(): void {
 	process.stdout.write(
 		"Usage:\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
-			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--docker] [--server-url <url>]\n"
+			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--docker] [--server-url <url>]\n"
 	);
 }
 

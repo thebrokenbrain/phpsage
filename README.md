@@ -97,7 +97,7 @@ Funcionalidades objetivo del producto:
 - persistencia e historial de runs
 - consulta por API de estado, detalle y artefactos de ejecución
 - visualización web de logs, issues y navegación por run
-- watch/auto-run en fases de paridad no-IA
+- auto-run en fases de paridad no-IA
 - explain y suggest-fix con guardarraíles en fase IA/RAG
 
 Estado actual:
@@ -113,6 +113,8 @@ Estado actual:
 - listado de archivos por run implementado: `GET /api/runs/:runId/files`
 - ejecución real de PHPStan desde server habilitada con `POST /api/runs/start` usando `execute=true`
 - CLI base implementada: `phpsage phpstan analyse <path>` con sincronización `start/log/finish`
+- modo watch CLI implementado: `phpsage phpstan analyse <path> --watch [--watch-interval <ms>]`
+- watch CLI re-ejecuta análisis al detectar cambios en `.php`, `phpstan.neon`, `phpstan.neon.dist` y `composer.json`
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - selección por defecto prioriza runs en estado `running` cuando existen
