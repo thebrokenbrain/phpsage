@@ -71,6 +71,7 @@ function readInitialQuerySelection(): {
   issueSearchTerm: string;
   issueIdentifierFilter: "all" | "with" | "without";
   logSearchTerm: string;
+  logStreamFilter: "all" | "stdout" | "stderr";
   startTargetPath: string | null;
   isLivePollingEnabled: boolean;
   livePollingIntervalMs: number | null;
@@ -87,6 +88,7 @@ function readInitialQuerySelection(): {
       issueSearchTerm: "",
       issueIdentifierFilter: "all",
       logSearchTerm: "",
+      logStreamFilter: "all",
       startTargetPath: null,
       isLivePollingEnabled: true,
       livePollingIntervalMs: null
@@ -104,6 +106,7 @@ function readInitialQuerySelection(): {
   const issueQuery = searchParams.get("issueQuery");
   const issueIdentifier = searchParams.get("issueIdentifier");
   const logQuery = searchParams.get("logQuery");
+  const logStream = searchParams.get("logStream");
   const target = searchParams.get("target");
   const live = searchParams.get("live");
   const interval = searchParams.get("interval");
@@ -122,6 +125,7 @@ function readInitialQuerySelection(): {
     issueSearchTerm: issueQuery ?? "",
     issueIdentifierFilter: issueIdentifier === "with" || issueIdentifier === "without" ? issueIdentifier : "all",
     logSearchTerm: logQuery ?? "",
+    logStreamFilter: logStream === "stdout" || logStream === "stderr" ? logStream : "all",
     startTargetPath: target && target.trim().length > 0 ? target : null,
     isLivePollingEnabled: live !== "0",
     livePollingIntervalMs: Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval : null
@@ -154,7 +158,7 @@ export function App(): JSX.Element {
   const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
   const [logSearchTerm, setLogSearchTerm] = useState(initialSelection.logSearchTerm);
-  const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">("all");
+  const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">(initialSelection.logStreamFilter);
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
   const [fileSearchTerm, setFileSearchTerm] = useState(initialSelection.fileSearchTerm);
@@ -436,6 +440,7 @@ export function App(): JSX.Element {
       setIssueSearchTerm(selection.issueSearchTerm);
       setIssueIdentifierFilter(selection.issueIdentifierFilter);
       setLogSearchTerm(selection.logSearchTerm);
+      setLogStreamFilter(selection.logStreamFilter);
       setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
       setIsLivePollingEnabled(selection.isLivePollingEnabled);
       setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
@@ -497,6 +502,12 @@ export function App(): JSX.Element {
       url.searchParams.delete("logQuery");
     }
 
+    if (logStreamFilter === "all") {
+      url.searchParams.delete("logStream");
+    } else {
+      url.searchParams.set("logStream", logStreamFilter);
+    }
+
     if (startRunTargetPath.trim().length > 0) {
       url.searchParams.set("target", startRunTargetPath);
     } else {
@@ -534,7 +545,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [fileSearchTerm, isLivePollingEnabled, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
+  }, [fileSearchTerm, isLivePollingEnabled, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
