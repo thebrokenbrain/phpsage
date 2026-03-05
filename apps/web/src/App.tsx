@@ -46,6 +46,7 @@ interface SourcePayload {
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
+const runningPollIntervalMs = 2000;
 
 function readInitialQuerySelection(): {
   runId: string | null;
@@ -229,6 +230,54 @@ export function App(): JSX.Element {
 
     void loadRunDetail(selectedRunId);
   }, [apiBaseUrl, selectedRunId]);
+
+  useEffect(() => {
+    async function pollRunningRun(runId: string): Promise<void> {
+      try {
+        const [runsResponse, detailResponse] = await Promise.all([
+          fetch(`${apiBaseUrl}/api/runs`),
+          fetch(`${apiBaseUrl}/api/runs/${runId}`)
+        ]);
+
+        if (!runsResponse.ok) {
+          throw new Error(`HTTP ${runsResponse.status}`);
+        }
+
+        if (!detailResponse.ok) {
+          throw new Error(`HTTP ${detailResponse.status}`);
+        }
+
+        const runsPayload = (await runsResponse.json()) as RunSummary[];
+        const detailPayload = (await detailResponse.json()) as RunRecord;
+
+        setRuns(runsPayload);
+        setSelectedRun(detailPayload);
+        setDetailError(null);
+        setSelectedSourceFilePath((currentPath) => {
+          if (!currentPath) {
+            return null;
+          }
+
+          return currentPath.startsWith(`${detailPayload.targetPath}/`) ? currentPath : null;
+        });
+      } catch (pollError) {
+        const message = pollError instanceof Error ? pollError.message : String(pollError);
+        setDetailError(message);
+      }
+    }
+
+    if (!selectedRunId || !selectedRun || selectedRun.status !== "running") {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void pollRunningRun(selectedRunId);
+    }, runningPollIntervalMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [apiBaseUrl, selectedRun, selectedRunId]);
 
   useEffect(() => {
     if (!selectedRun) {

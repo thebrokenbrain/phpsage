@@ -122,6 +122,7 @@ Estado actual:
 - estado básico en URL de la web (`runId`, `file`, `issue`, `logPage`) para restaurar selección al recargar
 - navegación atrás/adelante del navegador restaurando ese mismo estado URL
 - navegación de issue/log en detalle sin refetch innecesario del run cuando no cambia `runId`
+- auto-refresh ligero en web cada 2s para run seleccionado en estado `running` (lista + detalle)
 
 ### Verificación rápida del endpoint inicial
 
