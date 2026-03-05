@@ -276,9 +276,18 @@ export function App(): JSX.Element {
       labels.push(`interval:${livePollingIntervalMs}`);
     }
 
+    if (isAutoRunEnabled) {
+      labels.push("auto:on");
+      if (autoRunIntervalMs !== 15000) {
+        labels.push(`autoInterval:${autoRunIntervalMs}`);
+      }
+    }
+
     return labels;
   }, [
+    autoRunIntervalMs,
     fileSearchTerm,
+    isAutoRunEnabled,
     isLivePollingEnabled,
     issueIdentifierFilter,
     issueSearchTerm,
