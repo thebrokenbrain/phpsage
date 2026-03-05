@@ -1136,6 +1136,22 @@ export function App(): JSX.Element {
         <p className="empty">No runs match current status filter.</p>
       ) : null}
 
+      {!loading && runs.length > 0 && !selectedRunId ? (
+        <section className="selection-empty">
+          <p>Select a run from the table to inspect details.</p>
+          <button
+            onClick={() => {
+              if (latestRunningRunId) {
+                setSelectedRunId(latestRunningRunId);
+              }
+            }}
+            disabled={!latestRunningRunId}
+          >
+            Jump to running
+          </button>
+        </section>
+      ) : null}
+
       {selectedRunId ? (
         <section className="detail-panel">
           <h2>Run detail</h2>

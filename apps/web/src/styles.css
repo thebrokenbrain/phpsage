@@ -181,6 +181,17 @@ button:disabled {
   padding: 14px;
 }
 
+.selection-empty {
+  margin-top: 10px;
+  border: 1px dashed #d1d5db;
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .detail-panel h2 {
   margin: 0 0 8px;
   font-size: 1rem;
