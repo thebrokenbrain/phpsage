@@ -120,6 +120,7 @@ export function App(): JSX.Element {
 
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
+  const [runsSortOrder, setRunsSortOrder] = useState<"updatedDesc" | "updatedAsc">("updatedDesc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
@@ -150,6 +151,22 @@ export function App(): JSX.Element {
 
     return runs.filter((run) => run.status === runsStatusFilter);
   }, [runs, runsStatusFilter]);
+
+  const visibleRuns = useMemo(() => {
+    const sortedRuns = [...filteredRuns];
+    sortedRuns.sort((leftRun, rightRun) => {
+      const leftTimestamp = new Date(leftRun.updatedAt).getTime();
+      const rightTimestamp = new Date(rightRun.updatedAt).getTime();
+
+      if (runsSortOrder === "updatedAsc") {
+        return leftTimestamp - rightTimestamp;
+      }
+
+      return rightTimestamp - leftTimestamp;
+    });
+
+    return sortedRuns;
+  }, [filteredRuns, runsSortOrder]);
 
   const visibleRunFiles = useMemo(() => {
     const normalizedTerm = fileSearchTerm.trim().toLowerCase();
@@ -610,6 +627,24 @@ export function App(): JSX.Element {
               <option value="finished">Finished</option>
             </select>
           </label>
+          <label>
+            Sort
+            <select
+              value={runsSortOrder}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "updatedAsc") {
+                  setRunsSortOrder("updatedAsc");
+                  return;
+                }
+
+                setRunsSortOrder("updatedDesc");
+              }}
+            >
+              <option value="updatedDesc">Updated ↓</option>
+              <option value="updatedAsc">Updated ↑</option>
+            </select>
+          </label>
           <label className="toggle-label">
             <input
               type="checkbox"
@@ -681,7 +716,7 @@ export function App(): JSX.Element {
 
       {!loading && runs.length === 0 ? <p className="empty">No runs yet.</p> : null}
 
-      {filteredRuns.length > 0 ? (
+      {visibleRuns.length > 0 ? (
         <table className="runs-table">
           <thead>
             <tr>
@@ -694,7 +729,7 @@ export function App(): JSX.Element {
             </tr>
           </thead>
           <tbody>
-            {filteredRuns.map((run) => (
+            {visibleRuns.map((run) => (
               <tr
                 key={run.runId}
                 className={run.runId === selectedRunId ? "selected" : ""}
@@ -716,7 +751,7 @@ export function App(): JSX.Element {
         </table>
       ) : null}
 
-      {!loading && runs.length > 0 && filteredRuns.length === 0 ? (
+      {!loading && runs.length > 0 && visibleRuns.length === 0 ? (
         <p className="empty">No runs match current status filter.</p>
       ) : null}
 

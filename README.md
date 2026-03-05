@@ -117,6 +117,7 @@ Estado actual:
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - selección por defecto prioriza runs en estado `running` cuando existen
 - filtro por estado en tabla de runs (`all`, `running`, `finished`) persistido en URL
+- ordenación de runs por fecha de actualización (asc/desc)
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 - inicio de run desde UI por `targetPath` usando `POST /api/runs/start` con `execute=true`
 - `targetPath` del formulario de inicio persistido en URL para compartir contexto
