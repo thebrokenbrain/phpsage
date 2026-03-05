@@ -56,7 +56,7 @@ interface StartRunPayload {
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
-const runningPollIntervalMs = 2000;
+const defaultRunningPollIntervalMs = 2000;
 const starterTargetStorageKey = "phpsage.runStarter.targetPath";
 
 function readInitialQuerySelection(): {
@@ -118,6 +118,7 @@ export function App(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
+  const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(defaultRunningPollIntervalMs);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
   const [startRunLoading, setStartRunLoading] = useState(false);
   const [startRunError, setStartRunError] = useState<string | null>(null);
@@ -441,12 +442,12 @@ export function App(): JSX.Element {
 
     const intervalId = window.setInterval(() => {
       void pollRunningRun(selectedRunId);
-    }, runningPollIntervalMs);
+    }, livePollingIntervalMs);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [apiBaseUrl, isLivePollingEnabled, selectedRun, selectedRunId]);
+  }, [apiBaseUrl, isLivePollingEnabled, livePollingIntervalMs, selectedRun, selectedRunId]);
 
   useEffect(() => {
     if (!selectedRun) {
@@ -606,6 +607,22 @@ export function App(): JSX.Element {
               }}
             />
             Live polling
+          </label>
+          <label>
+            Interval
+            <select
+              value={livePollingIntervalMs}
+              onChange={(event) => {
+                const nextValue = Number.parseInt(event.target.value, 10);
+                if (Number.isFinite(nextValue) && nextValue > 0) {
+                  setLivePollingIntervalMs(nextValue);
+                }
+              }}
+            >
+              <option value={2000}>2s</option>
+              <option value={5000}>5s</option>
+              <option value={10000}>10s</option>
+            </select>
           </label>
           <button onClick={() => void loadRuns()} disabled={loading}>
             {loading ? "Loading..." : "Refresh"}

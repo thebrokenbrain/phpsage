@@ -137,6 +137,7 @@ Estado actual:
 - indicador visual `Live updating` en detalle cuando el run está en ejecución
 - toggle en cabecera para activar/desactivar live polling
 - estado del toggle de live polling persistido en URL
+- selector en cabecera para intervalo de polling (`2s`, `5s`, `10s`)
 
 ### Verificación rápida del endpoint inicial
 
