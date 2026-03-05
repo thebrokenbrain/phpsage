@@ -394,3 +394,148 @@ test("GET /api/runs/:runId/files returns php files merged with issue-only files"
     rmSync(workspaceDir, { recursive: true, force: true });
   }
 });
+
+test("GET /api/runs returns run summaries", async () => {
+  const httpServer = await startTestHttpServer();
+  const workspaceDir = mkdtempSync(join(tmpdir(), "phpsage-http-list-"));
+  const targetA = join(workspaceDir, "project-a");
+  const targetB = join(workspaceDir, "project-b");
+  mkdirSync(targetA, { recursive: true });
+  mkdirSync(targetB, { recursive: true });
+
+  try {
+    const runAStart = await fetch(`${httpServer.baseUrl}/api/runs/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ targetPath: targetA })
+    });
+    assert.equal(runAStart.status, 201);
+    const runA = (await runAStart.json()) as { runId: string };
+
+    const runBStart = await fetch(`${httpServer.baseUrl}/api/runs/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ targetPath: targetB })
+    });
+    assert.equal(runBStart.status, 201);
+    const runB = (await runBStart.json()) as { runId: string };
+
+    const runBFinish = await fetch(`${httpServer.baseUrl}/api/runs/${runB.runId}/finish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        issues: [
+          {
+            file: "src/b.php",
+            line: 2,
+            message: "Example issue"
+          }
+        ],
+        exitCode: 1
+      })
+    });
+    assert.equal(runBFinish.status, 200);
+
+    const listResponse = await fetch(`${httpServer.baseUrl}/api/runs`);
+    assert.equal(listResponse.status, 200);
+    const summaries = (await listResponse.json()) as Array<{
+      runId: string;
+      targetPath: string;
+      status: string;
+      exitCode: number | null;
+      issueCount: number;
+    }>;
+
+    assert.equal(summaries.length, 2);
+    const byId = new Map(summaries.map((summary) => [summary.runId, summary]));
+
+    const summaryA = byId.get(runA.runId);
+    assert.ok(summaryA);
+    assert.equal(summaryA.targetPath, targetA);
+    assert.equal(summaryA.status, "running");
+    assert.equal(summaryA.exitCode, null);
+    assert.equal(summaryA.issueCount, 0);
+
+    const summaryB = byId.get(runB.runId);
+    assert.ok(summaryB);
+    assert.equal(summaryB.targetPath, targetB);
+    assert.equal(summaryB.status, "finished");
+    assert.equal(summaryB.exitCode, 1);
+    assert.equal(summaryB.issueCount, 1);
+  } finally {
+    await httpServer.close();
+    rmSync(workspaceDir, { recursive: true, force: true });
+  }
+});
+
+test("GET /api/runs/:runId returns run details and 404 for missing run", async () => {
+  const httpServer = await startTestHttpServer();
+  const workspaceDir = mkdtempSync(join(tmpdir(), "phpsage-http-detail-"));
+  const targetPath = join(workspaceDir, "project");
+  mkdirSync(targetPath, { recursive: true });
+
+  try {
+    const notFoundResponse = await fetch(`${httpServer.baseUrl}/api/runs/missing`);
+    assert.equal(notFoundResponse.status, 404);
+
+    const startResponse = await fetch(`${httpServer.baseUrl}/api/runs/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ targetPath })
+    });
+    assert.equal(startResponse.status, 201);
+    const startedRun = (await startResponse.json()) as { runId: string };
+
+    const logResponse = await fetch(`${httpServer.baseUrl}/api/runs/${startedRun.runId}/log`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ stream: "stdout", message: "hello" })
+    });
+    assert.equal(logResponse.status, 200);
+
+    const finishResponse = await fetch(`${httpServer.baseUrl}/api/runs/${startedRun.runId}/finish`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        issues: [
+          {
+            file: "src/file.php",
+            line: 10,
+            message: "Issue from detail test"
+          }
+        ],
+        exitCode: 1
+      })
+    });
+    assert.equal(finishResponse.status, 200);
+
+    const detailResponse = await fetch(`${httpServer.baseUrl}/api/runs/${startedRun.runId}`);
+    assert.equal(detailResponse.status, 200);
+    const detail = (await detailResponse.json()) as RunRecord;
+
+    assert.equal(detail.runId, startedRun.runId);
+    assert.equal(detail.targetPath, targetPath);
+    assert.equal(detail.status, "finished");
+    assert.equal(detail.exitCode, 1);
+    assert.equal(detail.logs.length, 1);
+    assert.equal(detail.logs[0]?.stream, "stdout");
+    assert.equal(detail.logs[0]?.message, "hello");
+    assert.equal(detail.issues.length, 1);
+    assert.equal(detail.issues[0]?.file, "src/file.php");
+  } finally {
+    await httpServer.close();
+    rmSync(workspaceDir, { recursive: true, force: true });
+  }
+});

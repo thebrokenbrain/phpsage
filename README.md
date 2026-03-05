@@ -131,7 +131,7 @@ Estado actual:
 - tests de CLI también cubren casos negativos de parser (flags inválidas/valores faltantes/target inválido)
 - tests de server migrados para `RunService` y `FileRunRepository`
 - tests HTTP de server cubren validación de `POST /api/runs/start` para `targetPath`
-- tests HTTP de server también cubren `POST /api/runs/:runId/log`, `POST /api/runs/:runId/finish`, `GET /api/runs/:runId/source` y `GET /api/runs/:runId/files`
+- tests HTTP de server también cubren `GET /api/runs`, `GET /api/runs/:runId`, `POST /api/runs/:runId/log`, `POST /api/runs/:runId/finish`, `GET /api/runs/:runId/source` y `GET /api/runs/:runId/files`
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - selección por defecto prioriza runs en estado `running` cuando existen
