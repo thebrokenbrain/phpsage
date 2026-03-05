@@ -116,8 +116,10 @@ Estado actual:
 - modo watch CLI implementado: `phpsage phpstan analyse <path> --watch [--watch-interval <ms>]`
 - watch CLI re-ejecuta análisis al detectar cambios en `.php`, `phpstan.neon`, `phpstan.neon.dist` y `composer.json`
 - watch CLI soporta `--watch-debounce`, `--watch-no-initial`, `--watch-quiet` y `--watch-ignore <dir1,dir2>`
+- watch CLI soporta `--watch-max-cycles <n>` para cortar automáticamente tras `n` ciclos
 - watch CLI finaliza de forma limpia en `SIGINT`/`SIGTERM` con resumen de ciclos
 - watch CLI valida que el `targetPath` exista y sea directorio antes de arrancar
+- watch CLI muestra telemetría básica del watcher (número de archivos monitorizados y variación al detectar cambios)
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - selección por defecto prioriza runs en estado `running` cuando existen

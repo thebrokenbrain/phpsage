@@ -17,6 +17,12 @@ interface CliOptions {
 	readonly watchRunOnStart: boolean;
 	readonly watchQuiet: boolean;
 	readonly watchIgnoredDirectories: readonly string[];
+	readonly watchMaxCycles: number | null;
+}
+
+interface TargetSnapshot {
+	readonly fingerprint: string;
+	readonly fileCount: number;
 }
 
 interface WatchRuntimeState {
@@ -99,7 +105,10 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 		isStopping: false
 	};
 
-	let lastSnapshot = createTargetSnapshot(options.targetPath);
+	let lastSnapshot = createTargetSnapshot(options.targetPath, options.watchIgnoredDirectories);
+	if (!options.watchQuiet) {
+		process.stdout.write(`Watch mode is tracking ${lastSnapshot.fileCount} files\n`);
+	}
 	let pollTimer: NodeJS.Timeout | null = null;
 	let debounceTimer: NodeJS.Timeout | null = null;
 
@@ -146,6 +155,12 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 		state.cycleCount += 1;
 		const cycleStartedAt = Date.now();
 		try {
+			if (options.watchMaxCycles && state.cycleCount > options.watchMaxCycles) {
+				state.isStopping = true;
+				process.stdout.write(`Watch max cycles reached (${options.watchMaxCycles}). Stopping...\n`);
+				return;
+			}
+
 			const exitCode = await runAnalyseCycle(options);
 			state.lastExitCode = exitCode;
 			if (exitCode === 0) {
@@ -196,7 +211,13 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 
 		pollTimer = setTimeout(() => {
 			const nextSnapshot = createTargetSnapshot(options.targetPath, options.watchIgnoredDirectories);
-			if (nextSnapshot !== lastSnapshot) {
+			if (nextSnapshot.fingerprint !== lastSnapshot.fingerprint) {
+				if (!options.watchQuiet) {
+					process.stdout.write(
+						`Watch detected changes (files: ${lastSnapshot.fileCount} -> ${nextSnapshot.fileCount})\n`
+					);
+				}
+
 				lastSnapshot = nextSnapshot;
 				scheduleDebouncedCycle();
 			}
@@ -297,7 +318,7 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 	return exitCode;
 }
 
-function createTargetSnapshot(targetPath: string, ignoredDirectories: readonly string[] = []): string {
+function createTargetSnapshot(targetPath: string, ignoredDirectories: readonly string[] = []): TargetSnapshot {
 	const ignoredDirectorySet = new Set<string>([".git", "node_modules", "vendor", ...ignoredDirectories]);
 	const entries: string[] = [];
 
@@ -335,7 +356,10 @@ function createTargetSnapshot(targetPath: string, ignoredDirectories: readonly s
 
 	walk(targetPath);
 	entries.sort((leftEntry, rightEntry) => leftEntry.localeCompare(rightEntry));
-	return entries.join("|");
+	return {
+		fingerprint: entries.join("|"),
+		fileCount: entries.length
+	};
 }
 
 function ensureTargetPathIsDirectory(targetPath: string): void {
@@ -460,6 +484,7 @@ function parseArguments(args: string[]): CliCommand | null {
 	const watchRunOnStart = !args.includes("--watch-no-initial");
 	const watchQuiet = args.includes("--watch-quiet");
 	const watchIgnoredDirectories = parseListFlag(args, "--watch-ignore");
+	const watchMaxCycles = parsePositiveIntegerFlagOrNull(args, "--watch-max-cycles");
 	const serverUrlFromEnv = process.env.PHPSAGE_SERVER_URL;
 
 	const defaultPort = portFromFlag ?? "8080";
@@ -483,7 +508,8 @@ function parseArguments(args: string[]): CliCommand | null {
 			watchDebounceMs,
 			watchRunOnStart,
 			watchQuiet,
-			watchIgnoredDirectories
+			watchIgnoredDirectories,
+			watchMaxCycles
 		}
 	};
 }
@@ -497,6 +523,20 @@ function parsePositiveIntegerFlag(args: string[], flag: string, defaultValue: nu
 	const parsedValue = Number.parseInt(rawValue, 10);
 	if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
 		return defaultValue;
+	}
+
+	return parsedValue;
+}
+
+function parsePositiveIntegerFlagOrNull(args: string[], flag: string): number | null {
+	const rawValue = getFlagValue(args, flag);
+	if (!rawValue) {
+		return null;
+	}
+
+	const parsedValue = Number.parseInt(rawValue, 10);
+	if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+		return null;
 	}
 
 	return parsedValue;
@@ -549,7 +589,7 @@ function printUsage(): void {
 	process.stdout.write(
 		"Usage:\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
-			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--docker] [--server-url <url>]\n"
+			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-max-cycles <n>] [--docker] [--server-url <url>]\n"
 	);
 }
 
