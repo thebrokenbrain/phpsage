@@ -15,13 +15,7 @@ This document must be updated in the same iteration where any endpoint is added 
 ### Health
 
 - `GET /healthz`
-- Response `200`:
-
-```json
-{
-	"status": "ok"
-}
-```
+- Response `200` (text/plain): `ok`
 
 - Response `404` for unknown routes:
 

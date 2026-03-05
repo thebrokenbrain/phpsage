@@ -43,7 +43,7 @@ export function createHttpServer(runService: RunService, runSourceReader: RunSou
     }
 
     if (method === "GET" && requestUrl.pathname === "/healthz") {
-      writeJson(response, 200, { status: "ok" });
+      writeText(response, 200, "ok");
       return;
     }
 
@@ -321,6 +321,12 @@ function writeJson(response: ServerResponse, statusCode: number, body: unknown):
   response.statusCode = statusCode;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.end(JSON.stringify(body));
+}
+
+function writeText(response: ServerResponse, statusCode: number, body: string): void {
+  response.statusCode = statusCode;
+  response.setHeader("Content-Type", "text/plain; charset=utf-8");
+  response.end(body);
 }
 
 function applyCorsHeaders(response: ServerResponse): void {
