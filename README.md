@@ -119,6 +119,7 @@ Estado actual:
 - filtro por estado en tabla de runs (`all`, `running`, `finished`) persistido en URL
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 - panel de detalle web ampliado con paginación de issues y logs
+- filas de issues muestran identificador de PHPStan cuando existe
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
 - navegador de archivos por run en web (`GET /api/runs/:runId/files`)
 - filtro por ruta en navegador de archivos persistido en URL

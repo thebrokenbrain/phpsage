@@ -13,6 +13,7 @@ A minimal Dashboard is implemented with:
 - files navigator in detail backed by `GET /api/runs/:runId/files`
 - files navigator includes search filter by path persisted in URL query-state
 - paginated issues and logs sections in run detail
+- issue rows display PHPStan identifier when available
 - source preview for selected issue backed by `GET /api/runs/:runId/source`
 - URL query-state for selected run, file, issue, and logs page (`?runId=...&file=...&issue=...&logPage=...`) with reload restore (including pagination context)
 - browser back/forward navigation restores the same URL state (`popstate` handling)

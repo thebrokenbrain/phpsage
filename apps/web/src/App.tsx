@@ -634,6 +634,7 @@ export function App(): JSX.Element {
                           }}
                         >
                           <span className="mono">{issue.file}:{issue.line}</span> — {issue.message}
+                          {issue.identifier ? <span className="issue-identifier">[{issue.identifier}]</span> : null}
                         </li>
                         );
                       })}
