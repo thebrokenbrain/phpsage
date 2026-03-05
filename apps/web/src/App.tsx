@@ -47,18 +47,21 @@ interface SourcePayload {
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 
-function readInitialQuerySelection(): { runId: string | null; file: string | null } {
+function readInitialQuerySelection(): { runId: string | null; file: string | null; issueIndex: number | null } {
   if (typeof window === "undefined") {
-    return { runId: null, file: null };
+    return { runId: null, file: null, issueIndex: null };
   }
 
   const searchParams = new URLSearchParams(window.location.search);
   const runId = searchParams.get("runId");
   const file = searchParams.get("file");
+  const issue = searchParams.get("issue");
+  const parsedIssueIndex = issue ? Number.parseInt(issue, 10) : Number.NaN;
 
   return {
     runId: runId && runId.trim().length > 0 ? runId : null,
-    file: file && file.trim().length > 0 ? file : null
+    file: file && file.trim().length > 0 ? file : null,
+    issueIndex: Number.isFinite(parsedIssueIndex) && parsedIssueIndex >= 0 ? parsedIssueIndex : null
   };
 }
 
@@ -78,7 +81,7 @@ export function App(): JSX.Element {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [issuePage, setIssuePage] = useState(0);
   const [logPage, setLogPage] = useState(0);
-  const [selectedIssueIndex, setSelectedIssueIndex] = useState(0);
+  const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
@@ -145,8 +148,14 @@ export function App(): JSX.Element {
       url.searchParams.delete("file");
     }
 
+    if (selectedRun && selectedRun.issues.length > 0) {
+      url.searchParams.set("issue", String(selectedIssueIndex));
+    } else {
+      url.searchParams.delete("issue");
+    }
+
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [selectedRunId, selectedSourceFilePath]);
+  }, [selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
@@ -160,10 +169,15 @@ export function App(): JSX.Element {
         }
 
         const payload = (await response.json()) as RunRecord;
+        const clampedIssueIndex =
+          payload.issues.length > 0
+            ? Math.min(Math.max(0, selectedIssueIndex), payload.issues.length - 1)
+            : 0;
+
         setSelectedRun(payload);
-        setIssuePage(0);
+        setIssuePage(payload.issues.length > 0 ? Math.floor(clampedIssueIndex / detailPageSize) : 0);
         setLogPage(0);
-        setSelectedIssueIndex(0);
+        setSelectedIssueIndex(clampedIssueIndex);
         setSelectedSourceFilePath((currentPath) => {
           if (!currentPath) {
             return null;
@@ -188,7 +202,7 @@ export function App(): JSX.Element {
     }
 
     void loadRunDetail(selectedRunId);
-  }, [apiBaseUrl, selectedRunId]);
+  }, [apiBaseUrl, selectedIssueIndex, selectedRunId]);
 
   useEffect(() => {
     async function loadRunFiles(runId: string): Promise<void> {
@@ -308,6 +322,8 @@ export function App(): JSX.Element {
                 className={run.runId === selectedRunId ? "selected" : ""}
                 onClick={() => {
                   setSelectedRunId(run.runId);
+                  setSelectedIssueIndex(0);
+                  setSelectedSourceFilePath(null);
                 }}
               >
                 <td className="mono">{run.runId.slice(0, 8)}</td>
