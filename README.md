@@ -121,7 +121,7 @@ Estado actual:
 - panel de detalle web ampliado con paginación de issues y logs
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
 - navegador de archivos por run en web (`GET /api/runs/:runId/files`)
-- filtro local por ruta en navegador de archivos
+- filtro por ruta en navegador de archivos persistido en URL
 - estado básico en URL de la web (`runId`, `file`, `issue`, `logPage`) para restaurar selección al recargar
 - navegación atrás/adelante del navegador restaurando ese mismo estado URL
 - navegación de issue/log en detalle sin refetch innecesario del run cuando no cambia `runId`

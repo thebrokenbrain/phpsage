@@ -11,7 +11,7 @@ A minimal Dashboard is implemented with:
 - runs table supports status filter (`all`, `running`, `finished`) persisted in URL query-state
 - selectable run detail panel backed by `GET /api/runs/:runId`
 - files navigator in detail backed by `GET /api/runs/:runId/files`
-- files navigator includes local search filter by path
+- files navigator includes search filter by path persisted in URL query-state
 - paginated issues and logs sections in run detail
 - source preview for selected issue backed by `GET /api/runs/:runId/source`
 - URL query-state for selected run, file, issue, and logs page (`?runId=...&file=...&issue=...&logPage=...`) with reload restore (including pagination context)
