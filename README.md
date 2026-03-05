@@ -136,6 +136,7 @@ Estado actual:
 - acción rápida `Reset target` para volver al path por defecto de ejemplo
 - panel de detalle web ampliado con paginación de issues y logs
 - filtro local de texto en panel de logs
+- filtro de logs persistido en URL
 - filas de issues muestran identificador de PHPStan cuando existe
 - filtro local de texto en panel de issues
 - filtro de issues persistido en URL

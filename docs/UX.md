@@ -22,6 +22,7 @@ A minimal Dashboard is implemented with:
 - files panel includes explicit action to return from manual file override to selected issue context
 - paginated issues and logs sections in run detail
 - logs panel includes local text filter with paginated result set
+- log text filter is persisted in URL query-state (`logQuery`)
 - issue rows display PHPStan identifier when available
 - issues panel includes local text filter with paginated result set
 - issue text filter is persisted in URL query-state (`issueQuery`)
