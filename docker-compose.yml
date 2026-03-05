@@ -17,6 +17,16 @@ services:
     ports:
       - "8080:8080"
 
+  phpsage-web:
+    image: phpsage-dev:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    command: ["npm", "run", "dev", "--workspace", "@phpsage/web", "--", "--host", "0.0.0.0", "--port", "5173"]
+    ports:
+      - "5173:5173"
+
   api-docs:
     image: swaggerapi/swagger-ui:latest
     ports:

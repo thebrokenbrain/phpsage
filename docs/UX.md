@@ -2,11 +2,15 @@
 
 User experience guide for PHPSage.
 
-## Estado actual
+## Current status
 
-The UI is not yet implemented in this repository.
+A minimal Dashboard is implemented with:
 
-## Dirección UX objetivo
+- runs table backed by `GET /api/runs`
+- manual refresh action
+- loading, empty, and error states
+
+## Target UX direction
 
 - live run visualization
 - issue and file navigation
