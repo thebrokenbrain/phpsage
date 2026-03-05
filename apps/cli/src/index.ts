@@ -23,6 +23,15 @@ interface CliOptions {
 	readonly watchMaxCycles: number | null;
 	readonly watchExtensions: readonly string[];
 	readonly watchFiles: readonly string[];
+	readonly jsonSummary: boolean;
+}
+
+interface AnalyseCycleResult {
+	readonly runId: string;
+	readonly exitCode: number;
+	readonly issueCount: number;
+	readonly durationMs: number;
+	readonly finishedAt: string;
 }
 
 interface TargetSnapshot {
@@ -104,8 +113,11 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	const exitCode = await runAnalyseCycle(options);
-	process.exitCode = exitCode;
+	const result = await runAnalyseCycle(options);
+	if (options.jsonSummary) {
+		process.stdout.write(`${JSON.stringify({ event: "analyse-summary", ...result })}\n`);
+	}
+	process.exitCode = result.exitCode;
 }
 
 async function runWatchMode(options: CliOptions): Promise<void> {
@@ -193,17 +205,23 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 				return;
 			}
 
-			const exitCode = await runAnalyseCycle(options);
-			state.lastExitCode = exitCode;
-			if (exitCode === 0) {
+			const cycleResult = await runAnalyseCycle(options);
+			state.lastExitCode = cycleResult.exitCode;
+			if (cycleResult.exitCode === 0) {
 				state.successCount += 1;
 			} else {
 				state.failureCount += 1;
 			}
 
+			if (options.jsonSummary) {
+				process.stdout.write(
+					`${JSON.stringify({ event: "watch-cycle", cycle: state.cycleCount, ...cycleResult })}\n`
+				);
+			}
+
 			if (!options.watchQuiet) {
 				const durationMs = Date.now() - cycleStartedAt;
-				process.stdout.write(`Watch cycle #${state.cycleCount} finished exitCode=${exitCode} duration=${durationMs}ms\n`);
+				process.stdout.write(`Watch cycle #${state.cycleCount} finished exitCode=${cycleResult.exitCode} duration=${durationMs}ms\n`);
 			}
 		} catch (error) {
 			state.lastExitCode = 1;
@@ -278,7 +296,7 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 	});
 }
 
-async function runAnalyseCycle(options: CliOptions): Promise<number> {
+async function runAnalyseCycle(options: CliOptions): Promise<AnalyseCycleResult> {
 	const run = await postJson<StartRunResponse>(`${options.serverUrl}/api/runs/start`, {
 		targetPath: options.targetPath
 	});
@@ -294,7 +312,8 @@ function startAppExperience(options: AppCommandOptions): void {
 	process.stdout.write("Use the Dashboard target selector to choose a folder and click Run.\n");
 }
 
-async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promise<number> {
+async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promise<AnalyseCycleResult> {
+	const startedAt = Date.now();
 	const phpstanArgs = buildPhpstanArgs(options);
 	const stdoutChunks: string[] = [];
 	const stderrChunks: string[] = [];
@@ -389,7 +408,13 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 	}
 
 	process.stdout.write(`Run finished. runId=${runId} exitCode=${exitCode} issues=${issues.length}\n`);
-	return exitCode;
+	return {
+		runId,
+		exitCode,
+		issueCount: issues.length,
+		durationMs: Date.now() - startedAt,
+		finishedAt: new Date().toISOString()
+	};
 }
 
 async function postRunFinishWithRetry(
@@ -617,6 +642,7 @@ function parseArguments(args: string[]): CliCommand | null {
 		"--watch-ext",
 		"--watch-files",
 		"--watch-max-cycles",
+		"--json-summary",
 		"--docker",
 		"--server-url"
 	], [
@@ -656,6 +682,7 @@ function parseArguments(args: string[]): CliCommand | null {
 	const watchExtensions = parseListFlag(args, "--watch-ext").map((entry) => normalizeExtension(entry));
 	const watchFiles = parseListFlag(args, "--watch-files");
 	const watchMaxCycles = parsePositiveIntegerFlagOrNull(args, "--watch-max-cycles");
+	const jsonSummary = args.includes("--json-summary");
 	const serverUrlFromEnv = process.env.PHPSAGE_SERVER_URL;
 
 	const defaultPort = portFromFlag ?? "8080";
@@ -683,7 +710,8 @@ function parseArguments(args: string[]): CliCommand | null {
 			watchIgnoredDirectories,
 			watchMaxCycles,
 			watchExtensions: watchExtensions.length > 0 ? watchExtensions : ["php"],
-			watchFiles: watchFiles.length > 0 ? watchFiles : ["phpstan.neon", "phpstan.neon.dist", "composer.json"]
+			watchFiles: watchFiles.length > 0 ? watchFiles : ["phpstan.neon", "phpstan.neon.dist", "composer.json"],
+			jsonSummary
 		}
 	};
 }
@@ -799,7 +827,7 @@ function printUsage(): void {
 			+ "  phpsage --help | -h\n"
 			+ "  phpsage --version | -v\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
-			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--timeout-ms <ms>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-ext <php,inc>] [--watch-files <phpstan.neon,composer.json>] [--watch-max-cycles <n>] [--docker] [--server-url <url>]\n"
+			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--timeout-ms <ms>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-ext <php,inc>] [--watch-files <phpstan.neon,composer.json>] [--watch-max-cycles <n>] [--json-summary] [--docker] [--server-url <url>]\n"
 	);
 }
 
