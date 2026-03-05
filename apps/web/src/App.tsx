@@ -224,6 +224,58 @@ export function App(): JSX.Element {
     };
   }, [runs]);
 
+  const activeControlLabels = useMemo(() => {
+    const labels: string[] = [];
+
+    if (runsStatusFilter !== "all") {
+      labels.push(`status:${runsStatusFilter}`);
+    }
+
+    if (runsSortOrder !== "updatedDesc") {
+      labels.push(`sort:${runsSortOrder}`);
+    }
+
+    if (fileSearchTerm.trim().length > 0) {
+      labels.push("fileQuery");
+    }
+
+    if (issueSearchTerm.trim().length > 0) {
+      labels.push("issueQuery");
+    }
+
+    if (issueIdentifierFilter !== "all") {
+      labels.push(`issueIdentifier:${issueIdentifierFilter}`);
+    }
+
+    if (logSearchTerm.trim().length > 0) {
+      labels.push("logQuery");
+    }
+
+    if (logStreamFilter !== "all") {
+      labels.push(`logStream:${logStreamFilter}`);
+    }
+
+    if (!isLivePollingEnabled) {
+      labels.push("live:off");
+    }
+
+    if (livePollingIntervalMs !== defaultRunningPollIntervalMs) {
+      labels.push(`interval:${livePollingIntervalMs}`);
+    }
+
+    return labels;
+  }, [
+    fileSearchTerm,
+    isLivePollingEnabled,
+    issueIdentifierFilter,
+    issueSearchTerm,
+    livePollingIntervalMs,
+    logSearchTerm,
+    logStreamFilter,
+    runsSortOrder,
+    runsStatusFilter
+  ]);
+
   const latestRunningRunId = useMemo(() => {
     const runningRuns = runs.filter((run) => run.status === "running");
     if (runningRuns.length === 0) {
@@ -1019,6 +1071,14 @@ export function App(): JSX.Element {
         <span>Running: {runsSummary.running}</span>
         <span>Finished: {runsSummary.finished}</span>
       </section>
+
+      {activeControlLabels.length > 0 ? (
+        <section className="active-controls">
+          {activeControlLabels.map((controlLabel) => (
+            <span key={controlLabel}>{controlLabel}</span>
+          ))}
+        </section>
+      ) : null}
 
       {error ? <p className="error">Could not load runs: {error}</p> : null}
 
