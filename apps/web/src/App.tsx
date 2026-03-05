@@ -157,6 +157,7 @@ export function App(): JSX.Element {
   const [issueSearchTerm, setIssueSearchTerm] = useState(initialSelection.issueSearchTerm);
   const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
   const [isIssuesSectionOpen, setIsIssuesSectionOpen] = useState(true);
+  const [isLogsSectionOpen, setIsLogsSectionOpen] = useState(true);
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
   const [logSearchTerm, setLogSearchTerm] = useState(initialSelection.logSearchTerm);
   const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">(initialSelection.logStreamFilter);
@@ -1241,6 +1242,13 @@ export function App(): JSX.Element {
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Logs</h3>
+                  <button
+                    onClick={() => {
+                      setIsLogsSectionOpen((isOpen) => !isOpen);
+                    }}
+                  >
+                    {isLogsSectionOpen ? "Hide" : "Show"}
+                  </button>
                   <div className="detail-actions">
                     <button
                       onClick={() => {
@@ -1280,7 +1288,7 @@ export function App(): JSX.Element {
                       }}
                     />
                   </div>
-                  {filteredLogs.length > detailPageSize ? (
+                  {isLogsSectionOpen && filteredLogs.length > detailPageSize ? (
                     <div className="pager">
                       <button
                         onClick={() => {
@@ -1308,7 +1316,8 @@ export function App(): JSX.Element {
                   ) : null}
                 </div>
 
-                {filteredLogs.length > 0 ? (
+                {isLogsSectionOpen ? (
+                  filteredLogs.length > 0 ? (
                   <ul className="detail-list">
                     {filteredLogs
                       .slice(logPage * detailPageSize, (logPage + 1) * detailPageSize)
@@ -1324,7 +1333,7 @@ export function App(): JSX.Element {
                   <p className="empty">No logs match current filter.</p>
                 ) : (
                   <p className="empty">No logs in selected run.</p>
-                )}
+                ) : null}
               </section>
             </>
           ) : null}

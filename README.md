@@ -136,6 +136,7 @@ Estado actual:
 - acción rápida `Reset target` para volver al path por defecto de ejemplo
 - panel de detalle web ampliado con paginación de issues y logs
 - filtro local de texto en panel de logs
+- sección `Logs` colapsable/expandible en detalle
 - filtro de logs persistido en URL
 - filtro por stream (`stdout`/`stderr`) en panel de logs
 - filtro de stream de logs persistido en URL
