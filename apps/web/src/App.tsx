@@ -82,6 +82,7 @@ export function App(): JSX.Element {
   }, []);
 
   const [runs, setRuns] = useState<RunSummary[]>([]);
+  const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelection.runId);
@@ -98,6 +99,14 @@ export function App(): JSX.Element {
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
+
+  const filteredRuns = useMemo(() => {
+    if (runsStatusFilter === "all") {
+      return runs;
+    }
+
+    return runs.filter((run) => run.status === runsStatusFilter);
+  }, [runs, runsStatusFilter]);
 
   async function loadRuns(): Promise<void> {
     setLoading(true);
@@ -420,16 +429,37 @@ export function App(): JSX.Element {
     <main className="app">
       <header className="header">
         <h1>PHPSage Dashboard</h1>
-        <button onClick={() => void loadRuns()} disabled={loading}>
-          {loading ? "Loading..." : "Refresh"}
-        </button>
+        <div className="header-actions">
+          <label>
+            Status
+            <select
+              value={runsStatusFilter}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "running" || value === "finished") {
+                  setRunsStatusFilter(value);
+                  return;
+                }
+
+                setRunsStatusFilter("all");
+              }}
+            >
+              <option value="all">All</option>
+              <option value="running">Running</option>
+              <option value="finished">Finished</option>
+            </select>
+          </label>
+          <button onClick={() => void loadRuns()} disabled={loading}>
+            {loading ? "Loading..." : "Refresh"}
+          </button>
+        </div>
       </header>
 
       {error ? <p className="error">Could not load runs: {error}</p> : null}
 
       {!loading && runs.length === 0 ? <p className="empty">No runs yet.</p> : null}
 
-      {runs.length > 0 ? (
+      {filteredRuns.length > 0 ? (
         <table className="runs-table">
           <thead>
             <tr>
@@ -442,7 +472,7 @@ export function App(): JSX.Element {
             </tr>
           </thead>
           <tbody>
-            {runs.map((run) => (
+            {filteredRuns.map((run) => (
               <tr
                 key={run.runId}
                 className={run.runId === selectedRunId ? "selected" : ""}
@@ -462,6 +492,10 @@ export function App(): JSX.Element {
             ))}
           </tbody>
         </table>
+      ) : null}
+
+      {!loading && runs.length > 0 && filteredRuns.length === 0 ? (
+        <p className="empty">No runs match current status filter.</p>
       ) : null}
 
       {selectedRunId ? (
