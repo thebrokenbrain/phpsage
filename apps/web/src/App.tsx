@@ -760,7 +760,7 @@ export function App(): JSX.Element {
             onClick={() => {
               void startRunFromUi();
             }}
-            disabled={startRunLoading}
+            disabled={startRunLoading || startRunTargetPath.trim().length === 0}
           >
             {startRunLoading ? "Starting..." : "Start run"}
           </button>

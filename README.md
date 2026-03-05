@@ -126,6 +126,7 @@ Estado actual:
 - acción para precargar en el formulario el `targetPath` del run seleccionado
 - presets rápidos de `targetPath` para ejemplos comunes
 - `Enter` en input de `targetPath` dispara inicio de run
+- botón `Start run` deshabilitado si `targetPath` está vacío
 - panel de detalle web ampliado con paginación de issues y logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
