@@ -174,16 +174,19 @@ Estado actual:
 - modo de target para auto-run (`starter` o target del run seleccionado)
 - auto-run dispara análisis periódicos cuando no hay un run `running`
 - resumen de dashboard muestra estado y timestamp de último auto-run
+- el timestamp de último auto-run solo refleja disparos del scheduler (no `Run now` manual)
 - estado, intervalo y modo de target de auto-run persistidos en URL
 - restauración de configuración de auto-run desde localStorage si la URL no define estado auto-run
 - indicador visual cuando auto-run está esperando a que termine un run activo
 - contador visible del tiempo restante hasta el próximo auto-run
+- al desactivar auto-run, el contador vuelve al intervalo completo configurado
 - el contador de auto-run se reinicia tras un inicio de run exitoso
 - resumen muestra contador de disparos auto-run exitosos en la sesión actual
 - acción `Reset auto count` en cabecera
 - acción `Clear auto status` en cabecera para limpiar timestamp de último auto-run
 - resumen muestra último error de auto-run cuando falla un disparo automático
 - acción `Run now` en cabecera usando el target resuelto según el modo auto-run
+- indicador cuando el modo `selected` cae en fallback al `starter target` por no haber run seleccionado
 - auto-run se desactiva automáticamente si un disparo automático falla al iniciar run
 - auto-run no se dispara cuando `targetPath` está vacío
 - acción `Copy link` para compartir el estado actual del dashboard

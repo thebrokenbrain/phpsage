@@ -57,10 +57,12 @@ A minimal Dashboard is implemented with:
 - auto-run supports target mode (`starter` or `selected run target`)
 - auto-run scheduler starts analysis at configured interval when no run is currently `running`
 - dashboard summary shows auto-run status and last auto-run timestamp
+- `last auto-run` only tracks scheduler-triggered starts (manual `Run now` does not update it)
 - auto-run toggle, interval and target mode are persisted in URL query-state (`auto`, `autoInterval`, `autoTarget`)
 - auto-run settings are restored from localStorage when URL has no explicit auto-run query-state
 - dashboard indicates when auto-run is waiting for an active run to finish
 - dashboard shows countdown to next auto-run while enabled
+- countdown resets to full interval when auto-run is disabled
 - countdown resets after a successful run start
 - dashboard summary includes successful auto-run trigger count for current session
 - header includes `Reset auto count` action
@@ -69,6 +71,7 @@ A minimal Dashboard is implemented with:
 - dashboard summary exposes last auto-run error when an automatic trigger fails
 - header includes `Run now` action using currently resolved run target
 - `Run now` resolves target with the same mode as auto-run scheduler (`starter` or `selected`)
+- summary indicates when `selected` mode is using starter fallback because no run is selected
 - auto-run scheduler is skipped while starter target path is empty
 - header includes `Copy link` action for sharing current dashboard URL state
 - header includes `Reset controls` action to restore default dashboard controls

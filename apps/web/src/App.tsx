@@ -330,6 +330,10 @@ export function App(): JSX.Element {
       : startRunTargetPath;
   }, [autoRunTargetMode, selectedRun, startRunTargetPath]);
 
+  const isAutoRunUsingStarterFallback = useMemo(() => {
+    return autoRunTargetMode === "selected" && !selectedRun;
+  }, [autoRunTargetMode, selectedRun]);
+
   const visibleRunFiles = useMemo(() => {
     const normalizedTerm = fileSearchTerm.trim().toLowerCase();
     if (normalizedTerm.length === 0) {
@@ -885,6 +889,7 @@ export function App(): JSX.Element {
 
   useEffect(() => {
     if (!isAutoRunEnabled) {
+      setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
       return;
     }
 
@@ -902,6 +907,10 @@ export function App(): JSX.Element {
       window.clearInterval(timerId);
     };
   }, [autoRunIntervalMs, isAutoRunEnabled]);
+
+  useEffect(() => {
+    setLastAutoRunError(null);
+  }, [autoRunIntervalMs, autoRunTargetMode]);
 
   useEffect(() => {
     if (!isAutoRunEnabled) {
@@ -1182,10 +1191,7 @@ export function App(): JSX.Element {
           <button
             onClick={() => {
               void (async () => {
-                const didStart = await startRunFromUi(resolvedAutoRunTargetPath);
-                if (didStart) {
-                  setLastAutoRunAt(new Date().toISOString());
-                }
+                await startRunFromUi(resolvedAutoRunTargetPath);
               })();
             }}
             disabled={startRunLoading || resolvedAutoRunTargetPath.trim().length === 0}
@@ -1332,6 +1338,8 @@ export function App(): JSX.Element {
         <span>Finished: {runsSummary.finished}</span>
         {lastRefreshAt ? <span>Last refresh: {new Date(lastRefreshAt).toLocaleTimeString()}</span> : null}
         <span>Auto-run: {isAutoRunEnabled ? "ON" : "OFF"}</span>
+        {isAutoRunEnabled ? <span>Auto mode: {autoRunTargetMode}</span> : null}
+        {isAutoRunEnabled && isAutoRunUsingStarterFallback ? <span>Auto mode fallback: using starter target (no selected run)</span> : null}
         {isAutoRunEnabled ? <span>Next auto-run in: {autoRunCountdownSec}s</span> : null}
         {isAutoRunEnabled ? <span>Auto target path: {resolvedAutoRunTargetPath || "(empty)"}</span> : null}
         {isAutoRunEnabled && runsSummary.running > 0 ? <span>Auto-run waiting for active run</span> : null}
