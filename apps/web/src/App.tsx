@@ -724,6 +724,7 @@ export function App(): JSX.Element {
             value={startRunTargetPath}
             onChange={(event) => {
               setStartRunTargetPath(event.target.value);
+              setStartRunError(null);
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -739,6 +740,7 @@ export function App(): JSX.Element {
               key={targetPreset}
               onClick={() => {
                 setStartRunTargetPath(targetPreset);
+                setStartRunError(null);
               }}
             >
               {targetPreset.split("/").pop()}
@@ -750,6 +752,7 @@ export function App(): JSX.Element {
             onClick={() => {
               if (selectedRun) {
                 setStartRunTargetPath(selectedRun.targetPath);
+                setStartRunError(null);
               }
             }}
             disabled={!selectedRun}
