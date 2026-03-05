@@ -161,6 +161,8 @@ export function App(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
+  const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(false);
+  const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(15000);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
@@ -945,6 +947,16 @@ export function App(): JSX.Element {
             />
             Live polling
           </label>
+          <label className="toggle-label">
+            <input
+              type="checkbox"
+              checked={isAutoRunEnabled}
+              onChange={(event) => {
+                setIsAutoRunEnabled(event.target.checked);
+              }}
+            />
+            Auto-run
+          </label>
           <label>
             Interval
             <select
@@ -959,6 +971,22 @@ export function App(): JSX.Element {
               <option value={2000}>2s</option>
               <option value={5000}>5s</option>
               <option value={10000}>10s</option>
+            </select>
+          </label>
+          <label>
+            Auto interval
+            <select
+              value={autoRunIntervalMs}
+              onChange={(event) => {
+                const nextValue = Number.parseInt(event.target.value, 10);
+                if (Number.isFinite(nextValue) && nextValue > 0) {
+                  setAutoRunIntervalMs(nextValue);
+                }
+              }}
+            >
+              <option value={10000}>10s</option>
+              <option value={15000}>15s</option>
+              <option value={30000}>30s</option>
             </select>
           </label>
           <button

@@ -52,6 +52,7 @@ A minimal Dashboard is implemented with:
 - live polling toggle is persisted in URL query-state (`live=0` when disabled)
 - header includes live polling interval selector (`2s`, `5s`, `10s`)
 - selected polling interval is persisted in URL query-state (`interval`)
+- header includes auto-run on/off toggle and interval selector (`10s`, `15s`, `30s`)
 - header includes `Copy link` action for sharing current dashboard URL state
 - header includes `Reset controls` action to restore default dashboard controls
 - header includes `API docs` quick access action
