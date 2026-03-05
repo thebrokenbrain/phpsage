@@ -183,6 +183,19 @@ export function App(): JSX.Element {
     };
   }, [runs]);
 
+  const latestRunningRunId = useMemo(() => {
+    const runningRuns = runs.filter((run) => run.status === "running");
+    if (runningRuns.length === 0) {
+      return null;
+    }
+
+    const sortedRunningRuns = [...runningRuns].sort(
+      (leftRun, rightRun) => new Date(rightRun.updatedAt).getTime() - new Date(leftRun.updatedAt).getTime()
+    );
+
+    return sortedRunningRuns[0]?.runId ?? null;
+  }, [runs]);
+
   const visibleRunFiles = useMemo(() => {
     const normalizedTerm = fileSearchTerm.trim().toLowerCase();
     if (normalizedTerm.length === 0) {
@@ -716,6 +729,18 @@ export function App(): JSX.Element {
             }}
           >
             {copyLinkStatus === "copied" ? "Link copied" : "Copy link"}
+          </button>
+          <button
+            onClick={() => {
+              if (latestRunningRunId) {
+                setSelectedRunId(latestRunningRunId);
+                setSelectedIssueIndex(0);
+                setSelectedSourceFilePath(null);
+              }
+            }}
+            disabled={!latestRunningRunId}
+          >
+            Jump to running
           </button>
           <button onClick={() => void loadRuns()} disabled={loading}>
             {loading ? "Loading..." : "Refresh"}
