@@ -66,6 +66,90 @@ async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Pr
   };
 }
 
+test("GET /api/ai/health returns disabled status when no provider is configured", async () => {
+  const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
+  const previousModel = process.env.PHPSAGE_AI_MODEL;
+  const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
+  delete process.env.PHPSAGE_AI_PROVIDER;
+  delete process.env.PHPSAGE_AI_MODEL;
+  delete process.env.OPENAI_API_KEY;
+
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/health`);
+    assert.equal(response.status, 200);
+    const payload = (await response.json()) as {
+      status: string;
+      enabled: boolean;
+      activeProvider: string | null;
+      activeModel: string | null;
+    };
+
+    assert.equal(payload.status, "ok");
+    assert.equal(payload.enabled, false);
+    assert.equal(payload.activeProvider, null);
+    assert.equal(payload.activeModel, null);
+  } finally {
+    await httpServer.close();
+    if (previousProvider === undefined) {
+      delete process.env.PHPSAGE_AI_PROVIDER;
+    } else {
+      process.env.PHPSAGE_AI_PROVIDER = previousProvider;
+    }
+
+    if (previousModel === undefined) {
+      delete process.env.PHPSAGE_AI_MODEL;
+    } else {
+      process.env.PHPSAGE_AI_MODEL = previousModel;
+    }
+
+    if (previousOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = previousOpenAiApiKey;
+    }
+  }
+});
+
+test("GET /api/ai/health returns enabled status with configured provider and model", async () => {
+  const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
+  const previousModel = process.env.PHPSAGE_AI_MODEL;
+  process.env.PHPSAGE_AI_PROVIDER = "openai";
+  process.env.PHPSAGE_AI_MODEL = "gpt-5-mini";
+
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/health`);
+    assert.equal(response.status, 200);
+    const payload = (await response.json()) as {
+      status: string;
+      enabled: boolean;
+      activeProvider: string | null;
+      activeModel: string | null;
+    };
+
+    assert.equal(payload.status, "ok");
+    assert.equal(payload.enabled, true);
+    assert.equal(payload.activeProvider, "openai");
+    assert.equal(payload.activeModel, "gpt-5-mini");
+  } finally {
+    await httpServer.close();
+    if (previousProvider === undefined) {
+      delete process.env.PHPSAGE_AI_PROVIDER;
+    } else {
+      process.env.PHPSAGE_AI_PROVIDER = previousProvider;
+    }
+
+    if (previousModel === undefined) {
+      delete process.env.PHPSAGE_AI_MODEL;
+    } else {
+      process.env.PHPSAGE_AI_MODEL = previousModel;
+    }
+  }
+});
+
 test("POST /api/runs/start validates missing targetPath", async () => {
   const httpServer = await startTestHttpServer();
 

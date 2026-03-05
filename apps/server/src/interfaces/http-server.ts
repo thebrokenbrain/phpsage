@@ -29,6 +29,13 @@ interface TargetPathValidationResult {
   error: string | null;
 }
 
+interface AiHealthResponse {
+  status: "ok";
+  enabled: boolean;
+  activeProvider: string | null;
+  activeModel: string | null;
+}
+
 export function createHttpServer(runService: RunService, runSourceReader: RunSourceReader) {
   return createServer(async (request, response) => {
     applyCorsHeaders(response);
@@ -44,6 +51,11 @@ export function createHttpServer(runService: RunService, runSourceReader: RunSou
 
     if (method === "GET" && requestUrl.pathname === "/healthz") {
       writeText(response, 200, "ok");
+      return;
+    }
+
+    if (method === "GET" && requestUrl.pathname === "/api/ai/health") {
+      writeJson(response, 200, getAiHealth());
       return;
     }
 
@@ -176,6 +188,22 @@ export function createHttpServer(runService: RunService, runSourceReader: RunSou
 
     writeJson(response, 404, { error: "Not Found" });
   });
+}
+
+function getAiHealth(): AiHealthResponse {
+  const providerFromEnv = process.env.PHPSAGE_AI_PROVIDER?.trim();
+  const openAiApiKey = process.env.OPENAI_API_KEY?.trim();
+  const activeProvider = providerFromEnv && providerFromEnv.length > 0
+    ? providerFromEnv
+    : (openAiApiKey && openAiApiKey.length > 0 ? "openai" : null);
+  const activeModel = activeProvider ? (process.env.PHPSAGE_AI_MODEL?.trim() || null) : null;
+
+  return {
+    status: "ok",
+    enabled: activeProvider !== null,
+    activeProvider,
+    activeModel
+  };
 }
 
 function getRunIdByAction(pathname: string, action: "log" | "finish" | "source" | "files"): string | null {

@@ -17,6 +17,16 @@ paths:
               schema:
                 type: string
                 example: ok
+  /api/ai/health:
+    get:
+      summary: AI health status
+      responses:
+        '200':
+          description: AI integration health and active configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiHealthResponse'
   /api/runs:
     get:
       summary: List run summaries
@@ -242,6 +252,21 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
+    AiHealthResponse:
+      type: object
+      required: [status, enabled, activeProvider, activeModel]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        enabled:
+          type: boolean
+        activeProvider:
+          type: string
+          nullable: true
+        activeModel:
+          type: string
+          nullable: true
     RunIssue:
       type: object
       required: [file, line, message]

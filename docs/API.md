@@ -19,6 +19,21 @@ This document must be updated in the same iteration where any endpoint is added 
 - `GET /healthz`
 - Response `200` (text/plain): `ok`
 
+- `GET /api/ai/health`
+- Response `200`:
+
+```json
+{
+	"status": "ok",
+	"enabled": false,
+	"activeProvider": null,
+	"activeModel": null
+}
+```
+
+- `enabled=true` when `PHPSAGE_AI_PROVIDER` is set (or when `OPENAI_API_KEY` is present and provider is not explicitly set).
+- `activeModel` is populated from `PHPSAGE_AI_MODEL` when AI is enabled.
+
 - Response `404` for unknown routes:
 
 ```json
