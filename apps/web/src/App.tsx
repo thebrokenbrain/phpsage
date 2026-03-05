@@ -478,7 +478,7 @@ export function App(): JSX.Element {
     const normalizedTargetPath = (targetPathOverride ?? startRunTargetPath).trim();
     if (normalizedTargetPath.length === 0) {
       setStartRunError("Target path is required.");
-      return;
+      return false;
     }
 
     setStartRunLoading(true);

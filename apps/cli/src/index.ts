@@ -1,6 +1,6 @@
 // This file provides the PHPSage CLI command for running PHPStan and syncing run lifecycle events.
 import { spawn } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync, type Dirent } from "node:fs";
 import { resolve } from "node:path";
 import { parsePhpstanJsonOutput, type ParsedPhpstanIssue } from "@phpsage/shared";
 
@@ -222,6 +222,10 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 			if (!options.watchQuiet) {
 				const durationMs = Date.now() - cycleStartedAt;
 				process.stdout.write(`Watch cycle #${state.cycleCount} finished exitCode=${cycleResult.exitCode} duration=${durationMs}ms\n`);
+			}
+
+			if (options.watchMaxCycles && state.cycleCount >= options.watchMaxCycles) {
+				requestStop(`max-cycles:${options.watchMaxCycles}`);
 			}
 		} catch (error) {
 			state.lastExitCode = 1;
@@ -473,25 +477,27 @@ function createTargetSnapshot(
 	const entries: string[] = [];
 
 	function walk(currentPath: string): void {
-		let directoryEntries: ReturnType<typeof readdirSync>;
+		let directoryEntries: Dirent<string>[];
 		try {
-			directoryEntries = readdirSync(currentPath, { withFileTypes: true });
+			directoryEntries = readdirSync(currentPath, { withFileTypes: true, encoding: "utf8" });
 		} catch {
 			return;
 		}
 
 		for (const entry of directoryEntries) {
-			if (entry.isDirectory() && ignoredDirectorySet.has(entry.name)) {
+			const entryName = entry.name;
+
+			if (entry.isDirectory() && ignoredDirectorySet.has(entryName)) {
 				continue;
 			}
 
-			const fullPath = resolve(currentPath, entry.name);
+			const fullPath = resolve(currentPath, entryName);
 			if (entry.isDirectory()) {
 				walk(fullPath);
 				continue;
 			}
 
-			if (!isWatchedPath(entry.name, normalizedWatchExtensions, watchFileSet)) {
+			if (!isWatchedPath(entryName, normalizedWatchExtensions, watchFileSet)) {
 				continue;
 			}
 
