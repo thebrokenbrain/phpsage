@@ -13,6 +13,20 @@ interface CliOptions {
 	readonly openBrowser: boolean;
 	readonly watch: boolean;
 	readonly watchIntervalMs: number;
+	readonly watchDebounceMs: number;
+	readonly watchRunOnStart: boolean;
+	readonly watchQuiet: boolean;
+	readonly watchIgnoredDirectories: readonly string[];
+}
+
+interface WatchRuntimeState {
+	cycleCount: number;
+	successCount: number;
+	failureCount: number;
+	lastExitCode: number | null;
+	isCycleRunning: boolean;
+	rerunRequested: boolean;
+	isStopping: boolean;
 }
 
 interface AppCommandOptions {
@@ -55,6 +69,7 @@ async function main(): Promise<void> {
 	}
 
 	const { options } = command;
+	ensureTargetPathIsDirectory(options.targetPath);
 
 	if (options.openBrowser) {
 		process.stdout.write(`PHPSage UI available at ${options.serverUrl}\n`);
@@ -70,45 +85,131 @@ async function main(): Promise<void> {
 }
 
 async function runWatchMode(options: CliOptions): Promise<void> {
-	process.stdout.write(`Watch mode enabled for ${options.targetPath} (${options.watchIntervalMs}ms)\n`);
-	let isRunning = false;
-	let rerunRequested = false;
-	let lastSnapshot = createTargetSnapshot(options.targetPath);
+	process.stdout.write(
+		`Watch mode enabled for ${options.targetPath} (interval=${options.watchIntervalMs}ms debounce=${options.watchDebounceMs}ms)\n`
+	);
 
-	const executeCycle = async () => {
-		if (isRunning) {
-			rerunRequested = true;
+	const state: WatchRuntimeState = {
+		cycleCount: 0,
+		successCount: 0,
+		failureCount: 0,
+		lastExitCode: null,
+		isCycleRunning: false,
+		rerunRequested: false,
+		isStopping: false
+	};
+
+	let lastSnapshot = createTargetSnapshot(options.targetPath);
+	let pollTimer: NodeJS.Timeout | null = null;
+	let debounceTimer: NodeJS.Timeout | null = null;
+
+	const clearTimers = () => {
+		if (pollTimer) {
+			clearTimeout(pollTimer);
+			pollTimer = null;
+		}
+
+		if (debounceTimer) {
+			clearTimeout(debounceTimer);
+			debounceTimer = null;
+		}
+	};
+
+	const shutdown = (signal: NodeJS.Signals) => {
+		if (state.isStopping) {
 			return;
 		}
 
-		isRunning = true;
+		state.isStopping = true;
+		clearTimers();
+		process.stdout.write(`\nStopping watch mode (${signal})...\n`);
+		process.stdout.write(
+			`Watch summary: cycles=${state.cycleCount} ok=${state.successCount} failed=${state.failureCount} lastExit=${state.lastExitCode ?? "-"}\n`
+		);
+		process.exitCode = state.lastExitCode ?? 0;
+	};
+
+	process.once("SIGINT", () => shutdown("SIGINT"));
+	process.once("SIGTERM", () => shutdown("SIGTERM"));
+
+	const executeCycle = async () => {
+		if (state.isStopping) {
+			return;
+		}
+
+		if (state.isCycleRunning) {
+			state.rerunRequested = true;
+			return;
+		}
+
+		state.isCycleRunning = true;
+		state.cycleCount += 1;
+		const cycleStartedAt = Date.now();
 		try {
 			const exitCode = await runAnalyseCycle(options);
-			process.stdout.write(`Watch cycle finished with exitCode=${exitCode}\n`);
+			state.lastExitCode = exitCode;
+			if (exitCode === 0) {
+				state.successCount += 1;
+			} else {
+				state.failureCount += 1;
+			}
+
+			if (!options.watchQuiet) {
+				const durationMs = Date.now() - cycleStartedAt;
+				process.stdout.write(`Watch cycle #${state.cycleCount} finished exitCode=${exitCode} duration=${durationMs}ms\n`);
+			}
 		} catch (error) {
+			state.lastExitCode = 1;
+			state.failureCount += 1;
 			const message = error instanceof Error ? error.message : String(error);
 			process.stderr.write(`Watch cycle error: ${message}\n`);
 		} finally {
-			isRunning = false;
-			if (rerunRequested) {
-				rerunRequested = false;
+			state.isCycleRunning = false;
+			if (state.rerunRequested && !state.isStopping) {
+				state.rerunRequested = false;
 				await executeCycle();
 			}
 		}
 	};
 
-	await executeCycle();
-
-	setInterval(() => {
-		const nextSnapshot = createTargetSnapshot(options.targetPath);
-		if (nextSnapshot === lastSnapshot) {
+	const scheduleDebouncedCycle = () => {
+		if (state.isStopping) {
 			return;
 		}
 
-		lastSnapshot = nextSnapshot;
-		process.stdout.write("Changes detected. Scheduling analysis...\n");
-		void executeCycle();
-	}, options.watchIntervalMs);
+		if (debounceTimer) {
+			clearTimeout(debounceTimer);
+		}
+
+		debounceTimer = setTimeout(() => {
+			if (!options.watchQuiet) {
+				process.stdout.write("Changes detected. Scheduling analysis...\n");
+			}
+			void executeCycle();
+		}, options.watchDebounceMs);
+	};
+
+	const schedulePoll = () => {
+		if (state.isStopping) {
+			return;
+		}
+
+		pollTimer = setTimeout(() => {
+			const nextSnapshot = createTargetSnapshot(options.targetPath, options.watchIgnoredDirectories);
+			if (nextSnapshot !== lastSnapshot) {
+				lastSnapshot = nextSnapshot;
+				scheduleDebouncedCycle();
+			}
+
+			schedulePoll();
+		}, options.watchIntervalMs);
+	};
+
+	if (options.watchRunOnStart) {
+		await executeCycle();
+	}
+
+	schedulePoll();
 
 	await new Promise<void>(() => {
 		// Keep process alive while watching.
@@ -196,7 +297,8 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 	return exitCode;
 }
 
-function createTargetSnapshot(targetPath: string): string {
+function createTargetSnapshot(targetPath: string, ignoredDirectories: readonly string[] = []): string {
+	const ignoredDirectorySet = new Set<string>([".git", "node_modules", "vendor", ...ignoredDirectories]);
 	const entries: string[] = [];
 
 	function walk(currentPath: string): void {
@@ -208,7 +310,7 @@ function createTargetSnapshot(targetPath: string): string {
 		}
 
 		for (const entry of directoryEntries) {
-			if (entry.name === ".git" || entry.name === "node_modules" || entry.name === "vendor") {
+			if (entry.isDirectory() && ignoredDirectorySet.has(entry.name)) {
 				continue;
 			}
 
@@ -234,6 +336,17 @@ function createTargetSnapshot(targetPath: string): string {
 	walk(targetPath);
 	entries.sort((leftEntry, rightEntry) => leftEntry.localeCompare(rightEntry));
 	return entries.join("|");
+}
+
+function ensureTargetPathIsDirectory(targetPath: string): void {
+	try {
+		const targetStat = statSync(targetPath);
+		if (!targetStat.isDirectory()) {
+			throw new Error(`Target path is not a directory: ${targetPath}`);
+		}
+	} catch {
+		throw new Error(`Target path does not exist or cannot be accessed: ${targetPath}`);
+	}
 }
 
 function isWatchedPath(fileName: string): boolean {
@@ -343,6 +456,10 @@ function parseArguments(args: string[]): CliCommand | null {
 	const openBrowser = !args.includes("--no-open");
 	const watch = args.includes("--watch");
 	const watchIntervalMs = parsePositiveIntegerFlag(args, "--watch-interval", 2000);
+	const watchDebounceMs = parsePositiveIntegerFlag(args, "--watch-debounce", 800);
+	const watchRunOnStart = !args.includes("--watch-no-initial");
+	const watchQuiet = args.includes("--watch-quiet");
+	const watchIgnoredDirectories = parseListFlag(args, "--watch-ignore");
 	const serverUrlFromEnv = process.env.PHPSAGE_SERVER_URL;
 
 	const defaultPort = portFromFlag ?? "8080";
@@ -362,7 +479,11 @@ function parseArguments(args: string[]): CliCommand | null {
 			memoryLimit,
 			openBrowser,
 			watch,
-			watchIntervalMs
+			watchIntervalMs,
+			watchDebounceMs,
+			watchRunOnStart,
+			watchQuiet,
+			watchIgnoredDirectories
 		}
 	};
 }
@@ -379,6 +500,18 @@ function parsePositiveIntegerFlag(args: string[], flag: string, defaultValue: nu
 	}
 
 	return parsedValue;
+}
+
+function parseListFlag(args: string[], flag: string): string[] {
+	const rawValue = getFlagValue(args, flag);
+	if (!rawValue) {
+		return [];
+	}
+
+	return rawValue
+		.split(",")
+		.map((entry) => entry.trim())
+		.filter((entry) => entry.length > 0);
 }
 
 function parseAppArguments(args: string[]): AppCommandOptions | null {
@@ -416,7 +549,7 @@ function printUsage(): void {
 	process.stdout.write(
 		"Usage:\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
-			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--docker] [--server-url <url>]\n"
+			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--docker] [--server-url <url>]\n"
 	);
 }
 
