@@ -115,6 +115,7 @@ Estado actual:
 - CLI base implementada: `phpsage phpstan analyse <path>` con sincronización `start/log/finish`
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
+- detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 
 ### Verificación rápida del endpoint inicial
 

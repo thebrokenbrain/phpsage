@@ -7,6 +7,7 @@ User experience guide for PHPSage.
 A minimal Dashboard is implemented with:
 
 - runs table backed by `GET /api/runs`
+- selectable run detail panel backed by `GET /api/runs/:runId`
 - manual refresh action
 - loading, empty, and error states
 

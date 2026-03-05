@@ -52,6 +52,18 @@ button:disabled {
   border-bottom: 1px solid #f3f4f6;
 }
 
+.runs-table tbody tr {
+  cursor: pointer;
+}
+
+.runs-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.runs-table tbody tr.selected {
+  background: #eef2ff;
+}
+
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.85rem;
@@ -63,4 +75,25 @@ button:disabled {
 
 .empty {
   color: #6b7280;
+}
+
+.detail-panel {
+  margin-top: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  padding: 14px;
+}
+
+.detail-panel h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.detail-panel p {
+  margin: 6px 0;
+}
+
+.detail-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
 }
