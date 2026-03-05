@@ -203,22 +203,7 @@ export function App(): JSX.Element {
         }
 
         const payload = (await response.json()) as RunRecord;
-        const clampedIssueIndex =
-          payload.issues.length > 0
-            ? Math.min(Math.max(0, selectedIssueIndex), payload.issues.length - 1)
-            : 0;
-
         setSelectedRun(payload);
-        setIssuePage(payload.issues.length > 0 ? Math.floor(clampedIssueIndex / detailPageSize) : 0);
-        setLogPage((currentLogPage) => {
-          if (payload.logs.length === 0) {
-            return 0;
-          }
-
-          const maxLogPage = Math.max(0, Math.ceil(payload.logs.length / detailPageSize) - 1);
-          return Math.min(Math.max(0, currentLogPage), maxLogPage);
-        });
-        setSelectedIssueIndex(clampedIssueIndex);
         setSelectedSourceFilePath((currentPath) => {
           if (!currentPath) {
             return null;
@@ -243,7 +228,46 @@ export function App(): JSX.Element {
     }
 
     void loadRunDetail(selectedRunId);
-  }, [apiBaseUrl, selectedIssueIndex, selectedRunId]);
+  }, [apiBaseUrl, selectedRunId]);
+
+  useEffect(() => {
+    if (!selectedRun) {
+      setIssuePage(0);
+      return;
+    }
+
+    if (selectedRun.issues.length === 0) {
+      setSelectedIssueIndex(0);
+      setIssuePage(0);
+      return;
+    }
+
+    const clampedIssueIndex = Math.min(Math.max(0, selectedIssueIndex), selectedRun.issues.length - 1);
+    if (clampedIssueIndex !== selectedIssueIndex) {
+      setSelectedIssueIndex(clampedIssueIndex);
+      return;
+    }
+
+    const derivedIssuePage = Math.floor(clampedIssueIndex / detailPageSize);
+    if (derivedIssuePage !== issuePage) {
+      setIssuePage(derivedIssuePage);
+    }
+  }, [issuePage, selectedIssueIndex, selectedRun]);
+
+  useEffect(() => {
+    if (!selectedRun || selectedRun.logs.length === 0) {
+      if (logPage !== 0) {
+        setLogPage(0);
+      }
+      return;
+    }
+
+    const maxLogPage = Math.max(0, Math.ceil(selectedRun.logs.length / detailPageSize) - 1);
+    const clampedLogPage = Math.min(Math.max(0, logPage), maxLogPage);
+    if (clampedLogPage !== logPage) {
+      setLogPage(clampedLogPage);
+    }
+  }, [logPage, selectedRun]);
 
   useEffect(() => {
     async function loadRunFiles(runId: string): Promise<void> {
