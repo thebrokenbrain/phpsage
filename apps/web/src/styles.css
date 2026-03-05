@@ -97,3 +97,29 @@ button:disabled {
   margin: 8px 0 0;
   padding-left: 18px;
 }
+
+.detail-block {
+  margin-top: 12px;
+}
+
+.detail-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detail-block-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.pager {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pager span {
+  font-size: 0.85rem;
+  color: #4b5563;
+}

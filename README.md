@@ -116,6 +116,7 @@ Estado actual:
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
+- panel de detalle web ampliado con paginación de issues y logs
 
 ### Verificación rápida del endpoint inicial
 

@@ -29,6 +29,7 @@ interface RunRecord extends RunSummary {
 }
 
 const defaultApiBaseUrl = "http://localhost:8080";
+const detailPageSize = 10;
 
 export function App(): JSX.Element {
   const apiBaseUrl = useMemo(() => {
@@ -43,6 +44,8 @@ export function App(): JSX.Element {
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [issuePage, setIssuePage] = useState(0);
+  const [logPage, setLogPage] = useState(0);
 
   async function loadRuns(): Promise<void> {
     setLoading(true);
@@ -96,6 +99,8 @@ export function App(): JSX.Element {
 
         const payload = (await response.json()) as RunRecord;
         setSelectedRun(payload);
+        setIssuePage(0);
+        setLogPage(0);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
         setDetailError(message);
@@ -174,17 +179,99 @@ export function App(): JSX.Element {
               <p className="mono">Target: {selectedRun.targetPath}</p>
               <p>Logs: {selectedRun.logs.length} · Issues: {selectedRun.issues.length}</p>
 
-              {selectedRun.issues.length > 0 ? (
-                <ul className="detail-list">
-                  {selectedRun.issues.slice(0, 10).map((issue, index) => (
-                    <li key={`${issue.file}-${issue.line}-${index}`}>
-                      <span className="mono">{issue.file}:{issue.line}</span> — {issue.message}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="empty">No issues in selected run.</p>
-              )}
+              <section className="detail-block">
+                <div className="detail-block-header">
+                  <h3>Issues</h3>
+                  {selectedRun.issues.length > detailPageSize ? (
+                    <div className="pager">
+                      <button
+                        onClick={() => {
+                          setIssuePage((page) => Math.max(0, page - 1));
+                        }}
+                        disabled={issuePage === 0}
+                      >
+                        Prev
+                      </button>
+                      <span>
+                        {issuePage + 1}/{Math.max(1, Math.ceil(selectedRun.issues.length / detailPageSize))}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setIssuePage((page) => {
+                            const maxPage = Math.max(0, Math.ceil(selectedRun.issues.length / detailPageSize) - 1);
+                            return Math.min(maxPage, page + 1);
+                          });
+                        }}
+                        disabled={issuePage >= Math.max(0, Math.ceil(selectedRun.issues.length / detailPageSize) - 1)}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+
+                {selectedRun.issues.length > 0 ? (
+                  <ul className="detail-list">
+                    {selectedRun.issues
+                      .slice(issuePage * detailPageSize, (issuePage + 1) * detailPageSize)
+                      .map((issue, index) => (
+                        <li key={`${issue.file}-${issue.line}-${index}`}>
+                          <span className="mono">{issue.file}:{issue.line}</span> — {issue.message}
+                        </li>
+                      ))}
+                  </ul>
+                ) : (
+                  <p className="empty">No issues in selected run.</p>
+                )}
+              </section>
+
+              <section className="detail-block">
+                <div className="detail-block-header">
+                  <h3>Logs</h3>
+                  {selectedRun.logs.length > detailPageSize ? (
+                    <div className="pager">
+                      <button
+                        onClick={() => {
+                          setLogPage((page) => Math.max(0, page - 1));
+                        }}
+                        disabled={logPage === 0}
+                      >
+                        Prev
+                      </button>
+                      <span>
+                        {logPage + 1}/{Math.max(1, Math.ceil(selectedRun.logs.length / detailPageSize))}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setLogPage((page) => {
+                            const maxPage = Math.max(0, Math.ceil(selectedRun.logs.length / detailPageSize) - 1);
+                            return Math.min(maxPage, page + 1);
+                          });
+                        }}
+                        disabled={logPage >= Math.max(0, Math.ceil(selectedRun.logs.length / detailPageSize) - 1)}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+
+                {selectedRun.logs.length > 0 ? (
+                  <ul className="detail-list">
+                    {selectedRun.logs
+                      .slice(logPage * detailPageSize, (logPage + 1) * detailPageSize)
+                      .map((logEntry, index) => (
+                        <li key={`${logEntry.timestamp}-${logEntry.stream}-${index}`}>
+                          <span className="mono">{new Date(logEntry.timestamp).toLocaleTimeString()} [{logEntry.stream}]</span>
+                          {" — "}
+                          {logEntry.message.length > 200 ? `${logEntry.message.slice(0, 200)}…` : logEntry.message}
+                        </li>
+                      ))}
+                  </ul>
+                ) : (
+                  <p className="empty">No logs in selected run.</p>
+                )}
+              </section>
             </>
           ) : null}
         </section>

@@ -8,6 +8,7 @@ A minimal Dashboard is implemented with:
 
 - runs table backed by `GET /api/runs`
 - selectable run detail panel backed by `GET /api/runs/:runId`
+- paginated issues and logs sections in run detail
 - manual refresh action
 - loading, empty, and error states
 
