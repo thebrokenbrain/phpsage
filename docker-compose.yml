@@ -1,0 +1,18 @@
+services:
+  phpsage-cli:
+    image: phpsage-dev:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    command: ["npm", "run", "build"]
+
+  phpsage-server:
+    image: phpsage-dev:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    command: ["sh", "-lc", "npm run build && node apps/server/dist/index.js"]
+    ports:
+      - "8080:8080"

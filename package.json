@@ -9,6 +9,8 @@
   ],
   "scripts": {
     "build": "tsc -b",
+    "build:server": "tsc -b apps/server",
+    "start:server": "node apps/server/dist/index.js",
     "clean": "rm -rf apps/*/dist packages/*/dist",
     "test": "npm run build && node --test packages/shared/dist/**/*.test.js apps/server/dist/**/*.test.js apps/web/dist/**/*.test.js",
     "audit:unused": "node scripts/audit-unused.mjs",

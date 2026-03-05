@@ -1,6 +1,6 @@
 # PHPSage
 
-PHPSage es una plataforma para ejecutar análisis estático de proyectos PHP con una experiencia operativa moderna (CLI + API + UI), trazabilidad de ejecuciones y evolución progresiva hacia asistencia IA segura.
+PHPSage es una plataforma Docker-first para ejecutar análisis estático de proyectos PHP con una experiencia operativa moderna (CLI + API + UI), trazabilidad de ejecuciones y evolución progresiva hacia asistencia IA segura.
 
 ## a) Descripción general del proyecto
 
@@ -34,27 +34,25 @@ Stack objetivo de producto (a completar en iteraciones):
 
 ### Requisitos mínimos
 
-- Node.js 20+
-- npm 10+
+- Docker Desktop (o daemon Docker compatible)
+- `docker compose`
 
-### Instalación
+### Instalación y arranque (flujo recomendado)
 
 ```bash
-npm install
+docker compose up --build -d phpsage-server
 ```
 
 ### Comandos disponibles actualmente
 
 ```bash
-npm run build
-npm run test
-npm run clean
-npm run audit:unused
-npm run rag:reindex
-npm run rag:reindex:wait
+docker compose run --rm phpsage-cli npm run build
+docker compose up --build -d phpsage-server
+curl http://localhost:8080/healthz
+docker compose down --remove-orphans
 ```
 
-> Nota: algunos comandos de alto nivel de producto (CLI/API/UI/Docker e2e) se habilitarán a medida que avance la implementación de las apps.
+> Nota: el uso de Node/npm en host es opcional para desarrollo local, no obligatorio para operar el proyecto.
 
 ## d) Estructura del proyecto
 
@@ -104,6 +102,16 @@ Estado actual:
 
 - bootstrap de monorepo TypeScript operativo
 - estructura base preparada para desarrollo por fases
+- endpoint inicial de servidor implementado: `GET /healthz`
+
+### Verificación rápida del endpoint inicial
+
+```bash
+docker compose run --rm phpsage-cli npm run build
+docker compose up --build -d phpsage-server
+curl http://localhost:8080/healthz
+docker compose down --remove-orphans
+```
 
 ---
 

@@ -2,14 +2,31 @@
 
 Living operational API contract.
 
-## Estado actual
+## Current status
 
-The API is not yet implemented in this repository.
+Initial HTTP API scaffold is implemented.
 
-## Regla de actualización
+## Update rule
 
 This document must be updated in the same iteration where any endpoint is added or modified.
 
 ## Endpoints
 
-Pending implementation.
+### Health
+
+- `GET /healthz`
+- Response `200`:
+
+```json
+{
+	"status": "ok"
+}
+```
+
+- Response `404` for unknown routes:
+
+```json
+{
+	"error": "Not Found"
+}
+```
