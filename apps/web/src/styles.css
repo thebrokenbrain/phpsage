@@ -163,6 +163,12 @@ button:disabled {
   justify-content: space-between;
 }
 
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .detail-block-header h3 {
   margin: 0;
   font-size: 0.95rem;

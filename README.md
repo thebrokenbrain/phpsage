@@ -124,6 +124,7 @@ Estado actual:
 - preview de source con numeración y resaltado de línea activa del issue
 - navegador de archivos por run en web (`GET /api/runs/:runId/files`)
 - filtro por ruta en navegador de archivos persistido en URL
+- acción en panel Files para volver del override de archivo al contexto del issue activo
 - estado básico en URL de la web (`runId`, `file`, `issue`, `logPage`) para restaurar selección al recargar
 - navegación atrás/adelante del navegador restaurando ese mismo estado URL
 - navegación de issue/log en detalle sin refetch innecesario del run cuando no cambia `runId`

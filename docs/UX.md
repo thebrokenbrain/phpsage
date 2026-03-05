@@ -12,6 +12,7 @@ A minimal Dashboard is implemented with:
 - selectable run detail panel backed by `GET /api/runs/:runId`
 - files navigator in detail backed by `GET /api/runs/:runId/files`
 - files navigator includes search filter by path persisted in URL query-state
+- files panel includes explicit action to return from manual file override to selected issue context
 - paginated issues and logs sections in run detail
 - issue rows display PHPStan identifier when available
 - source preview for selected issue backed by `GET /api/runs/:runId/source`

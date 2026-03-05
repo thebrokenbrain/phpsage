@@ -561,14 +561,25 @@ export function App(): JSX.Element {
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Files</h3>
-                  <input
-                    type="search"
-                    placeholder="Filter files"
-                    value={fileSearchTerm}
-                    onChange={(event) => {
-                      setFileSearchTerm(event.target.value);
-                    }}
-                  />
+                  <div className="detail-actions">
+                    {selectedSourceFilePath ? (
+                      <button
+                        onClick={() => {
+                          setSelectedSourceFilePath(null);
+                        }}
+                      >
+                        Use issue context
+                      </button>
+                    ) : null}
+                    <input
+                      type="search"
+                      placeholder="Filter files"
+                      value={fileSearchTerm}
+                      onChange={(event) => {
+                        setFileSearchTerm(event.target.value);
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {filesLoading ? <p className="empty">Loading files...</p> : null}
