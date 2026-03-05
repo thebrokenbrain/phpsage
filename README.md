@@ -141,6 +141,7 @@ Estado actual:
 - estado del toggle de live polling persistido en URL
 - selector en cabecera para intervalo de polling (`2s`, `5s`, `10s`)
 - intervalo de polling persistido en URL
+- acción `Copy link` para compartir el estado actual del dashboard
 
 ### Verificación rápida del endpoint inicial
 

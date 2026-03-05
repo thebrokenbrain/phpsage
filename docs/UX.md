@@ -29,6 +29,7 @@ A minimal Dashboard is implemented with:
 - live polling toggle is persisted in URL query-state (`live=0` when disabled)
 - header includes live polling interval selector (`2s`, `5s`, `10s`)
 - selected polling interval is persisted in URL query-state (`interval`)
+- header includes `Copy link` action for sharing current dashboard URL state
 - manual refresh action
 - UI can start a run by target path (`POST /api/runs/start` with `execute=true`)
 - run starter target path is persisted in URL query-state (`target`)

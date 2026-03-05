@@ -147,6 +147,7 @@ export function App(): JSX.Element {
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
+  const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
 
   const filteredRuns = useMemo(() => {
     if (runsStatusFilter === "all") {
@@ -268,6 +269,23 @@ export function App(): JSX.Element {
       setStartRunError(message);
     } finally {
       setStartRunLoading(false);
+    }
+  }
+
+  async function copyCurrentDeepLink(): Promise<void> {
+    if (typeof window === "undefined" || !window.navigator.clipboard) {
+      setCopyLinkStatus("error");
+      return;
+    }
+
+    try {
+      await window.navigator.clipboard.writeText(window.location.href);
+      setCopyLinkStatus("copied");
+      window.setTimeout(() => {
+        setCopyLinkStatus("idle");
+      }, 1500);
+    } catch {
+      setCopyLinkStatus("error");
     }
   }
 
@@ -682,11 +700,20 @@ export function App(): JSX.Element {
               <option value={10000}>10s</option>
             </select>
           </label>
+          <button
+            onClick={() => {
+              void copyCurrentDeepLink();
+            }}
+          >
+            {copyLinkStatus === "copied" ? "Link copied" : "Copy link"}
+          </button>
           <button onClick={() => void loadRuns()} disabled={loading}>
             {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
       </header>
+
+      {copyLinkStatus === "error" ? <p className="error">Could not copy link.</p> : null}
 
       <section className="run-starter">
         <label>
