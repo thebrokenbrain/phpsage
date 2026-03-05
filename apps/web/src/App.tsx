@@ -1186,7 +1186,18 @@ export function App(): JSX.Element {
   return (
     <main className="app">
       <header className="header">
-        <h1>PHPSage Dashboard</h1>
+        <div className="brand-group">
+          <img className="product-logo" src="/logo/phpsage-logo.png" alt="PHPSage" />
+          <div>
+            <h1 className="brand-title">Dashboard</h1>
+            <p className="brand-subtitle">PHPStan Pro-like run monitoring</p>
+            <div className="view-tabs" aria-hidden="true">
+              <span className="view-tab view-tab-active">Dashboard</span>
+              <span className="view-tab">Insights</span>
+              <span className="view-tab">Issue</span>
+            </div>
+          </div>
+        </div>
         <div className="header-actions">
           <label>
             Status
@@ -1524,67 +1535,91 @@ export function App(): JSX.Element {
         </section>
       ) : null}
 
-      {error ? <p className="error">Could not load runs: {error}</p> : null}
+      <section className="workspace-grid">
+        <div className="runs-pane">
+          <div className="pane-header">
+            <h2>Runs</h2>
+            <span className="pane-meta">{visibleRuns.length} visible</span>
+          </div>
 
-      {!loading && runs.length === 0 ? <p className="empty">No runs yet.</p> : null}
+          {error ? <p className="error">Could not load runs: {error}</p> : null}
 
-      {visibleRuns.length > 0 ? (
-        <table className="runs-table">
-          <thead>
-            <tr>
-              <th>Run</th>
-              <th>Status</th>
-              <th>Exit</th>
-              <th>Issues</th>
-              <th>Target</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleRuns.map((run) => (
-              <tr
-                key={run.runId}
-                className={run.runId === selectedRunId ? "selected" : ""}
+          {!loading && runs.length === 0 ? <p className="empty">No runs yet.</p> : null}
+
+          {visibleRuns.length > 0 ? (
+            <div className="runs-table-wrap">
+              <table className="runs-table">
+                <thead>
+                  <tr>
+                    <th>Run</th>
+                    <th>Status</th>
+                    <th>Exit</th>
+                    <th>Issues</th>
+                    <th>Target</th>
+                    <th>Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRuns.map((run) => (
+                    <tr
+                      key={run.runId}
+                      className={run.runId === selectedRunId ? "selected" : ""}
+                      onClick={() => {
+                        setSelectedRunId(run.runId);
+                        setSelectedIssueIndex(0);
+                        setSelectedSourceFilePath(null);
+                      }}
+                    >
+                      <td className="mono">{run.runId.slice(0, 8)}</td>
+                      <td>
+                        <span className={`status-pill ${run.status === "running" ? "status-running" : "status-finished"}`}>
+                          {run.status}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="exit-pill">{run.exitCode ?? "-"}</span>
+                      </td>
+                      <td>
+                        <span className={`issues-pill ${run.issueCount > 0 ? "issues-pill-has" : ""}`}>{run.issueCount}</span>
+                      </td>
+                      <td className="mono">{run.targetPath}</td>
+                      <td>{new Date(run.updatedAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+
+          {!loading && runs.length > 0 && visibleRuns.length === 0 ? (
+            <p className="empty">No runs match current status filter.</p>
+          ) : null}
+        </div>
+
+        <div className="inspector-pane">
+          <div className="pane-header">
+            <h2>Inspector</h2>
+            <span className="pane-meta">{selectedRunId ? "run selected" : "no selection"}</span>
+          </div>
+
+          {!loading && runs.length > 0 && !selectedRunId ? (
+            <section className="selection-empty">
+              <p>Select a run from the table to inspect details.</p>
+              <button
                 onClick={() => {
-                  setSelectedRunId(run.runId);
-                  setSelectedIssueIndex(0);
-                  setSelectedSourceFilePath(null);
+                  if (latestRunningRunId) {
+                    setSelectedRunId(latestRunningRunId);
+                  }
                 }}
+                disabled={!latestRunningRunId}
               >
-                <td className="mono">{run.runId.slice(0, 8)}</td>
-                <td>{run.status}</td>
-                <td>{run.exitCode ?? "-"}</td>
-                <td>{run.issueCount}</td>
-                <td className="mono">{run.targetPath}</td>
-                <td>{new Date(run.updatedAt).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
+                Jump to running
+              </button>
+            </section>
+          ) : null}
 
-      {!loading && runs.length > 0 && visibleRuns.length === 0 ? (
-        <p className="empty">No runs match current status filter.</p>
-      ) : null}
-
-      {!loading && runs.length > 0 && !selectedRunId ? (
-        <section className="selection-empty">
-          <p>Select a run from the table to inspect details.</p>
-          <button
-            onClick={() => {
-              if (latestRunningRunId) {
-                setSelectedRunId(latestRunningRunId);
-              }
-            }}
-            disabled={!latestRunningRunId}
-          >
-            Jump to running
-          </button>
-        </section>
-      ) : null}
-
-      {selectedRunId ? (
-        <section className="detail-panel">
+          {selectedRunId ? (
+            <section className="detail-panel">
           <h2>Run detail</h2>
           {detailLoading ? <p className="empty">Loading selected run...</p> : null}
           {detailError ? <p className="error">Could not load run detail: {detailError}</p> : null}
@@ -1926,8 +1961,10 @@ export function App(): JSX.Element {
               </section>
             </>
           ) : null}
-        </section>
-      ) : null}
+            </section>
+          ) : null}
+        </div>
+      </section>
     </main>
   );
 }
