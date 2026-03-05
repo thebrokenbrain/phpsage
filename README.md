@@ -47,6 +47,7 @@ docker compose up --build -d phpsage-server
 
 ```bash
 docker compose run --rm phpsage-cli npm run build
+./scripts/smoke-no-ai.sh
 docker compose up --build -d phpsage-server
 docker compose up --build -d phpsage-web
 docker compose up --build -d api-docs
