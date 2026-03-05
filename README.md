@@ -107,6 +107,7 @@ Estado actual:
 - lifecycle parcial de runs implementado: `POST /api/runs/:runId/log` y `POST /api/runs/:runId/finish`
 - lectura de runs implementada: `GET /api/runs` y `GET /api/runs/:runId`
 - lectura de source por run implementada: `GET /api/runs/:runId/source?file=...`
+- listado de archivos por run implementado: `GET /api/runs/:runId/files`
 
 ### Verificación rápida del endpoint inicial
 

@@ -1,7 +1,7 @@
 // This file exposes minimal HTTP routes for server bootstrap and run start lifecycle.
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { existsSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { URL } from "node:url";
 import { RunService } from "../application/run-service.js";
 import type { RunIssue } from "../domain/run.js";
@@ -86,6 +86,33 @@ export function createHttpServer(runService: RunService, runSourceReader: RunSou
       return;
     }
 
+    const runIdForFilesGet = getRunIdByAction(requestUrl.pathname, "files");
+    if (method === "GET" && runIdForFilesGet) {
+      const run = await runService.getById(runIdForFilesGet);
+      if (!run) {
+        writeJson(response, 404, { error: "Run not found" });
+        return;
+      }
+
+      const files = await runSourceReader.listFiles(run.targetPath);
+      const issueCountByFile = getIssueCountByRelativeFile(run.targetPath, run.issues);
+      const issueOnlyFiles = Array.from(issueCountByFile.keys()).filter((filePath) => !files.includes(filePath));
+      const allFiles = [...files, ...issueOnlyFiles].sort((left, right) => left.localeCompare(right));
+
+      writeJson(response, 200, {
+        targetPath: run.targetPath,
+        files: allFiles.map((filePath) => {
+          const issueCount = issueCountByFile.get(filePath) ?? 0;
+          return {
+            path: filePath,
+            issueCount,
+            hasIssues: issueCount > 0
+          };
+        })
+      });
+      return;
+    }
+
     if (method === "POST" && requestUrl.pathname === "/api/runs/start") {
       const body = (await readJsonBody(request)) as StartRunBody | null;
       const targetPathValidation = validateRunTargetPath(body?.targetPath);
@@ -153,6 +180,23 @@ function getRunIdByAction(pathname: string, action: "log" | "finish" | "source" 
 function getRunIdFromPath(pathname: string): string | null {
   const match = pathname.match(/^\/api\/runs\/([^/]+)$/);
   return match?.[1] ?? null;
+}
+
+function getIssueCountByRelativeFile(targetPath: string, issues: RunIssue[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  const resolvedTargetPath = resolve(targetPath);
+
+  for (const issue of issues) {
+    const resolvedIssuePath = isAbsolute(issue.file) ? resolve(issue.file) : resolve(resolvedTargetPath, issue.file);
+    const relativeIssuePath = relative(resolvedTargetPath, resolvedIssuePath).replace(/\\/g, "/");
+    if (relativeIssuePath.startsWith("..") || relativeIssuePath.length === 0) {
+      continue;
+    }
+
+    counts.set(relativeIssuePath, (counts.get(relativeIssuePath) ?? 0) + 1);
+  }
+
+  return counts;
 }
 
 function validateRunTargetPath(rawTargetPath: unknown): TargetPathValidationResult {

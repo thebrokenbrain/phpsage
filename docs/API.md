@@ -45,6 +45,10 @@ This document must be updated in the same iteration where any endpoint is added 
 - Response `400`: missing `file` query parameter
 - Response `404`: run not found or source file not found/outside target path
 
+- `GET /api/runs/:runId/files`
+- Response `200`: `{ targetPath, files[] }` where each file has `{ path, issueCount, hasIssues }`
+- Response `404`: run not found
+
 - `POST /api/runs/start`
 - Body:
 
