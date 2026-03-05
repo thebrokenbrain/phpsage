@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { URL } from "node:url";
 import { RunService } from "../application/run-service.js";
 import type { RunIssue } from "../domain/run.js";
+import type { RunSourceReader } from "../infrastructure/run-source-reader.js";
 
 interface StartRunBody {
   targetPath: string;
@@ -25,7 +26,7 @@ interface TargetPathValidationResult {
   error: string | null;
 }
 
-export function createHttpServer(runService: RunService) {
+export function createHttpServer(runService: RunService, runSourceReader: RunSourceReader) {
   return createServer(async (request, response) => {
     applyCorsHeaders(response);
 
@@ -58,6 +59,30 @@ export function createHttpServer(runService: RunService) {
       }
 
       writeJson(response, 200, run);
+      return;
+    }
+
+    const runIdForSourceGet = getRunIdByAction(requestUrl.pathname, "source");
+    if (method === "GET" && runIdForSourceGet) {
+      const filePath = requestUrl.searchParams.get("file") ?? "";
+      if (!filePath) {
+        writeJson(response, 400, { error: "file query parameter is required" });
+        return;
+      }
+
+      const run = await runService.getById(runIdForSourceGet);
+      if (!run) {
+        writeJson(response, 404, { error: "Run not found" });
+        return;
+      }
+
+      const source = await runSourceReader.read(run.targetPath, filePath);
+      if (source === null) {
+        writeJson(response, 404, { error: "Source file not found" });
+        return;
+      }
+
+      writeJson(response, 200, { file: filePath, content: source });
       return;
     }
 
@@ -120,7 +145,7 @@ export function createHttpServer(runService: RunService) {
   });
 }
 
-function getRunIdByAction(pathname: string, action: "log" | "finish"): string | null {
+function getRunIdByAction(pathname: string, action: "log" | "finish" | "source" | "files"): string | null {
   const match = pathname.match(new RegExp(`^/api/runs/([^/]+)/${action}$`));
   return match?.[1] ?? null;
 }

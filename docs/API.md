@@ -40,6 +40,11 @@ This document must be updated in the same iteration where any endpoint is added 
 - Response `200`: full run record
 - Response `404`: run not found
 
+- `GET /api/runs/:runId/source?file=<absolute-path>`
+- Response `200`: source payload `{ file, content }`
+- Response `400`: missing `file` query parameter
+- Response `404`: run not found or source file not found/outside target path
+
 - `POST /api/runs/start`
 - Body:
 
