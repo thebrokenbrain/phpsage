@@ -67,9 +67,19 @@ function readInitialQuerySelection(): {
   runsStatusFilter: "all" | "running" | "finished";
   fileSearchTerm: string;
   startTargetPath: string | null;
+  isLivePollingEnabled: boolean;
 } {
   if (typeof window === "undefined") {
-    return { runId: null, file: null, issueIndex: null, logPage: null, runsStatusFilter: "all", fileSearchTerm: "", startTargetPath: null };
+    return {
+      runId: null,
+      file: null,
+      issueIndex: null,
+      logPage: null,
+      runsStatusFilter: "all",
+      fileSearchTerm: "",
+      startTargetPath: null,
+      isLivePollingEnabled: true
+    };
   }
 
   const searchParams = new URLSearchParams(window.location.search);
@@ -80,6 +90,7 @@ function readInitialQuerySelection(): {
   const status = searchParams.get("status");
   const fileQuery = searchParams.get("fileQuery");
   const target = searchParams.get("target");
+  const live = searchParams.get("live");
   const parsedIssueIndex = issue ? Number.parseInt(issue, 10) : Number.NaN;
   const parsedLogPage = logPage ? Number.parseInt(logPage, 10) : Number.NaN;
 
@@ -90,7 +101,8 @@ function readInitialQuerySelection(): {
     logPage: Number.isFinite(parsedLogPage) && parsedLogPage >= 0 ? parsedLogPage : null,
     runsStatusFilter: status === "running" || status === "finished" ? status : "all",
     fileSearchTerm: fileQuery ?? "",
-    startTargetPath: target && target.trim().length > 0 ? target : null
+    startTargetPath: target && target.trim().length > 0 ? target : null,
+    isLivePollingEnabled: live !== "0"
   };
 }
 
@@ -105,7 +117,7 @@ export function App(): JSX.Element {
   const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(true);
+  const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
   const [startRunLoading, setStartRunLoading] = useState(false);
   const [startRunError, setStartRunError] = useState<string | null>(null);
@@ -273,6 +285,7 @@ export function App(): JSX.Element {
       setRunsStatusFilter(selection.runsStatusFilter);
       setFileSearchTerm(selection.fileSearchTerm);
       setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
+      setIsLivePollingEnabled(selection.isLivePollingEnabled);
     }
 
     window.addEventListener("popstate", handlePopState);
@@ -313,6 +326,12 @@ export function App(): JSX.Element {
       url.searchParams.delete("target");
     }
 
+    if (isLivePollingEnabled) {
+      url.searchParams.delete("live");
+    } else {
+      url.searchParams.set("live", "0");
+    }
+
     if (selectedSourceFilePath) {
       url.searchParams.set("file", selectedSourceFilePath);
     } else {
@@ -332,7 +351,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [fileSearchTerm, logPage, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
+  }, [fileSearchTerm, isLivePollingEnabled, logPage, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {

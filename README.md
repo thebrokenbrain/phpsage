@@ -136,6 +136,7 @@ Estado actual:
 - refresco en vivo del navegador de archivos en ese ciclo de auto-refresh
 - indicador visual `Live updating` en detalle cuando el run está en ejecución
 - toggle en cabecera para activar/desactivar live polling
+- estado del toggle de live polling persistido en URL
 
 ### Verificación rápida del endpoint inicial
 
