@@ -1325,29 +1325,30 @@ export function App(): JSX.Element {
 
                 {isIssuesSectionOpen ? (
                   filteredIssueEntries.length > 0 ? (
-                  <ul className="detail-list">
-                    {filteredIssueEntries
-                      .slice(issuePage * detailPageSize, (issuePage + 1) * detailPageSize)
-                      .map(({ issue, absoluteIndex }) => {
-                        return (
-                        <li
-                          key={`${issue.file}-${issue.line}-${absoluteIndex}`}
-                          className={absoluteIndex === selectedIssueIndex ? "selected-issue" : ""}
-                          onClick={() => {
-                            setSelectedIssueIndex(absoluteIndex);
-                            setSelectedSourceFilePath(null);
-                          }}
-                        >
-                          <span className="mono">{issue.file}:{issue.line}</span> — {issue.message}
-                          {issue.identifier ? <span className="issue-identifier">[{issue.identifier}]</span> : null}
-                        </li>
-                        );
-                      })}
-                  </ul>
-                ) : selectedRun.issues.length > 0 ? (
-                  <p className="empty">No issues match current filter.</p>
-                ) : (
-                  <p className="empty">No issues in selected run.</p>
+                    <ul className="detail-list">
+                      {filteredIssueEntries
+                        .slice(issuePage * detailPageSize, (issuePage + 1) * detailPageSize)
+                        .map(({ issue, absoluteIndex }) => {
+                          return (
+                            <li
+                              key={`${issue.file}-${issue.line}-${absoluteIndex}`}
+                              className={absoluteIndex === selectedIssueIndex ? "selected-issue" : ""}
+                              onClick={() => {
+                                setSelectedIssueIndex(absoluteIndex);
+                                setSelectedSourceFilePath(null);
+                              }}
+                            >
+                              <span className="mono">{issue.file}:{issue.line}</span> — {issue.message}
+                              {issue.identifier ? <span className="issue-identifier">[{issue.identifier}]</span> : null}
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  ) : selectedRun.issues.length > 0 ? (
+                    <p className="empty">No issues match current filter.</p>
+                  ) : (
+                    <p className="empty">No issues in selected run.</p>
+                  )
                 ) : null}
               </section>
 
@@ -1474,21 +1475,22 @@ export function App(): JSX.Element {
 
                 {isLogsSectionOpen ? (
                   filteredLogs.length > 0 ? (
-                  <ul className="detail-list">
-                    {filteredLogs
-                      .slice(logPage * detailPageSize, (logPage + 1) * detailPageSize)
-                      .map((logEntry, index) => (
-                        <li key={`${logEntry.timestamp}-${logEntry.stream}-${index}`}>
-                          <span className="mono">{new Date(logEntry.timestamp).toLocaleTimeString()} [{logEntry.stream}]</span>
-                          {" — "}
-                          {logEntry.message.length > 200 ? `${logEntry.message.slice(0, 200)}…` : logEntry.message}
-                        </li>
-                      ))}
-                  </ul>
-                ) : selectedRun.logs.length > 0 ? (
-                  <p className="empty">No logs match current filter.</p>
-                ) : (
-                  <p className="empty">No logs in selected run.</p>
+                    <ul className="detail-list">
+                      {filteredLogs
+                        .slice(logPage * detailPageSize, (logPage + 1) * detailPageSize)
+                        .map((logEntry, index) => (
+                          <li key={`${logEntry.timestamp}-${logEntry.stream}-${index}`}>
+                            <span className="mono">{new Date(logEntry.timestamp).toLocaleTimeString()} [{logEntry.stream}]</span>
+                            {" — "}
+                            {logEntry.message.length > 200 ? `${logEntry.message.slice(0, 200)}…` : logEntry.message}
+                          </li>
+                        ))}
+                    </ul>
+                  ) : selectedRun.logs.length > 0 ? (
+                    <p className="empty">No logs match current filter.</p>
+                  ) : (
+                    <p className="empty">No logs in selected run.</p>
+                  )
                 ) : null}
               </section>
             </>
