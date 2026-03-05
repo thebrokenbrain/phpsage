@@ -1103,6 +1103,14 @@ export function App(): JSX.Element {
           </button>
           <button
             onClick={() => {
+              setAutoRunTriggerCount(0);
+            }}
+            disabled={autoRunTriggerCount === 0}
+          >
+            Reset auto count
+          </button>
+          <button
+            onClick={() => {
               if (typeof window !== "undefined") {
                 window.open("http://localhost:8081", "_blank", "noopener,noreferrer");
               }
