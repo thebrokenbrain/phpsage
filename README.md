@@ -116,7 +116,7 @@ Estado actual:
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - selección por defecto prioriza runs en estado `running` cuando existen
-- filtro por estado en tabla de runs (`all`, `running`, `finished`)
+- filtro por estado en tabla de runs (`all`, `running`, `finished`) persistido en URL
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 - panel de detalle web ampliado con paginación de issues y logs
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)

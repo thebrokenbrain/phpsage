@@ -53,9 +53,10 @@ function readInitialQuerySelection(): {
   file: string | null;
   issueIndex: number | null;
   logPage: number | null;
+  runsStatusFilter: "all" | "running" | "finished";
 } {
   if (typeof window === "undefined") {
-    return { runId: null, file: null, issueIndex: null, logPage: null };
+    return { runId: null, file: null, issueIndex: null, logPage: null, runsStatusFilter: "all" };
   }
 
   const searchParams = new URLSearchParams(window.location.search);
@@ -63,6 +64,7 @@ function readInitialQuerySelection(): {
   const file = searchParams.get("file");
   const issue = searchParams.get("issue");
   const logPage = searchParams.get("logPage");
+  const status = searchParams.get("status");
   const parsedIssueIndex = issue ? Number.parseInt(issue, 10) : Number.NaN;
   const parsedLogPage = logPage ? Number.parseInt(logPage, 10) : Number.NaN;
 
@@ -70,7 +72,8 @@ function readInitialQuerySelection(): {
     runId: runId && runId.trim().length > 0 ? runId : null,
     file: file && file.trim().length > 0 ? file : null,
     issueIndex: Number.isFinite(parsedIssueIndex) && parsedIssueIndex >= 0 ? parsedIssueIndex : null,
-    logPage: Number.isFinite(parsedLogPage) && parsedLogPage >= 0 ? parsedLogPage : null
+    logPage: Number.isFinite(parsedLogPage) && parsedLogPage >= 0 ? parsedLogPage : null,
+    runsStatusFilter: status === "running" || status === "finished" ? status : "all"
   };
 }
 
@@ -82,7 +85,7 @@ export function App(): JSX.Element {
   }, []);
 
   const [runs, setRuns] = useState<RunSummary[]>([]);
-  const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">("all");
+  const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelection.runId);
@@ -162,6 +165,7 @@ export function App(): JSX.Element {
       setSelectedSourceFilePath(selection.file);
       setSelectedIssueIndex(selection.issueIndex ?? 0);
       setLogPage(selection.logPage ?? 0);
+      setRunsStatusFilter(selection.runsStatusFilter);
     }
 
     window.addEventListener("popstate", handlePopState);
@@ -184,6 +188,12 @@ export function App(): JSX.Element {
       url.searchParams.delete("runId");
     }
 
+    if (runsStatusFilter === "all") {
+      url.searchParams.delete("status");
+    } else {
+      url.searchParams.set("status", runsStatusFilter);
+    }
+
     if (selectedSourceFilePath) {
       url.searchParams.set("file", selectedSourceFilePath);
     } else {
@@ -203,7 +213,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [logPage, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath]);
+  }, [logPage, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
