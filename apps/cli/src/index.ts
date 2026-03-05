@@ -310,12 +310,12 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 			return;
 		}
 
-		streamQueue = streamQueue.then(() =>
-			postJson(`${options.serverUrl}/api/runs/${runId}/log`, {
-				stream,
-				message
-			})
-		);
+		streamQueue = streamQueue.then(async () => {
+			const logPosted = await postRunLogWithRetry(options.serverUrl, runId, stream, message);
+			if (!logPosted) {
+				process.stderr.write(`Could not send run log after retries. runId=${runId} stream=${stream}\n`);
+			}
+		});
 	};
 
 	child.stdout.on("data", (chunk: Buffer) => {
@@ -349,13 +349,60 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 	await streamQueue;
 
 	const issues = parseIssuesFromOutput(stdoutChunks.join(""), stderrChunks.join(""));
-	await postJson(`${options.serverUrl}/api/runs/${runId}/finish`, {
+	const finishPosted = await postRunFinishWithRetry(options.serverUrl, runId, {
 		issues,
 		exitCode
 	});
+	if (!finishPosted) {
+		process.stderr.write(`Could not send run finish event after retries. runId=${runId}\n`);
+	}
 
 	process.stdout.write(`Run finished. runId=${runId} exitCode=${exitCode} issues=${issues.length}\n`);
 	return exitCode;
+}
+
+async function postRunFinishWithRetry(
+	serverUrl: string,
+	runId: string,
+	body: { issues: ParsedPhpstanIssue[]; exitCode: number },
+	maxAttempts = 3
+): Promise<boolean> {
+	for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+		try {
+			await postJson(`${serverUrl}/api/runs/${runId}/finish`, body);
+			return true;
+		} catch {
+			if (attempt < maxAttempts) {
+				await wait(200 * attempt);
+			}
+		}
+	}
+
+	return false;
+}
+
+async function postRunLogWithRetry(
+	serverUrl: string,
+	runId: string,
+	stream: "stdout" | "stderr",
+	message: string,
+	maxAttempts = 3
+): Promise<boolean> {
+	for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+		try {
+			await postJson(`${serverUrl}/api/runs/${runId}/log`, {
+				stream,
+				message
+			});
+			return true;
+		} catch {
+			if (attempt < maxAttempts) {
+				await wait(120 * attempt);
+			}
+		}
+	}
+
+	return false;
 }
 
 function createTargetSnapshot(

@@ -124,6 +124,7 @@ Estado actual:
 - watch CLI detiene el loop de forma determinista cuando alcanza `--watch-max-cycles` e informa motivo de parada
 - CLI soporta `--help`/`-h` y `--version`/`-v`
 - parser CLI valida flags desconocidas y flags con valor requerido para fallar rápido con error explícito
+- envío de eventos `log` y `finish` del lifecycle CLI incorpora reintentos ante fallos transitorios de red
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - selección por defecto prioriza runs en estado `running` cuando existen
