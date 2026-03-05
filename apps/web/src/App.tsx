@@ -168,6 +168,7 @@ export function App(): JSX.Element {
   const [filesError, setFilesError] = useState<string | null>(null);
   const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(initialSelection.file);
   const [sourceLoading, setSourceLoading] = useState(false);
+  const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(true);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
   const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
@@ -1196,7 +1197,17 @@ export function App(): JSX.Element {
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Source Preview</h3>
+                  <button
+                    onClick={() => {
+                      setIsSourceSectionOpen((isOpen) => !isOpen);
+                    }}
+                  >
+                    {isSourceSectionOpen ? "Hide" : "Show"}
+                  </button>
                 </div>
+
+                {isSourceSectionOpen ? (
+                  <>
 
                 {sourceLoading ? <p className="empty">Loading source preview...</p> : null}
                 {sourceError ? <p className="error">Could not load source: {sourceError}</p> : null}
@@ -1222,6 +1233,8 @@ export function App(): JSX.Element {
 
                 {!sourceLoading && !sourceError && !sourcePayload ? (
                   <p className="empty">Select an issue to load source preview.</p>
+                ) : null}
+                  </>
                 ) : null}
               </section>
 

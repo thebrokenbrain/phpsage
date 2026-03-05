@@ -35,6 +35,7 @@ A minimal Dashboard is implemented with:
 - issue identifier filter is persisted in URL query-state (`issueIdentifier`)
 - issues panel includes `Clear issue filters` action
 - source preview for selected issue backed by `GET /api/runs/:runId/source`
+- Source Preview section can be collapsed/expanded
 - source preview shows line numbers and highlights active issue line when applicable
 - URL query-state for selected run, file, issue, and logs page (`?runId=...&file=...&issue=...&logPage=...`) with reload restore (including pagination context)
 - browser back/forward navigation restores the same URL state (`popstate` handling)
