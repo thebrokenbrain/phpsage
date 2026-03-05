@@ -54,6 +54,7 @@ A minimal Dashboard is implemented with:
 - header includes live polling interval selector (`2s`, `5s`, `10s`)
 - selected polling interval is persisted in URL query-state (`interval`)
 - header includes auto-run on/off toggle and interval selector (`10s`, `15s`, `30s`)
+- auto-run supports target mode (`starter` or `selected run target`)
 - auto-run scheduler starts analysis at configured interval when no run is currently `running`
 - dashboard summary shows auto-run status and last auto-run timestamp
 - auto-run toggle and interval are persisted in URL query-state (`auto`, `autoInterval`)

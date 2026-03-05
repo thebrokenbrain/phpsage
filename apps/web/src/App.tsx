@@ -172,6 +172,7 @@ export function App(): JSX.Element {
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(initialSelection.isAutoRunEnabled);
   const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(initialSelection.autoRunIntervalMs ?? 15000);
+  const [autoRunTargetMode, setAutoRunTargetMode] = useState<"starter" | "selected">("starter");
   const [autoRunCountdownSec, setAutoRunCountdownSec] = useState(Math.ceil((initialSelection.autoRunIntervalMs ?? 15000) / 1000));
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
   const [autoRunTriggerCount, setAutoRunTriggerCount] = useState(0);
@@ -422,8 +423,8 @@ export function App(): JSX.Element {
     }
   }
 
-  async function startRunFromUi(): Promise<void> {
-    const normalizedTargetPath = startRunTargetPath.trim();
+  async function startRunFromUi(targetPathOverride?: string): Promise<void> {
+    const normalizedTargetPath = (targetPathOverride ?? startRunTargetPath).trim();
     if (normalizedTargetPath.length === 0) {
       setStartRunError("Target path is required.");
       return;
@@ -829,7 +830,12 @@ export function App(): JSX.Element {
     }
 
     const intervalId = window.setInterval(() => {
-      if (startRunTargetPath.trim().length === 0) {
+      const resolvedAutoTargetPath =
+        autoRunTargetMode === "selected"
+          ? (selectedRun?.targetPath ?? startRunTargetPath)
+          : startRunTargetPath;
+
+      if (resolvedAutoTargetPath.trim().length === 0) {
         return;
       }
 
@@ -839,7 +845,7 @@ export function App(): JSX.Element {
       }
 
       void (async () => {
-        await startRunFromUi();
+        await startRunFromUi(resolvedAutoTargetPath);
         setLastAutoRunAt(new Date().toISOString());
         setAutoRunTriggerCount((currentValue) => currentValue + 1);
       })();
@@ -848,7 +854,7 @@ export function App(): JSX.Element {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [autoRunIntervalMs, isAutoRunEnabled, runs, startRunLoading, startRunTargetPath]);
+  }, [autoRunIntervalMs, autoRunTargetMode, isAutoRunEnabled, runs, selectedRun, startRunLoading, startRunTargetPath]);
 
   useEffect(() => {
     if (!selectedRun) {
@@ -1074,6 +1080,24 @@ export function App(): JSX.Element {
               <option value={10000}>10s</option>
               <option value={15000}>15s</option>
               <option value={30000}>30s</option>
+            </select>
+          </label>
+          <label>
+            Auto target
+            <select
+              value={autoRunTargetMode}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "selected") {
+                  setAutoRunTargetMode("selected");
+                  return;
+                }
+
+                setAutoRunTargetMode("starter");
+              }}
+            >
+              <option value="starter">Starter target</option>
+              <option value="selected">Selected run target</option>
             </select>
           </label>
           <button

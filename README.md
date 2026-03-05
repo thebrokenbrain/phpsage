@@ -171,6 +171,7 @@ Estado actual:
 - selector en cabecera para intervalo de polling (`2s`, `5s`, `10s`)
 - intervalo de polling persistido en URL
 - controles en cabecera para auto-run (toggle + intervalo `10s`/`15s`/`30s`)
+- modo de target para auto-run (`starter` o target del run seleccionado)
 - auto-run dispara análisis periódicos cuando no hay un run `running`
 - resumen de dashboard muestra estado y timestamp de último auto-run
 - estado y intervalo de auto-run persistidos en URL
