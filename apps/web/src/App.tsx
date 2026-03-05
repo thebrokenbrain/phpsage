@@ -28,6 +28,17 @@ interface RunRecord extends RunSummary {
   issues: RunIssue[];
 }
 
+interface RunFileItem {
+  path: string;
+  issueCount: number;
+  hasIssues: boolean;
+}
+
+interface RunFilesPayload {
+  targetPath: string;
+  files: RunFileItem[];
+}
+
 interface SourcePayload {
   file: string;
   content: string;
@@ -52,6 +63,10 @@ export function App(): JSX.Element {
   const [issuePage, setIssuePage] = useState(0);
   const [logPage, setLogPage] = useState(0);
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(0);
+  const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [filesError, setFilesError] = useState<string | null>(null);
+  const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(null);
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
@@ -111,6 +126,7 @@ export function App(): JSX.Element {
         setIssuePage(0);
         setLogPage(0);
         setSelectedIssueIndex(0);
+        setSelectedSourceFilePath(null);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
         setDetailError(message);
@@ -128,6 +144,38 @@ export function App(): JSX.Element {
     }
 
     void loadRunDetail(selectedRunId);
+  }, [apiBaseUrl, selectedRunId]);
+
+  useEffect(() => {
+    async function loadRunFiles(runId: string): Promise<void> {
+      setFilesLoading(true);
+      setFilesError(null);
+
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/runs/${runId}/files`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = (await response.json()) as RunFilesPayload;
+        setRunFiles(payload.files);
+      } catch (fetchError) {
+        const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        setFilesError(message);
+        setRunFiles([]);
+      } finally {
+        setFilesLoading(false);
+      }
+    }
+
+    if (!selectedRunId) {
+      setRunFiles([]);
+      setFilesError(null);
+      setFilesLoading(false);
+      return;
+    }
+
+    void loadRunFiles(selectedRunId);
   }, [apiBaseUrl, selectedRunId]);
 
   useEffect(() => {
@@ -153,7 +201,19 @@ export function App(): JSX.Element {
       }
     }
 
-    if (!selectedRunId || !selectedRun || selectedRun.issues.length === 0) {
+    if (!selectedRunId || !selectedRun) {
+      setSourceLoading(false);
+      setSourceError(null);
+      setSourcePayload(null);
+      return;
+    }
+
+    if (selectedSourceFilePath) {
+      void loadSource(selectedRunId, selectedSourceFilePath);
+      return;
+    }
+
+    if (selectedRun.issues.length === 0) {
       setSourceLoading(false);
       setSourceError(null);
       setSourcePayload(null);
@@ -170,7 +230,7 @@ export function App(): JSX.Element {
     }
 
     void loadSource(selectedRunId, issue.file);
-  }, [apiBaseUrl, selectedIssueIndex, selectedRun, selectedRunId]);
+  }, [apiBaseUrl, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath]);
 
   return (
     <main className="app">
@@ -233,6 +293,37 @@ export function App(): JSX.Element {
 
               <section className="detail-block">
                 <div className="detail-block-header">
+                  <h3>Files</h3>
+                </div>
+
+                {filesLoading ? <p className="empty">Loading files...</p> : null}
+                {filesError ? <p className="error">Could not load files: {filesError}</p> : null}
+
+                {!filesLoading && !filesError && runFiles.length > 0 ? (
+                  <ul className="detail-list">
+                    {runFiles.slice(0, 30).map((fileEntry) => (
+                      <li
+                        key={fileEntry.path}
+                        className={selectedSourceFilePath === `${selectedRun.targetPath}/${fileEntry.path}` ? "selected-issue" : ""}
+                        onClick={() => {
+                          setSelectedSourceFilePath(`${selectedRun.targetPath}/${fileEntry.path}`);
+                        }}
+                      >
+                        <span className="mono">{fileEntry.path}</span>
+                        {" — "}
+                        issues: {fileEntry.issueCount}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {!filesLoading && !filesError && runFiles.length === 0 ? (
+                  <p className="empty">No PHP files for selected run.</p>
+                ) : null}
+              </section>
+
+              <section className="detail-block">
+                <div className="detail-block-header">
                   <h3>Issues</h3>
                   {selectedRun.issues.length > detailPageSize ? (
                     <div className="pager">
@@ -274,6 +365,7 @@ export function App(): JSX.Element {
                           className={absoluteIndex === selectedIssueIndex ? "selected-issue" : ""}
                           onClick={() => {
                             setSelectedIssueIndex(absoluteIndex);
+                            setSelectedSourceFilePath(null);
                           }}
                         >
                           <span className="mono">{issue.file}:{issue.line}</span> — {issue.message}

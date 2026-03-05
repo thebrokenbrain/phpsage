@@ -118,6 +118,7 @@ Estado actual:
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 - panel de detalle web ampliado con paginación de issues y logs
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
+- navegador de archivos por run en web (`GET /api/runs/:runId/files`)
 
 ### Verificación rápida del endpoint inicial
 

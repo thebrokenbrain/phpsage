@@ -100,6 +100,8 @@ button:disabled {
 
 .detail-list li {
   margin: 4px 0;
+  cursor: pointer;
+  padding: 2px 4px;
 }
 
 .detail-list li.selected-issue {

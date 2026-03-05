@@ -8,6 +8,7 @@ A minimal Dashboard is implemented with:
 
 - runs table backed by `GET /api/runs`
 - selectable run detail panel backed by `GET /api/runs/:runId`
+- files navigator in detail backed by `GET /api/runs/:runId/files`
 - paginated issues and logs sections in run detail
 - source preview for selected issue backed by `GET /api/runs/:runId/source`
 - manual refresh action
