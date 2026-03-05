@@ -36,6 +36,7 @@ A minimal Dashboard is implemented with:
 - if URL has no target, run starter restores last used target from localStorage
 - run starter can prefill target from currently selected run
 - run starter includes quick target presets for sample projects
+- pressing `Enter` on target input starts a run
 - loading, empty, and error states
 
 ## Target UX direction

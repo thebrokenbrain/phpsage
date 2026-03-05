@@ -725,6 +725,12 @@ export function App(): JSX.Element {
             onChange={(event) => {
               setStartRunTargetPath(event.target.value);
             }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void startRunFromUi();
+              }
+            }}
           />
         </label>
         <div className="run-starter-presets">
