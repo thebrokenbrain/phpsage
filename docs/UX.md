@@ -53,23 +53,30 @@ A minimal Dashboard is implemented with:
 - live polling toggle is persisted in URL query-state (`live=0` when disabled)
 - header includes live polling interval selector (`2s`, `5s`, `10s`)
 - selected polling interval is persisted in URL query-state (`interval`)
-- header includes auto-run on/off toggle and interval selector (`10s`, `15s`, `30s`)
+- header includes auto-run on/off toggle and interval selector (`10s`, `15s`, `30s`, `60s`)
+- header includes `Pause when hidden` toggle for auto-run
+- header includes `Auto max failures` selector (`1`, `3`, `5`)
 - auto-run supports target mode (`starter` or `selected run target`)
 - auto-run scheduler starts analysis at configured interval when no run is currently `running`
+- auto-run scheduler can pause while browser tab is hidden
+- auto-run scheduler applies temporary backoff after failed automatic starts
 - dashboard summary shows auto-run status and last auto-run timestamp
 - `last auto-run` only tracks scheduler-triggered starts (manual `Run now` does not update it)
-- auto-run toggle, interval and target mode are persisted in URL query-state (`auto`, `autoInterval`, `autoTarget`)
+- auto-run toggle, interval, target mode and resilience settings are persisted in URL query-state (`auto`, `autoInterval`, `autoTarget`, `autoPauseHidden`, `autoMaxFailures`)
 - auto-run settings are restored from localStorage when URL has no explicit auto-run query-state
 - dashboard indicates when auto-run is waiting for an active run to finish
 - dashboard shows countdown to next auto-run while enabled
 - countdown resets to full interval when auto-run is disabled
 - countdown resets after a successful run start
+- summary shows effective interval (base interval + backoff multiplier)
 - dashboard summary includes successful auto-run trigger count for current session
 - header includes `Reset auto count` action
+- header includes `Reset auto failures` action
 - header includes `Clear auto status` action to remove last auto-run timestamp
 - auto-run is automatically disabled if auto-triggered run start fails
 - dashboard summary exposes last auto-run error when an automatic trigger fails
 - dashboard summary includes auto-run failure counter for current session
+- dashboard summary includes consecutive failure counter while backoff is active
 - when auto-run is disabled after failure, summary shows pause reason
 - header includes `Run now` action using currently resolved run target
 - `Run now` resolves target with the same mode as auto-run scheduler (`starter` or `selected`)

@@ -170,22 +170,28 @@ Estado actual:
 - estado del toggle de live polling persistido en URL
 - selector en cabecera para intervalo de polling (`2s`, `5s`, `10s`)
 - intervalo de polling persistido en URL
-- controles en cabecera para auto-run (toggle + intervalo `10s`/`15s`/`30s`)
+- controles en cabecera para auto-run (toggle + intervalo `10s`/`15s`/`30s`/`60s`)
+- toggle `Pause when hidden` para pausar auto-run si la pestaña está oculta
+- selector `Auto max failures` (`1`/`3`/`5`) para limitar fallos automáticos consecutivos
 - modo de target para auto-run (`starter` o target del run seleccionado)
 - auto-run dispara análisis periódicos cuando no hay un run `running`
+- auto-run aplica backoff temporal del intervalo tras fallos automáticos
 - resumen de dashboard muestra estado y timestamp de último auto-run
 - el timestamp de último auto-run solo refleja disparos del scheduler (no `Run now` manual)
-- estado, intervalo y modo de target de auto-run persistidos en URL
+- estado, intervalo, modo de target y ajustes de resiliencia de auto-run persistidos en URL
 - restauración de configuración de auto-run desde localStorage si la URL no define estado auto-run
 - indicador visual cuando auto-run está esperando a que termine un run activo
 - contador visible del tiempo restante hasta el próximo auto-run
 - al desactivar auto-run, el contador vuelve al intervalo completo configurado
 - el contador de auto-run se reinicia tras un inicio de run exitoso
+- resumen muestra intervalo efectivo de auto-run (incluyendo backoff)
 - resumen muestra contador de disparos auto-run exitosos en la sesión actual
 - acción `Reset auto count` en cabecera
+- acción `Reset auto failures` en cabecera
 - acción `Clear auto status` en cabecera para limpiar timestamp de último auto-run
 - resumen muestra último error de auto-run cuando falla un disparo automático
 - resumen incluye contador de fallos de auto-run en la sesión actual
+- resumen incluye contador de fallos consecutivos mientras hay backoff
 - si auto-run se desactiva tras fallo, se muestra motivo de pausa
 - acción `Run now` en cabecera usando el target resuelto según el modo auto-run
 - indicador cuando el modo `selected` cae en fallback al `starter target` por no haber run seleccionado

@@ -80,6 +80,8 @@ function readInitialQuerySelection(): {
   isAutoRunEnabled: boolean;
   autoRunIntervalMs: number | null;
   autoRunTargetMode: "starter" | "selected";
+  autoRunPauseWhenHidden: boolean;
+  autoRunMaxFailures: number | null;
   startTargetPath: string | null;
   isLivePollingEnabled: boolean;
   livePollingIntervalMs: number | null;
@@ -104,6 +106,8 @@ function readInitialQuerySelection(): {
       isAutoRunEnabled: false,
       autoRunIntervalMs: null,
       autoRunTargetMode: "starter",
+      autoRunPauseWhenHidden: true,
+      autoRunMaxFailures: null,
       startTargetPath: null,
       isLivePollingEnabled: true,
       livePollingIntervalMs: null
@@ -129,6 +133,8 @@ function readInitialQuerySelection(): {
   const auto = searchParams.get("auto");
   const autoInterval = searchParams.get("autoInterval");
   const autoTarget = searchParams.get("autoTarget");
+  const autoPauseHidden = searchParams.get("autoPauseHidden");
+  const autoMaxFailures = searchParams.get("autoMaxFailures");
   const target = searchParams.get("target");
   const live = searchParams.get("live");
   const interval = searchParams.get("interval");
@@ -136,6 +142,7 @@ function readInitialQuerySelection(): {
   const parsedLogPage = logPage ? Number.parseInt(logPage, 10) : Number.NaN;
   const parsedInterval = interval ? Number.parseInt(interval, 10) : Number.NaN;
   const parsedAutoInterval = autoInterval ? Number.parseInt(autoInterval, 10) : Number.NaN;
+  const parsedAutoMaxFailures = autoMaxFailures ? Number.parseInt(autoMaxFailures, 10) : Number.NaN;
 
   return {
     runId: runId && runId.trim().length > 0 ? runId : null,
@@ -156,6 +163,8 @@ function readInitialQuerySelection(): {
     isAutoRunEnabled: auto === "1",
     autoRunIntervalMs: Number.isFinite(parsedAutoInterval) && parsedAutoInterval > 0 ? parsedAutoInterval : null,
     autoRunTargetMode: autoTarget === "selected" ? "selected" : "starter",
+    autoRunPauseWhenHidden: autoPauseHidden !== "0",
+    autoRunMaxFailures: Number.isFinite(parsedAutoMaxFailures) && parsedAutoMaxFailures > 0 ? parsedAutoMaxFailures : null,
     startTargetPath: target && target.trim().length > 0 ? target : null,
     isLivePollingEnabled: live !== "0",
     livePollingIntervalMs: Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval : null
@@ -178,6 +187,9 @@ export function App(): JSX.Element {
   const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(initialSelection.isAutoRunEnabled);
   const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(initialSelection.autoRunIntervalMs ?? 15000);
   const [autoRunTargetMode, setAutoRunTargetMode] = useState<"starter" | "selected">(initialSelection.autoRunTargetMode);
+  const [autoRunPauseWhenHidden, setAutoRunPauseWhenHidden] = useState(initialSelection.autoRunPauseWhenHidden);
+  const [autoRunMaxFailures, setAutoRunMaxFailures] = useState(initialSelection.autoRunMaxFailures ?? 3);
+  const [autoRunConsecutiveFailures, setAutoRunConsecutiveFailures] = useState(0);
   const [autoRunCountdownSec, setAutoRunCountdownSec] = useState(Math.ceil((initialSelection.autoRunIntervalMs ?? 15000) / 1000));
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
   const [lastAutoRunError, setLastAutoRunError] = useState<string | null>(null);
@@ -295,11 +307,23 @@ export function App(): JSX.Element {
       if (autoRunTargetMode !== "starter") {
         labels.push(`autoTarget:${autoRunTargetMode}`);
       }
+      if (!autoRunPauseWhenHidden) {
+        labels.push("autoPauseHidden:off");
+      }
+      if (autoRunMaxFailures !== 3) {
+        labels.push(`autoMaxFailures:${autoRunMaxFailures}`);
+      }
+      if (autoRunConsecutiveFailures > 0) {
+        labels.push(`autoBackoff:x${1 + Math.min(autoRunConsecutiveFailures, 4)}`);
+      }
     }
 
     return labels;
   }, [
     autoRunIntervalMs,
+    autoRunConsecutiveFailures,
+    autoRunMaxFailures,
+    autoRunPauseWhenHidden,
     fileSearchTerm,
     isAutoRunEnabled,
     isLivePollingEnabled,
@@ -335,6 +359,11 @@ export function App(): JSX.Element {
   const isAutoRunUsingStarterFallback = useMemo(() => {
     return autoRunTargetMode === "selected" && !selectedRun;
   }, [autoRunTargetMode, selectedRun]);
+
+  const autoRunEffectiveIntervalMs = useMemo(() => {
+    const multiplier = 1 + Math.min(autoRunConsecutiveFailures, 4);
+    return autoRunIntervalMs * multiplier;
+  }, [autoRunConsecutiveFailures, autoRunIntervalMs]);
 
   const visibleRunFiles = useMemo(() => {
     const normalizedTerm = fileSearchTerm.trim().toLowerCase();
@@ -473,10 +502,11 @@ export function App(): JSX.Element {
 
       const payload = (await response.json()) as StartRunPayload;
       setSelectedRunId(payload.runId);
-      setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
+      setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
       setLastAutoRunError(null);
       if (triggerSource === "auto") {
         setAutoRunFailureCount(0);
+        setAutoRunConsecutiveFailures(0);
         setAutoRunDisabledReason(null);
       }
       await loadRuns();
@@ -487,8 +517,16 @@ export function App(): JSX.Element {
       if (triggerSource === "auto") {
         setLastAutoRunError(message);
         setAutoRunFailureCount((currentValue) => currentValue + 1);
-        setAutoRunDisabledReason("auto-start failed");
-        setIsAutoRunEnabled(false);
+        setAutoRunConsecutiveFailures((currentValue) => {
+          const nextValue = currentValue + 1;
+          if (nextValue >= autoRunMaxFailures) {
+            setAutoRunDisabledReason("max auto failures reached");
+            setIsAutoRunEnabled(false);
+          } else {
+            setAutoRunDisabledReason("auto-start failed (backoff active)");
+          }
+          return nextValue;
+        });
       }
       return false;
     } finally {
@@ -544,6 +582,8 @@ export function App(): JSX.Element {
     setIsIssuesSectionOpen(true);
     setIsSourceSectionOpen(true);
     setIsLogsSectionOpen(true);
+    setAutoRunPauseWhenHidden(true);
+    setAutoRunMaxFailures(3);
   }
 
   useEffect(() => {
@@ -566,7 +606,7 @@ export function App(): JSX.Element {
 
     const searchParams = new URLSearchParams(window.location.search);
     const hasAutoQueryState =
-      searchParams.has("auto") || searchParams.has("autoInterval") || searchParams.has("autoTarget");
+      searchParams.has("auto") || searchParams.has("autoInterval") || searchParams.has("autoTarget") || searchParams.has("autoPauseHidden") || searchParams.has("autoMaxFailures");
     if (hasAutoQueryState) {
       return;
     }
@@ -581,6 +621,8 @@ export function App(): JSX.Element {
         isEnabled?: unknown;
         intervalMs?: unknown;
         targetMode?: unknown;
+        pauseWhenHidden?: unknown;
+        maxFailures?: unknown;
       };
 
       if (typeof parsedSettings.isEnabled === "boolean") {
@@ -593,6 +635,14 @@ export function App(): JSX.Element {
 
       if (parsedSettings.targetMode === "selected" || parsedSettings.targetMode === "starter") {
         setAutoRunTargetMode(parsedSettings.targetMode);
+      }
+
+      if (typeof parsedSettings.pauseWhenHidden === "boolean") {
+        setAutoRunPauseWhenHidden(parsedSettings.pauseWhenHidden);
+      }
+
+      if (typeof parsedSettings.maxFailures === "number" && Number.isFinite(parsedSettings.maxFailures) && parsedSettings.maxFailures > 0) {
+        setAutoRunMaxFailures(parsedSettings.maxFailures);
       }
     } catch {
       window.localStorage.removeItem(autoRunSettingsStorageKey);
@@ -617,10 +667,12 @@ export function App(): JSX.Element {
       JSON.stringify({
         isEnabled: isAutoRunEnabled,
         intervalMs: autoRunIntervalMs,
-        targetMode: autoRunTargetMode
+        targetMode: autoRunTargetMode,
+        pauseWhenHidden: autoRunPauseWhenHidden,
+        maxFailures: autoRunMaxFailures
       })
     );
-  }, [autoRunIntervalMs, autoRunTargetMode, isAutoRunEnabled]);
+  }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode, isAutoRunEnabled]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -647,6 +699,8 @@ export function App(): JSX.Element {
       setIsAutoRunEnabled(selection.isAutoRunEnabled);
       setAutoRunIntervalMs(selection.autoRunIntervalMs ?? 15000);
       setAutoRunTargetMode(selection.autoRunTargetMode);
+      setAutoRunPauseWhenHidden(selection.autoRunPauseWhenHidden);
+      setAutoRunMaxFailures(selection.autoRunMaxFailures ?? 3);
       setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
       setIsLivePollingEnabled(selection.isLivePollingEnabled);
       setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
@@ -756,6 +810,18 @@ export function App(): JSX.Element {
       url.searchParams.set("autoTarget", autoRunTargetMode);
     }
 
+    if (autoRunPauseWhenHidden) {
+      url.searchParams.delete("autoPauseHidden");
+    } else {
+      url.searchParams.set("autoPauseHidden", "0");
+    }
+
+    if (autoRunMaxFailures === 3) {
+      url.searchParams.delete("autoMaxFailures");
+    } else {
+      url.searchParams.set("autoMaxFailures", String(autoRunMaxFailures));
+    }
+
     if (startRunTargetPath.trim().length > 0) {
       url.searchParams.set("target", startRunTargetPath);
     } else {
@@ -793,7 +859,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [autoRunIntervalMs, autoRunTargetMode, fileSearchTerm, isAutoRunEnabled, isFilesSectionOpen, isIssuesSectionOpen, isLivePollingEnabled, isLogsSectionOpen, isSourceSectionOpen, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
+  }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode, fileSearchTerm, isAutoRunEnabled, isFilesSectionOpen, isIssuesSectionOpen, isLivePollingEnabled, isLogsSectionOpen, isSourceSectionOpen, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
@@ -892,19 +958,19 @@ export function App(): JSX.Element {
   }, [apiBaseUrl, isLivePollingEnabled, livePollingIntervalMs, selectedRun, selectedRunId]);
 
   useEffect(() => {
-    setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
-  }, [autoRunIntervalMs]);
+    setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
+  }, [autoRunEffectiveIntervalMs]);
 
   useEffect(() => {
     if (!isAutoRunEnabled) {
-      setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
+      setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
       return;
     }
 
     const timerId = window.setInterval(() => {
       setAutoRunCountdownSec((currentValue) => {
         if (currentValue <= 1) {
-          return Math.ceil(autoRunIntervalMs / 1000);
+          return Math.ceil(autoRunEffectiveIntervalMs / 1000);
         }
 
         return currentValue - 1;
@@ -914,11 +980,43 @@ export function App(): JSX.Element {
     return () => {
       window.clearInterval(timerId);
     };
-  }, [autoRunIntervalMs, isAutoRunEnabled]);
+  }, [autoRunEffectiveIntervalMs, isAutoRunEnabled]);
 
   useEffect(() => {
     setLastAutoRunError(null);
-  }, [autoRunIntervalMs, autoRunTargetMode]);
+  }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    if (!isAutoRunEnabled || !autoRunPauseWhenHidden) {
+      return;
+    }
+
+    function handleVisibilityChange(): void {
+      if (document.visibilityState === "hidden") {
+        setAutoRunDisabledReason("page hidden (auto paused)");
+        return;
+      }
+
+      setAutoRunDisabledReason((currentValue) => {
+        if (currentValue === "page hidden (auto paused)") {
+          return null;
+        }
+
+        return currentValue;
+      });
+      setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [autoRunEffectiveIntervalMs, autoRunPauseWhenHidden, isAutoRunEnabled]);
 
   useEffect(() => {
     if (!isAutoRunEnabled) {
@@ -926,6 +1024,10 @@ export function App(): JSX.Element {
     }
 
     const intervalId = window.setInterval(() => {
+      if (autoRunPauseWhenHidden && typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+
       if (resolvedAutoRunTargetPath.trim().length === 0) {
         return;
       }
@@ -942,12 +1044,12 @@ export function App(): JSX.Element {
           setAutoRunTriggerCount((currentValue) => currentValue + 1);
         }
       })();
-    }, autoRunIntervalMs);
+    }, autoRunEffectiveIntervalMs);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [autoRunIntervalMs, isAutoRunEnabled, resolvedAutoRunTargetPath, runs, startRunLoading]);
+  }, [autoRunEffectiveIntervalMs, autoRunPauseWhenHidden, isAutoRunEnabled, resolvedAutoRunTargetPath, runs, startRunLoading]);
 
   useEffect(() => {
     if (!selectedRun) {
@@ -1142,10 +1244,21 @@ export function App(): JSX.Element {
                 if (event.target.checked) {
                   setLastAutoRunError(null);
                   setAutoRunDisabledReason(null);
+                  setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
                 }
               }}
             />
             Auto-run
+          </label>
+          <label className="toggle-label">
+            <input
+              type="checkbox"
+              checked={autoRunPauseWhenHidden}
+              onChange={(event) => {
+                setAutoRunPauseWhenHidden(event.target.checked);
+              }}
+            />
+            Pause when hidden
           </label>
           <label>
             Interval
@@ -1177,6 +1290,23 @@ export function App(): JSX.Element {
               <option value={10000}>10s</option>
               <option value={15000}>15s</option>
               <option value={30000}>30s</option>
+              <option value={60000}>60s</option>
+            </select>
+          </label>
+          <label>
+            Auto max failures
+            <select
+              value={autoRunMaxFailures}
+              onChange={(event) => {
+                const nextValue = Number.parseInt(event.target.value, 10);
+                if (Number.isFinite(nextValue) && nextValue > 0) {
+                  setAutoRunMaxFailures(nextValue);
+                }
+              }}
+            >
+              <option value={1}>1</option>
+              <option value={3}>3</option>
+              <option value={5}>5</option>
             </select>
           </label>
           <label>
@@ -1231,9 +1361,22 @@ export function App(): JSX.Element {
           </button>
           <button
             onClick={() => {
+              setAutoRunFailureCount(0);
+              setAutoRunConsecutiveFailures(0);
+              setAutoRunDisabledReason(null);
+              setLastAutoRunError(null);
+            }}
+            disabled={autoRunFailureCount === 0 && autoRunConsecutiveFailures === 0 && !lastAutoRunError}
+          >
+            Reset auto failures
+          </button>
+          <button
+            onClick={() => {
               setIsAutoRunEnabled(true);
               setLastAutoRunError(null);
               setAutoRunDisabledReason(null);
+              setAutoRunConsecutiveFailures(0);
+              setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
             }}
             disabled={isAutoRunEnabled}
           >
@@ -1361,12 +1504,15 @@ export function App(): JSX.Element {
         {isAutoRunEnabled ? <span>Auto mode: {autoRunTargetMode}</span> : null}
         {isAutoRunEnabled && isAutoRunUsingStarterFallback ? <span>Auto mode fallback: using starter target (no selected run)</span> : null}
         {isAutoRunEnabled ? <span>Next auto-run in: {autoRunCountdownSec}s</span> : null}
+        {isAutoRunEnabled ? <span>Auto effective interval: {Math.round(autoRunEffectiveIntervalMs / 1000)}s</span> : null}
         {isAutoRunEnabled ? <span>Auto target path: {resolvedAutoRunTargetPath || "(empty)"}</span> : null}
+        {isAutoRunEnabled && autoRunPauseWhenHidden && typeof document !== "undefined" && document.visibilityState === "hidden" ? <span>Auto-run paused: tab hidden</span> : null}
         {isAutoRunEnabled && runsSummary.running > 0 ? <span>Auto-run waiting for active run</span> : null}
         {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
         {lastAutoRunError ? <span>Auto-run error: {lastAutoRunError}</span> : null}
         <span>Auto-run triggers: {autoRunTriggerCount}</span>
         <span>Auto-run failures: {autoRunFailureCount}</span>
+        {autoRunConsecutiveFailures > 0 ? <span>Auto-run consecutive failures: {autoRunConsecutiveFailures}</span> : null}
         {!isAutoRunEnabled && autoRunDisabledReason ? <span>Auto-run paused reason: {autoRunDisabledReason}</span> : null}
       </section>
 
