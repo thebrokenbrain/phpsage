@@ -72,6 +72,10 @@ function readInitialQuerySelection(): {
   issueIdentifierFilter: "all" | "with" | "without";
   logSearchTerm: string;
   logStreamFilter: "all" | "stdout" | "stderr";
+  isFilesSectionOpen: boolean;
+  isIssuesSectionOpen: boolean;
+  isSourceSectionOpen: boolean;
+  isLogsSectionOpen: boolean;
   startTargetPath: string | null;
   isLivePollingEnabled: boolean;
   livePollingIntervalMs: number | null;
@@ -89,6 +93,10 @@ function readInitialQuerySelection(): {
       issueIdentifierFilter: "all",
       logSearchTerm: "",
       logStreamFilter: "all",
+      isFilesSectionOpen: true,
+      isIssuesSectionOpen: true,
+      isSourceSectionOpen: true,
+      isLogsSectionOpen: true,
       startTargetPath: null,
       isLivePollingEnabled: true,
       livePollingIntervalMs: null
@@ -107,6 +115,10 @@ function readInitialQuerySelection(): {
   const issueIdentifier = searchParams.get("issueIdentifier");
   const logQuery = searchParams.get("logQuery");
   const logStream = searchParams.get("logStream");
+  const filesOpen = searchParams.get("filesOpen");
+  const issuesOpen = searchParams.get("issuesOpen");
+  const sourceOpen = searchParams.get("sourceOpen");
+  const logsOpen = searchParams.get("logsOpen");
   const target = searchParams.get("target");
   const live = searchParams.get("live");
   const interval = searchParams.get("interval");
@@ -126,6 +138,10 @@ function readInitialQuerySelection(): {
     issueIdentifierFilter: issueIdentifier === "with" || issueIdentifier === "without" ? issueIdentifier : "all",
     logSearchTerm: logQuery ?? "",
     logStreamFilter: logStream === "stdout" || logStream === "stderr" ? logStream : "all",
+    isFilesSectionOpen: filesOpen !== "0",
+    isIssuesSectionOpen: issuesOpen !== "0",
+    isSourceSectionOpen: sourceOpen !== "0",
+    isLogsSectionOpen: logsOpen !== "0",
     startTargetPath: target && target.trim().length > 0 ? target : null,
     isLivePollingEnabled: live !== "0",
     livePollingIntervalMs: Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval : null
@@ -156,20 +172,20 @@ export function App(): JSX.Element {
   const [issuePage, setIssuePage] = useState(0);
   const [issueSearchTerm, setIssueSearchTerm] = useState(initialSelection.issueSearchTerm);
   const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
-  const [isIssuesSectionOpen, setIsIssuesSectionOpen] = useState(true);
-  const [isLogsSectionOpen, setIsLogsSectionOpen] = useState(true);
+  const [isIssuesSectionOpen, setIsIssuesSectionOpen] = useState(initialSelection.isIssuesSectionOpen);
+  const [isLogsSectionOpen, setIsLogsSectionOpen] = useState(initialSelection.isLogsSectionOpen);
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
   const [logSearchTerm, setLogSearchTerm] = useState(initialSelection.logSearchTerm);
   const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">(initialSelection.logStreamFilter);
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
-  const [isFilesSectionOpen, setIsFilesSectionOpen] = useState(true);
+  const [isFilesSectionOpen, setIsFilesSectionOpen] = useState(initialSelection.isFilesSectionOpen);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
   const [fileSearchTerm, setFileSearchTerm] = useState(initialSelection.fileSearchTerm);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
   const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(initialSelection.file);
   const [sourceLoading, setSourceLoading] = useState(false);
-  const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(true);
+  const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(initialSelection.isSourceSectionOpen);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
   const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
@@ -445,6 +461,10 @@ export function App(): JSX.Element {
       setIssueIdentifierFilter(selection.issueIdentifierFilter);
       setLogSearchTerm(selection.logSearchTerm);
       setLogStreamFilter(selection.logStreamFilter);
+      setIsFilesSectionOpen(selection.isFilesSectionOpen);
+      setIsIssuesSectionOpen(selection.isIssuesSectionOpen);
+      setIsSourceSectionOpen(selection.isSourceSectionOpen);
+      setIsLogsSectionOpen(selection.isLogsSectionOpen);
       setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
       setIsLivePollingEnabled(selection.isLivePollingEnabled);
       setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
@@ -512,6 +532,30 @@ export function App(): JSX.Element {
       url.searchParams.set("logStream", logStreamFilter);
     }
 
+    if (isFilesSectionOpen) {
+      url.searchParams.delete("filesOpen");
+    } else {
+      url.searchParams.set("filesOpen", "0");
+    }
+
+    if (isIssuesSectionOpen) {
+      url.searchParams.delete("issuesOpen");
+    } else {
+      url.searchParams.set("issuesOpen", "0");
+    }
+
+    if (isSourceSectionOpen) {
+      url.searchParams.delete("sourceOpen");
+    } else {
+      url.searchParams.set("sourceOpen", "0");
+    }
+
+    if (isLogsSectionOpen) {
+      url.searchParams.delete("logsOpen");
+    } else {
+      url.searchParams.set("logsOpen", "0");
+    }
+
     if (startRunTargetPath.trim().length > 0) {
       url.searchParams.set("target", startRunTargetPath);
     } else {
@@ -549,7 +593,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [fileSearchTerm, isLivePollingEnabled, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
+  }, [fileSearchTerm, isFilesSectionOpen, isIssuesSectionOpen, isLivePollingEnabled, isLogsSectionOpen, isSourceSectionOpen, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
