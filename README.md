@@ -174,6 +174,7 @@ Estado actual:
 - auto-run dispara análisis periódicos cuando no hay un run `running`
 - resumen de dashboard muestra estado y timestamp de último auto-run
 - estado y intervalo de auto-run persistidos en URL
+- indicador visual cuando auto-run está esperando a que termine un run activo
 - acción `Run now` en cabecera usando el `targetPath` actual
 - auto-run no se dispara cuando `targetPath` está vacío
 - acción `Copy link` para compartir el estado actual del dashboard

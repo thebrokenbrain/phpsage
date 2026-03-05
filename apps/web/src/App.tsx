@@ -1182,6 +1182,7 @@ export function App(): JSX.Element {
         <span>Finished: {runsSummary.finished}</span>
         {lastRefreshAt ? <span>Last refresh: {new Date(lastRefreshAt).toLocaleTimeString()}</span> : null}
         <span>Auto-run: {isAutoRunEnabled ? "ON" : "OFF"}</span>
+        {isAutoRunEnabled && runsSummary.running > 0 ? <span>Auto-run waiting for active run</span> : null}
         {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
       </section>
 
