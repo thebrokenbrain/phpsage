@@ -594,14 +594,26 @@ export function App(): JSX.Element {
             }}
           />
         </label>
-        <button
-          onClick={() => {
-            void startRunFromUi();
-          }}
-          disabled={startRunLoading}
-        >
-          {startRunLoading ? "Starting..." : "Start run"}
-        </button>
+        <div className="run-starter-actions">
+          <button
+            onClick={() => {
+              if (selectedRun) {
+                setStartRunTargetPath(selectedRun.targetPath);
+              }
+            }}
+            disabled={!selectedRun}
+          >
+            Use selected target
+          </button>
+          <button
+            onClick={() => {
+              void startRunFromUi();
+            }}
+            disabled={startRunLoading}
+          >
+            {startRunLoading ? "Starting..." : "Start run"}
+          </button>
+        </div>
       </section>
 
       {startRunError ? <p className="error">Could not start run: {startRunError}</p> : null}
