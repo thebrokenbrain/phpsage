@@ -121,6 +121,7 @@ Estado actual:
 - ordenación de runs persistida en URL
 - contadores en dashboard para runs totales/running/finished
 - acción rápida `Jump to running` para seleccionar el run activo más reciente
+- acción `Clear selection` para limpiar run seleccionado y ocultar detalle
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 - inicio de run desde UI por `targetPath` usando `POST /api/runs/start` con `execute=true`
 - `targetPath` del formulario de inicio persistido en URL para compartir contexto

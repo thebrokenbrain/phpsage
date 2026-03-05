@@ -13,6 +13,7 @@ A minimal Dashboard is implemented with:
 - selected runs sort is persisted in URL query-state (`sort`)
 - dashboard includes counters for all/running/finished runs
 - header includes `Jump to running` quick action
+- header includes `Clear selection` action to hide run detail
 - selectable run detail panel backed by `GET /api/runs/:runId`
 - files navigator in detail backed by `GET /api/runs/:runId/files`
 - files navigator includes search filter by path persisted in URL query-state

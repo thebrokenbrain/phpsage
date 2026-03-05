@@ -742,6 +742,16 @@ export function App(): JSX.Element {
           >
             Jump to running
           </button>
+          <button
+            onClick={() => {
+              setSelectedRunId(null);
+              setSelectedRun(null);
+              setSelectedSourceFilePath(null);
+            }}
+            disabled={!selectedRunId}
+          >
+            Clear selection
+          </button>
           <button onClick={() => void loadRuns()} disabled={loading}>
             {loading ? "Loading..." : "Refresh"}
           </button>
