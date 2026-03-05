@@ -185,9 +185,12 @@ Estado actual:
 - acción `Reset auto count` en cabecera
 - acción `Clear auto status` en cabecera para limpiar timestamp de último auto-run
 - resumen muestra último error de auto-run cuando falla un disparo automático
+- resumen incluye contador de fallos de auto-run en la sesión actual
+- si auto-run se desactiva tras fallo, se muestra motivo de pausa
 - acción `Run now` en cabecera usando el target resuelto según el modo auto-run
 - indicador cuando el modo `selected` cae en fallback al `starter target` por no haber run seleccionado
 - auto-run se desactiva automáticamente si un disparo automático falla al iniciar run
+- acción rápida `Re-enable auto-run` para reactivar el scheduler
 - auto-run no se dispara cuando `targetPath` está vacío
 - acción `Copy link` para compartir el estado actual del dashboard
 - acción `Reset controls` para restaurar controles del dashboard

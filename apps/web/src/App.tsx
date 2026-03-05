@@ -182,6 +182,8 @@ export function App(): JSX.Element {
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
   const [lastAutoRunError, setLastAutoRunError] = useState<string | null>(null);
   const [autoRunTriggerCount, setAutoRunTriggerCount] = useState(0);
+  const [autoRunFailureCount, setAutoRunFailureCount] = useState(0);
+  const [autoRunDisabledReason, setAutoRunDisabledReason] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
@@ -473,6 +475,10 @@ export function App(): JSX.Element {
       setSelectedRunId(payload.runId);
       setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
       setLastAutoRunError(null);
+      if (triggerSource === "auto") {
+        setAutoRunFailureCount(0);
+        setAutoRunDisabledReason(null);
+      }
       await loadRuns();
       return true;
     } catch (startError) {
@@ -480,6 +486,8 @@ export function App(): JSX.Element {
       setStartRunError(message);
       if (triggerSource === "auto") {
         setLastAutoRunError(message);
+        setAutoRunFailureCount((currentValue) => currentValue + 1);
+        setAutoRunDisabledReason("auto-start failed");
         setIsAutoRunEnabled(false);
       }
       return false;
@@ -1133,6 +1141,7 @@ export function App(): JSX.Element {
                 setIsAutoRunEnabled(event.target.checked);
                 if (event.target.checked) {
                   setLastAutoRunError(null);
+                  setAutoRunDisabledReason(null);
                 }
               }}
             />
@@ -1222,10 +1231,21 @@ export function App(): JSX.Element {
           </button>
           <button
             onClick={() => {
+              setIsAutoRunEnabled(true);
+              setLastAutoRunError(null);
+              setAutoRunDisabledReason(null);
+            }}
+            disabled={isAutoRunEnabled}
+          >
+            Re-enable auto-run
+          </button>
+          <button
+            onClick={() => {
               setLastAutoRunAt(null);
               setLastAutoRunError(null);
+              setAutoRunDisabledReason(null);
             }}
-            disabled={!lastAutoRunAt && !lastAutoRunError}
+            disabled={!lastAutoRunAt && !lastAutoRunError && !autoRunDisabledReason}
           >
             Clear auto status
           </button>
@@ -1346,6 +1366,8 @@ export function App(): JSX.Element {
         {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
         {lastAutoRunError ? <span>Auto-run error: {lastAutoRunError}</span> : null}
         <span>Auto-run triggers: {autoRunTriggerCount}</span>
+        <span>Auto-run failures: {autoRunFailureCount}</span>
+        {!isAutoRunEnabled && autoRunDisabledReason ? <span>Auto-run paused reason: {autoRunDisabledReason}</span> : null}
       </section>
 
       {activeControlLabels.length > 0 ? (

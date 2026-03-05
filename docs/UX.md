@@ -69,10 +69,13 @@ A minimal Dashboard is implemented with:
 - header includes `Clear auto status` action to remove last auto-run timestamp
 - auto-run is automatically disabled if auto-triggered run start fails
 - dashboard summary exposes last auto-run error when an automatic trigger fails
+- dashboard summary includes auto-run failure counter for current session
+- when auto-run is disabled after failure, summary shows pause reason
 - header includes `Run now` action using currently resolved run target
 - `Run now` resolves target with the same mode as auto-run scheduler (`starter` or `selected`)
 - summary indicates when `selected` mode is using starter fallback because no run is selected
 - auto-run scheduler is skipped while starter target path is empty
+- header includes `Re-enable auto-run` quick action
 - header includes `Copy link` action for sharing current dashboard URL state
 - header includes `Reset controls` action to restore default dashboard controls
 - header includes `API docs` quick access action
