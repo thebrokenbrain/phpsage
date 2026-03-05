@@ -124,6 +124,20 @@ export function App(): JSX.Element {
     return runFiles.filter((fileEntry) => fileEntry.path.toLowerCase().includes(normalizedTerm));
   }, [fileSearchTerm, runFiles]);
 
+  const activeIssueLineInSource = useMemo(() => {
+    if (!selectedRun || !sourcePayload || selectedRun.issues.length === 0) {
+      return null;
+    }
+
+    const safeIssueIndex = Math.min(selectedIssueIndex, selectedRun.issues.length - 1);
+    const issue = selectedRun.issues[safeIssueIndex];
+    if (!issue || issue.file !== sourcePayload.file) {
+      return null;
+    }
+
+    return issue.line;
+  }, [selectedIssueIndex, selectedRun, sourcePayload]);
+
   async function loadRuns(): Promise<void> {
     setLoading(true);
     setError(null);
@@ -655,7 +669,19 @@ export function App(): JSX.Element {
                 {!sourceLoading && !sourceError && sourcePayload ? (
                   <>
                     <p className="mono">{sourcePayload.file}</p>
-                    <pre className="source-preview">{sourcePayload.content}</pre>
+                    <pre className="source-preview">
+                      {sourcePayload.content.split("\n").map((lineContent, index) => {
+                        const lineNumber = index + 1;
+                        const isActiveLine = activeIssueLineInSource === lineNumber;
+
+                        return (
+                          <div key={`${lineNumber}-${lineContent}`} className={isActiveLine ? "source-line active" : "source-line"}>
+                            <span className="source-line-number">{lineNumber}</span>
+                            <span>{lineContent}</span>
+                          </div>
+                        );
+                      })}
+                    </pre>
                   </>
                 ) : null}
 

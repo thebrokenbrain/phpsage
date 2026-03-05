@@ -121,6 +121,7 @@ Estado actual:
 - panel de detalle web ampliado con paginación de issues y logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
+- preview de source con numeración y resaltado de línea activa del issue
 - navegador de archivos por run en web (`GET /api/runs/:runId/files`)
 - filtro por ruta en navegador de archivos persistido en URL
 - estado básico en URL de la web (`runId`, `file`, `issue`, `logPage`) para restaurar selección al recargar

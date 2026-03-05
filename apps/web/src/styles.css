@@ -189,3 +189,20 @@ button:disabled {
   max-height: 260px;
   white-space: pre;
 }
+
+.source-line {
+  display: flex;
+  gap: 8px;
+}
+
+.source-line.active {
+  background: #1f2937;
+}
+
+.source-line-number {
+  width: 38px;
+  text-align: right;
+  color: #9ca3af;
+  user-select: none;
+  flex-shrink: 0;
+}
