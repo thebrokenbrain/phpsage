@@ -6,6 +6,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHttpServer } from "./http-server.js";
+import { AiExplainService } from "../application/ai-explain-service.js";
 import { RunService } from "../application/run-service.js";
 import type { RunRecord, RunSummary } from "../domain/run.js";
 import type { RunRepository } from "../ports/run-repository.js";
@@ -38,7 +39,8 @@ class InMemoryRunRepository implements RunRepository {
 async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Promise<void> }> {
   const runService = new RunService(new InMemoryRunRepository());
   const runSourceReader = new RunSourceReader();
-  const server = createHttpServer(runService, runSourceReader);
+  const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
+  const server = createHttpServer(runService, runSourceReader, aiExplainService);
 
   await new Promise<void>((resolveStart) => {
     server.listen(0, "127.0.0.1", () => {
@@ -65,6 +67,75 @@ async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Pr
     }
   };
 }
+
+test("POST /api/ai/explain validates missing issueMessage", async () => {
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/explain`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({})
+    });
+
+    assert.equal(response.status, 400);
+    const payload = (await response.json()) as { error: string };
+    assert.match(payload.error, /issueMessage is required/i);
+  } finally {
+    await httpServer.close();
+  }
+});
+
+test("POST /api/ai/explain returns fallback explanation payload", async () => {
+  const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
+  process.env.PHPSAGE_AI_PROVIDER = "openai";
+
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/explain`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        issueMessage: "Undefined variable: $foo",
+        issueIdentifier: "variable.undefined",
+        filePath: "src/Example.php",
+        line: 12,
+        sourceSnippet: "$bar = $foo;"
+      })
+    });
+
+    assert.equal(response.status, 200);
+    const payload = (await response.json()) as {
+      explanation: string;
+      recommendations: string[];
+      source: string;
+      provider: string;
+      fallbackReason: string;
+      usage: null;
+      debug: null;
+    };
+
+    assert.match(payload.explanation, /Undefined variable: \$foo/);
+    assert.equal(payload.source, "fallback");
+    assert.equal(payload.provider, "openai");
+    assert.match(payload.fallbackReason, /not configured/i);
+    assert.equal(payload.usage, null);
+    assert.equal(payload.debug, null);
+    assert.ok(payload.recommendations.length >= 2);
+  } finally {
+    await httpServer.close();
+    if (previousProvider === undefined) {
+      delete process.env.PHPSAGE_AI_PROVIDER;
+    } else {
+      process.env.PHPSAGE_AI_PROVIDER = previousProvider;
+    }
+  }
+});
 
 test("GET /api/ai/health returns disabled status when no provider is configured", async () => {
   const previousProvider = process.env.PHPSAGE_AI_PROVIDER;

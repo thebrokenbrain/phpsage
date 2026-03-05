@@ -108,3 +108,34 @@ This document must be updated in the same iteration where any endpoint is added 
 - Response `200`: updated run with `status: "finished"`
 - Response `400`: invalid payload (`issues` and `exitCode` required)
 - Response `404`: run not found
+
+### AI (phase C in progress)
+
+- `POST /api/ai/explain`
+- Body:
+
+```json
+{
+	"issueMessage": "Undefined variable: $foo",
+	"issueIdentifier": "variable.undefined",
+	"filePath": "src/Example.php",
+	"line": 12,
+	"sourceSnippet": "$bar = $foo;"
+}
+```
+
+- Response `200`: deterministic fallback explanation payload
+
+```json
+{
+	"explanation": "...",
+	"recommendations": ["...", "..."],
+	"source": "fallback",
+	"provider": "openai",
+	"fallbackReason": "LLM provider is not configured for explain yet",
+	"usage": null,
+	"debug": null
+}
+```
+
+- Response `400`: invalid payload (`issueMessage is required`)

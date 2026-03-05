@@ -5,6 +5,7 @@ import { existsSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import { URL } from "node:url";
 import { parsePhpstanJsonOutput } from "@phpsage/shared";
+import type { AiExplainService } from "../application/ai-explain-service.js";
 import { RunService } from "../application/run-service.js";
 import type { RunIssue } from "../domain/run.js";
 import type { RunSourceReader } from "../infrastructure/run-source-reader.js";
@@ -24,6 +25,14 @@ interface FinishRunBody {
   exitCode: number;
 }
 
+interface ExplainBody {
+  issueMessage: string;
+  issueIdentifier?: string;
+  filePath?: string;
+  line?: number;
+  sourceSnippet?: string;
+}
+
 interface TargetPathValidationResult {
   targetPath: string | null;
   error: string | null;
@@ -36,7 +45,11 @@ interface AiHealthResponse {
   activeModel: string | null;
 }
 
-export function createHttpServer(runService: RunService, runSourceReader: RunSourceReader) {
+export function createHttpServer(
+  runService: RunService,
+  runSourceReader: RunSourceReader,
+  aiExplainService: AiExplainService
+) {
   return createServer(async (request, response) => {
     applyCorsHeaders(response);
 
@@ -62,6 +75,27 @@ export function createHttpServer(runService: RunService, runSourceReader: RunSou
     if (method === "GET" && requestUrl.pathname === "/api/runs") {
       const runs = await runService.list();
       writeJson(response, 200, runs);
+      return;
+    }
+
+    if (method === "POST" && requestUrl.pathname === "/api/ai/explain") {
+      const body = (await readJsonBody(request)) as ExplainBody | null;
+      const issueMessage = typeof body?.issueMessage === "string" ? body.issueMessage.trim() : "";
+
+      if (!issueMessage) {
+        writeJson(response, 400, { error: "issueMessage is required" });
+        return;
+      }
+
+      const explanation = await aiExplainService.explain({
+        issueMessage,
+        issueIdentifier: typeof body?.issueIdentifier === "string" ? body.issueIdentifier : undefined,
+        filePath: typeof body?.filePath === "string" ? body.filePath : undefined,
+        line: typeof body?.line === "number" ? body.line : undefined,
+        sourceSnippet: typeof body?.sourceSnippet === "string" ? body.sourceSnippet : undefined
+      });
+
+      writeJson(response, 200, explanation);
       return;
     }
 

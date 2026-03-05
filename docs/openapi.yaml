@@ -27,6 +27,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiHealthResponse'
+  /api/ai/explain:
+    post:
+      summary: Explain PHPStan issue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiExplainRequest'
+      responses:
+        '200':
+          description: Explain result payload (fallback for now)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiExplainResponse'
+        '400':
+          description: Invalid explain payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/runs:
     get:
       summary: List run summaries
@@ -267,6 +289,41 @@ components:
         activeModel:
           type: string
           nullable: true
+    AiExplainRequest:
+      type: object
+      required: [issueMessage]
+      properties:
+        issueMessage:
+          type: string
+        issueIdentifier:
+          type: string
+        filePath:
+          type: string
+        line:
+          type: integer
+        sourceSnippet:
+          type: string
+    AiExplainResponse:
+      type: object
+      required: [explanation, recommendations, source, provider, fallbackReason, usage, debug]
+      properties:
+        explanation:
+          type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+        source:
+          type: string
+          enum: [fallback]
+        provider:
+          type: string
+        fallbackReason:
+          type: string
+        usage:
+          type: 'null'
+        debug:
+          type: 'null'
     RunIssue:
       type: object
       required: [file, line, message]

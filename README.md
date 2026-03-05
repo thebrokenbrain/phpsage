@@ -134,6 +134,8 @@ Estado actual:
 - tests de server migrados para `RunService` y `FileRunRepository`
 - tests HTTP de server cubren validación de `POST /api/runs/start` para `targetPath`
 - tests HTTP de server también cubren `GET /api/runs`, `GET /api/runs/:runId`, `POST /api/runs/:runId/log`, `POST /api/runs/:runId/finish`, `GET /api/runs/:runId/source` y `GET /api/runs/:runId/files`
+- endpoint IA de health implementado: `GET /api/ai/health` (estado/configuración activa por entorno)
+- endpoint IA de explain implementado: `POST /api/ai/explain` (respuesta fallback determinista en esta fase)
 - smoke no-IA reproducible (`./scripts/smoke-no-ai.sh`) validando dos rutas E2E: muestra con errores (`exitCode=1`) y muestra limpia (`exitCode=0`)
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
