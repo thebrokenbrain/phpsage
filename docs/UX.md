@@ -17,6 +17,7 @@ A minimal Dashboard is implemented with:
 - issue/log navigation keeps local context synchronized without re-fetching run detail when run does not change
 - selected run auto-refreshes every 2s while status is `running` (list + detail polling)
 - files navigator also auto-refreshes in that 2s cycle while selected run is `running`
+- run detail shows a `Live updating` badge while polling is active
 - manual refresh action
 - loading, empty, and error states
 

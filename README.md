@@ -125,6 +125,7 @@ Estado actual:
 - navegación de issue/log en detalle sin refetch innecesario del run cuando no cambia `runId`
 - auto-refresh ligero en web cada 2s para run seleccionado en estado `running` (lista + detalle)
 - refresco en vivo del navegador de archivos en ese ciclo de auto-refresh
+- indicador visual `Live updating` en detalle cuando el run está en ejecución
 
 ### Verificación rápida del endpoint inicial
 

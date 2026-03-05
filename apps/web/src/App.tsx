@@ -473,7 +473,10 @@ export function App(): JSX.Element {
           {!detailLoading && !detailError && selectedRun ? (
             <>
               <p className="mono">{selectedRun.runId}</p>
-              <p>Status: {selectedRun.status} · Exit: {selectedRun.exitCode ?? "-"}</p>
+              <p>
+                Status: {selectedRun.status} · Exit: {selectedRun.exitCode ?? "-"}
+                {selectedRun.status === "running" ? <span className="live-badge">Live updating</span> : null}
+              </p>
               <p className="mono">Target: {selectedRun.targetPath}</p>
               <p>Logs: {selectedRun.logs.length} · Issues: {selectedRun.issues.length}</p>
 
