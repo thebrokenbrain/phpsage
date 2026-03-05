@@ -46,6 +46,13 @@ select {
   padding: 6px 8px;
 }
 
+input[type="search"] {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
 button {
   border: 1px solid #d1d5db;
   background: #fff;

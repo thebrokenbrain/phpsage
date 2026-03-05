@@ -96,6 +96,7 @@ export function App(): JSX.Element {
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
+  const [fileSearchTerm, setFileSearchTerm] = useState("");
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
   const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(initialSelection.file);
@@ -110,6 +111,15 @@ export function App(): JSX.Element {
 
     return runs.filter((run) => run.status === runsStatusFilter);
   }, [runs, runsStatusFilter]);
+
+  const visibleRunFiles = useMemo(() => {
+    const normalizedTerm = fileSearchTerm.trim().toLowerCase();
+    if (normalizedTerm.length === 0) {
+      return runFiles;
+    }
+
+    return runFiles.filter((fileEntry) => fileEntry.path.toLowerCase().includes(normalizedTerm));
+  }, [fileSearchTerm, runFiles]);
 
   async function loadRuns(): Promise<void> {
     setLoading(true);
@@ -527,14 +537,22 @@ export function App(): JSX.Element {
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Files</h3>
+                  <input
+                    type="search"
+                    placeholder="Filter files"
+                    value={fileSearchTerm}
+                    onChange={(event) => {
+                      setFileSearchTerm(event.target.value);
+                    }}
+                  />
                 </div>
 
                 {filesLoading ? <p className="empty">Loading files...</p> : null}
                 {filesError ? <p className="error">Could not load files: {filesError}</p> : null}
 
-                {!filesLoading && !filesError && runFiles.length > 0 ? (
+                {!filesLoading && !filesError && visibleRunFiles.length > 0 ? (
                   <ul className="detail-list">
-                    {runFiles.slice(0, 30).map((fileEntry) => (
+                    {visibleRunFiles.slice(0, 30).map((fileEntry) => (
                       <li
                         key={fileEntry.path}
                         className={selectedSourceFilePath === `${selectedRun.targetPath}/${fileEntry.path}` ? "selected-issue" : ""}
@@ -552,6 +570,10 @@ export function App(): JSX.Element {
 
                 {!filesLoading && !filesError && runFiles.length === 0 ? (
                   <p className="empty">No PHP files for selected run.</p>
+                ) : null}
+
+                {!filesLoading && !filesError && runFiles.length > 0 && visibleRunFiles.length === 0 ? (
+                  <p className="empty">No files match current filter.</p>
                 ) : null}
               </section>
 
