@@ -15,6 +15,7 @@ A minimal Dashboard is implemented with:
 - header includes `Jump to running` quick action
 - header includes `Clear selection` action to hide run detail
 - selectable run detail panel backed by `GET /api/runs/:runId`
+- run detail header includes created/updated timestamps
 - files navigator in detail backed by `GET /api/runs/:runId/files`
 - files navigator includes search filter by path persisted in URL query-state
 - files panel includes explicit action to return from manual file override to selected issue context

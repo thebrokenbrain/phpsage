@@ -123,6 +123,7 @@ Estado actual:
 - acción rápida `Jump to running` para seleccionar el run activo más reciente
 - acción `Clear selection` para limpiar run seleccionado y ocultar detalle
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
+- cabecera de detalle muestra timestamps de creación/actualización
 - inicio de run desde UI por `targetPath` usando `POST /api/runs/start` con `execute=true`
 - `targetPath` del formulario de inicio persistido en URL para compartir contexto
 - recuperación del último `targetPath` desde localStorage cuando no viene en URL

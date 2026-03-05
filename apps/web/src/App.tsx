@@ -886,6 +886,9 @@ export function App(): JSX.Element {
                 Status: {selectedRun.status} · Exit: {selectedRun.exitCode ?? "-"}
                 {selectedRun.status === "running" ? <span className="live-badge">Live updating</span> : null}
               </p>
+              <p>
+                Created: {new Date(selectedRun.createdAt).toLocaleString()} · Updated: {new Date(selectedRun.updatedAt).toLocaleString()}
+              </p>
               <p className="mono">Target: {selectedRun.targetPath}</p>
               <p>Logs: {selectedRun.logs.length} · Issues: {selectedRun.issues.length}</p>
 
