@@ -39,6 +39,7 @@ A minimal Dashboard is implemented with:
 - pressing `Enter` on target input starts a run
 - start action is disabled when target path is empty
 - starter error feedback clears automatically on target changes
+- run starter includes `Reset target` quick action to default sample path
 - loading, empty, and error states
 
 ## Target UX direction

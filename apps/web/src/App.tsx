@@ -750,6 +750,14 @@ export function App(): JSX.Element {
         <div className="run-starter-actions">
           <button
             onClick={() => {
+              setStartRunTargetPath("/workspace/examples/php-sample");
+              setStartRunError(null);
+            }}
+          >
+            Reset target
+          </button>
+          <button
+            onClick={() => {
               if (selectedRun) {
                 setStartRunTargetPath(selectedRun.targetPath);
                 setStartRunError(null);

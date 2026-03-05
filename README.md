@@ -128,6 +128,7 @@ Estado actual:
 - `Enter` en input de `targetPath` dispara inicio de run
 - botón `Start run` deshabilitado si `targetPath` está vacío
 - feedback de error del starter se limpia al cambiar `targetPath`
+- acción rápida `Reset target` para volver al path por defecto de ejemplo
 - panel de detalle web ampliado con paginación de issues y logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
