@@ -1,0 +1,22 @@
+{
+  "name": "phpsage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PHPSage rebuild monorepo bootstrap",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rm -rf apps/*/dist packages/*/dist",
+    "test": "npm run build && node --test packages/shared/dist/**/*.test.js apps/server/dist/**/*.test.js apps/web/dist/**/*.test.js",
+    "audit:unused": "node scripts/audit-unused.mjs",
+    "rag:reindex": "sh scripts/reindex-rag.sh",
+    "rag:reindex:wait": "sh scripts/reindex-rag.sh --wait"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2"
+  }
+}
