@@ -76,6 +76,8 @@ function readInitialQuerySelection(): {
   isIssuesSectionOpen: boolean;
   isSourceSectionOpen: boolean;
   isLogsSectionOpen: boolean;
+  isAutoRunEnabled: boolean;
+  autoRunIntervalMs: number | null;
   startTargetPath: string | null;
   isLivePollingEnabled: boolean;
   livePollingIntervalMs: number | null;
@@ -97,6 +99,8 @@ function readInitialQuerySelection(): {
       isIssuesSectionOpen: true,
       isSourceSectionOpen: true,
       isLogsSectionOpen: true,
+      isAutoRunEnabled: false,
+      autoRunIntervalMs: null,
       startTargetPath: null,
       isLivePollingEnabled: true,
       livePollingIntervalMs: null
@@ -119,12 +123,15 @@ function readInitialQuerySelection(): {
   const issuesOpen = searchParams.get("issuesOpen");
   const sourceOpen = searchParams.get("sourceOpen");
   const logsOpen = searchParams.get("logsOpen");
+  const auto = searchParams.get("auto");
+  const autoInterval = searchParams.get("autoInterval");
   const target = searchParams.get("target");
   const live = searchParams.get("live");
   const interval = searchParams.get("interval");
   const parsedIssueIndex = issue ? Number.parseInt(issue, 10) : Number.NaN;
   const parsedLogPage = logPage ? Number.parseInt(logPage, 10) : Number.NaN;
   const parsedInterval = interval ? Number.parseInt(interval, 10) : Number.NaN;
+  const parsedAutoInterval = autoInterval ? Number.parseInt(autoInterval, 10) : Number.NaN;
 
   return {
     runId: runId && runId.trim().length > 0 ? runId : null,
@@ -142,6 +149,8 @@ function readInitialQuerySelection(): {
     isIssuesSectionOpen: issuesOpen !== "0",
     isSourceSectionOpen: sourceOpen !== "0",
     isLogsSectionOpen: logsOpen !== "0",
+    isAutoRunEnabled: auto === "1",
+    autoRunIntervalMs: Number.isFinite(parsedAutoInterval) && parsedAutoInterval > 0 ? parsedAutoInterval : null,
     startTargetPath: target && target.trim().length > 0 ? target : null,
     isLivePollingEnabled: live !== "0",
     livePollingIntervalMs: Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval : null
@@ -161,8 +170,8 @@ export function App(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
-  const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(false);
-  const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(15000);
+  const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(initialSelection.isAutoRunEnabled);
+  const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(initialSelection.autoRunIntervalMs ?? 15000);
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
@@ -538,6 +547,8 @@ export function App(): JSX.Element {
       setIsIssuesSectionOpen(selection.isIssuesSectionOpen);
       setIsSourceSectionOpen(selection.isSourceSectionOpen);
       setIsLogsSectionOpen(selection.isLogsSectionOpen);
+      setIsAutoRunEnabled(selection.isAutoRunEnabled);
+      setAutoRunIntervalMs(selection.autoRunIntervalMs ?? 15000);
       setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
       setIsLivePollingEnabled(selection.isLivePollingEnabled);
       setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
@@ -629,6 +640,18 @@ export function App(): JSX.Element {
       url.searchParams.set("logsOpen", "0");
     }
 
+    if (isAutoRunEnabled) {
+      url.searchParams.set("auto", "1");
+    } else {
+      url.searchParams.delete("auto");
+    }
+
+    if (autoRunIntervalMs === 15000) {
+      url.searchParams.delete("autoInterval");
+    } else {
+      url.searchParams.set("autoInterval", String(autoRunIntervalMs));
+    }
+
     if (startRunTargetPath.trim().length > 0) {
       url.searchParams.set("target", startRunTargetPath);
     } else {
@@ -666,7 +689,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [fileSearchTerm, isFilesSectionOpen, isIssuesSectionOpen, isLivePollingEnabled, isLogsSectionOpen, isSourceSectionOpen, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
+  }, [autoRunIntervalMs, fileSearchTerm, isAutoRunEnabled, isFilesSectionOpen, isIssuesSectionOpen, isLivePollingEnabled, isLogsSectionOpen, isSourceSectionOpen, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {

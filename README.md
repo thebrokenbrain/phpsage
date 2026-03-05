@@ -172,6 +172,7 @@ Estado actual:
 - controles en cabecera para auto-run (toggle + intervalo `10s`/`15s`/`30s`)
 - auto-run dispara análisis periódicos cuando no hay un run `running`
 - resumen de dashboard muestra estado y timestamp de último auto-run
+- estado y intervalo de auto-run persistidos en URL
 - acción `Copy link` para compartir el estado actual del dashboard
 - acción `Reset controls` para restaurar controles del dashboard
 - acción rápida `API docs` desde cabecera del dashboard
