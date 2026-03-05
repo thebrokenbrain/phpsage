@@ -180,6 +180,7 @@ export function App(): JSX.Element {
   const [autoRunTargetMode, setAutoRunTargetMode] = useState<"starter" | "selected">(initialSelection.autoRunTargetMode);
   const [autoRunCountdownSec, setAutoRunCountdownSec] = useState(Math.ceil((initialSelection.autoRunIntervalMs ?? 15000) / 1000));
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
+  const [lastAutoRunError, setLastAutoRunError] = useState<string | null>(null);
   const [autoRunTriggerCount, setAutoRunTriggerCount] = useState(0);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
@@ -323,6 +324,12 @@ export function App(): JSX.Element {
     return sortedRunningRuns[0]?.runId ?? null;
   }, [runs]);
 
+  const resolvedAutoRunTargetPath = useMemo(() => {
+    return autoRunTargetMode === "selected"
+      ? (selectedRun?.targetPath ?? startRunTargetPath)
+      : startRunTargetPath;
+  }, [autoRunTargetMode, selectedRun, startRunTargetPath]);
+
   const visibleRunFiles = useMemo(() => {
     const normalizedTerm = fileSearchTerm.trim().toLowerCase();
     if (normalizedTerm.length === 0) {
@@ -461,12 +468,14 @@ export function App(): JSX.Element {
       const payload = (await response.json()) as StartRunPayload;
       setSelectedRunId(payload.runId);
       setAutoRunCountdownSec(Math.ceil(autoRunIntervalMs / 1000));
+      setLastAutoRunError(null);
       await loadRuns();
       return true;
     } catch (startError) {
       const message = startError instanceof Error ? startError.message : String(startError);
       setStartRunError(message);
       if (triggerSource === "auto") {
+        setLastAutoRunError(message);
         setIsAutoRunEnabled(false);
       }
       return false;
@@ -900,12 +909,7 @@ export function App(): JSX.Element {
     }
 
     const intervalId = window.setInterval(() => {
-      const resolvedAutoTargetPath =
-        autoRunTargetMode === "selected"
-          ? (selectedRun?.targetPath ?? startRunTargetPath)
-          : startRunTargetPath;
-
-      if (resolvedAutoTargetPath.trim().length === 0) {
+      if (resolvedAutoRunTargetPath.trim().length === 0) {
         return;
       }
 
@@ -915,7 +919,7 @@ export function App(): JSX.Element {
       }
 
       void (async () => {
-        const didStart = await startRunFromUi(resolvedAutoTargetPath, "auto");
+        const didStart = await startRunFromUi(resolvedAutoRunTargetPath, "auto");
         if (didStart) {
           setLastAutoRunAt(new Date().toISOString());
           setAutoRunTriggerCount((currentValue) => currentValue + 1);
@@ -926,7 +930,7 @@ export function App(): JSX.Element {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [autoRunIntervalMs, autoRunTargetMode, isAutoRunEnabled, runs, selectedRun, startRunLoading, startRunTargetPath]);
+  }, [autoRunIntervalMs, isAutoRunEnabled, resolvedAutoRunTargetPath, runs, startRunLoading]);
 
   useEffect(() => {
     if (!selectedRun) {
@@ -1118,6 +1122,9 @@ export function App(): JSX.Element {
               checked={isAutoRunEnabled}
               onChange={(event) => {
                 setIsAutoRunEnabled(event.target.checked);
+                if (event.target.checked) {
+                  setLastAutoRunError(null);
+                }
               }}
             />
             Auto-run
@@ -1175,11 +1182,13 @@ export function App(): JSX.Element {
           <button
             onClick={() => {
               void (async () => {
-                await startRunFromUi();
-                setLastAutoRunAt(new Date().toISOString());
+                const didStart = await startRunFromUi(resolvedAutoRunTargetPath);
+                if (didStart) {
+                  setLastAutoRunAt(new Date().toISOString());
+                }
               })();
             }}
-            disabled={startRunLoading || startRunTargetPath.trim().length === 0}
+            disabled={startRunLoading || resolvedAutoRunTargetPath.trim().length === 0}
           >
             Run now
           </button>
@@ -1208,8 +1217,9 @@ export function App(): JSX.Element {
           <button
             onClick={() => {
               setLastAutoRunAt(null);
+              setLastAutoRunError(null);
             }}
-            disabled={!lastAutoRunAt}
+            disabled={!lastAutoRunAt && !lastAutoRunError}
           >
             Clear auto status
           </button>
@@ -1323,8 +1333,10 @@ export function App(): JSX.Element {
         {lastRefreshAt ? <span>Last refresh: {new Date(lastRefreshAt).toLocaleTimeString()}</span> : null}
         <span>Auto-run: {isAutoRunEnabled ? "ON" : "OFF"}</span>
         {isAutoRunEnabled ? <span>Next auto-run in: {autoRunCountdownSec}s</span> : null}
+        {isAutoRunEnabled ? <span>Auto target path: {resolvedAutoRunTargetPath || "(empty)"}</span> : null}
         {isAutoRunEnabled && runsSummary.running > 0 ? <span>Auto-run waiting for active run</span> : null}
         {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
+        {lastAutoRunError ? <span>Auto-run error: {lastAutoRunError}</span> : null}
         <span>Auto-run triggers: {autoRunTriggerCount}</span>
       </section>
 

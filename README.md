@@ -182,7 +182,8 @@ Estado actual:
 - resumen muestra contador de disparos auto-run exitosos en la sesión actual
 - acción `Reset auto count` en cabecera
 - acción `Clear auto status` en cabecera para limpiar timestamp de último auto-run
-- acción `Run now` en cabecera usando el `targetPath` actual
+- resumen muestra último error de auto-run cuando falla un disparo automático
+- acción `Run now` en cabecera usando el target resuelto según el modo auto-run
 - auto-run se desactiva automáticamente si un disparo automático falla al iniciar run
 - auto-run no se dispara cuando `targetPath` está vacío
 - acción `Copy link` para compartir el estado actual del dashboard
