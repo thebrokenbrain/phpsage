@@ -65,6 +65,7 @@ function readInitialQuerySelection(): {
   issueIndex: number | null;
   logPage: number | null;
   runsStatusFilter: "all" | "running" | "finished";
+  runsSortOrder: "updatedDesc" | "updatedAsc";
   fileSearchTerm: string;
   startTargetPath: string | null;
   isLivePollingEnabled: boolean;
@@ -77,6 +78,7 @@ function readInitialQuerySelection(): {
       issueIndex: null,
       logPage: null,
       runsStatusFilter: "all",
+      runsSortOrder: "updatedDesc",
       fileSearchTerm: "",
       startTargetPath: null,
       isLivePollingEnabled: true,
@@ -90,6 +92,7 @@ function readInitialQuerySelection(): {
   const issue = searchParams.get("issue");
   const logPage = searchParams.get("logPage");
   const status = searchParams.get("status");
+  const sort = searchParams.get("sort");
   const fileQuery = searchParams.get("fileQuery");
   const target = searchParams.get("target");
   const live = searchParams.get("live");
@@ -104,6 +107,7 @@ function readInitialQuerySelection(): {
     issueIndex: Number.isFinite(parsedIssueIndex) && parsedIssueIndex >= 0 ? parsedIssueIndex : null,
     logPage: Number.isFinite(parsedLogPage) && parsedLogPage >= 0 ? parsedLogPage : null,
     runsStatusFilter: status === "running" || status === "finished" ? status : "all",
+    runsSortOrder: sort === "updatedAsc" ? "updatedAsc" : "updatedDesc",
     fileSearchTerm: fileQuery ?? "",
     startTargetPath: target && target.trim().length > 0 ? target : null,
     isLivePollingEnabled: live !== "0",
@@ -120,7 +124,7 @@ export function App(): JSX.Element {
 
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
-  const [runsSortOrder, setRunsSortOrder] = useState<"updatedDesc" | "updatedAsc">("updatedDesc");
+  const [runsSortOrder, setRunsSortOrder] = useState<"updatedDesc" | "updatedAsc">(initialSelection.runsSortOrder);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
@@ -306,6 +310,7 @@ export function App(): JSX.Element {
       setSelectedIssueIndex(selection.issueIndex ?? 0);
       setLogPage(selection.logPage ?? 0);
       setRunsStatusFilter(selection.runsStatusFilter);
+      setRunsSortOrder(selection.runsSortOrder);
       setFileSearchTerm(selection.fileSearchTerm);
       setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
       setIsLivePollingEnabled(selection.isLivePollingEnabled);
@@ -336,6 +341,12 @@ export function App(): JSX.Element {
       url.searchParams.delete("status");
     } else {
       url.searchParams.set("status", runsStatusFilter);
+    }
+
+    if (runsSortOrder === "updatedDesc") {
+      url.searchParams.delete("sort");
+    } else {
+      url.searchParams.set("sort", runsSortOrder);
     }
 
     if (fileSearchTerm.trim().length > 0) {
@@ -381,7 +392,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [fileSearchTerm, isLivePollingEnabled, livePollingIntervalMs, logPage, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
+  }, [fileSearchTerm, isLivePollingEnabled, livePollingIntervalMs, logPage, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {

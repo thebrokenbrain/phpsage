@@ -118,6 +118,7 @@ Estado actual:
 - selección por defecto prioriza runs en estado `running` cuando existen
 - filtro por estado en tabla de runs (`all`, `running`, `finished`) persistido en URL
 - ordenación de runs por fecha de actualización (asc/desc)
+- ordenación de runs persistida en URL
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 - inicio de run desde UI por `targetPath` usando `POST /api/runs/start` con `execute=true`
 - `targetPath` del formulario de inicio persistido en URL para compartir contexto
