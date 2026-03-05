@@ -143,6 +143,7 @@ export function App(): JSX.Element {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [issuePage, setIssuePage] = useState(0);
   const [issueSearchTerm, setIssueSearchTerm] = useState(initialSelection.issueSearchTerm);
+  const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">("all");
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
@@ -235,13 +236,21 @@ export function App(): JSX.Element {
     return selectedRun.issues
       .map((issue, absoluteIndex) => ({ issue, absoluteIndex }))
       .filter(({ issue }) => {
+        if (issueIdentifierFilter === "with" && !issue.identifier) {
+          return false;
+        }
+
+        if (issueIdentifierFilter === "without" && issue.identifier) {
+          return false;
+        }
+
         if (normalizedSearchTerm.length === 0) {
           return true;
         }
 
         return `${issue.file}:${issue.line} ${issue.message}`.toLowerCase().includes(normalizedSearchTerm);
       });
-  }, [issueSearchTerm, selectedRun]);
+  }, [issueIdentifierFilter, issueSearchTerm, selectedRun]);
 
   async function loadRuns(): Promise<void> {
     setLoading(true);
@@ -1014,6 +1023,24 @@ export function App(): JSX.Element {
                 <div className="detail-block-header">
                   <h3>Issues</h3>
                   <div className="detail-actions">
+                    <select
+                      value={issueIdentifierFilter}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        if (value === "with" || value === "without") {
+                          setIssueIdentifierFilter(value);
+                          setIssuePage(0);
+                          return;
+                        }
+
+                        setIssueIdentifierFilter("all");
+                        setIssuePage(0);
+                      }}
+                    >
+                      <option value="all">All identifiers</option>
+                      <option value="with">With identifier</option>
+                      <option value="without">Without identifier</option>
+                    </select>
                     <input
                       type="search"
                       placeholder="Filter issues"
