@@ -1,20 +1,15 @@
-// This file provides the first HTTP surface of the server: a health endpoint.
-import { createServer } from "node:http";
+// This file composes server dependencies and starts the HTTP API.
+import { resolve } from "node:path";
+import { RunService } from "./application/run-service.js";
+import { FileRunRepository } from "./infrastructure/file-run-repository.js";
+import { createHttpServer } from "./interfaces/http-server.js";
 
 const port = Number(process.env.PORT ?? 8080);
+const runsDirectoryPath = resolve(process.cwd(), "data/runs");
 
-const server = createServer((request, response) => {
-  if (request.method === "GET" && request.url === "/healthz") {
-    response.statusCode = 200;
-    response.setHeader("Content-Type", "application/json");
-    response.end(JSON.stringify({ status: "ok" }));
-    return;
-  }
-
-  response.statusCode = 404;
-  response.setHeader("Content-Type", "application/json");
-  response.end(JSON.stringify({ error: "Not Found" }));
-});
+const runRepository = new FileRunRepository(runsDirectoryPath);
+const runService = new RunService(runRepository);
+const server = createHttpServer(runService);
 
 server.listen(port, () => {
   process.stdout.write(`phpsage-server listening on :${port}\n`);

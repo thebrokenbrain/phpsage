@@ -103,6 +103,7 @@ Estado actual:
 - bootstrap de monorepo TypeScript operativo
 - estructura base preparada para desarrollo por fases
 - endpoint inicial de servidor implementado: `GET /healthz`
+- inicio de runs implementado: `POST /api/runs/start` con persistencia en `data/runs`
 
 ### Verificación rápida del endpoint inicial
 
@@ -110,6 +111,9 @@ Estado actual:
 docker compose run --rm phpsage-cli npm run build
 docker compose up --build -d phpsage-server
 curl http://localhost:8080/healthz
+curl -X POST http://localhost:8080/api/runs/start \
+  -H "Content-Type: application/json" \
+  -d '{"targetPath":"/workspace/examples/php-sample"}'
 docker compose down --remove-orphans
 ```
 
