@@ -120,6 +120,7 @@ Estado actual:
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
 - navegador de archivos por run en web (`GET /api/runs/:runId/files`)
 - estado básico en URL de la web (`runId`, `file`, `issue`, `logPage`) para restaurar selección al recargar
+- navegación atrás/adelante del navegador restaurando ese mismo estado URL
 
 ### Verificación rápida del endpoint inicial
 

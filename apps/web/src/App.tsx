@@ -142,6 +142,26 @@ export function App(): JSX.Element {
       return;
     }
 
+    function handlePopState(): void {
+      const selection = readInitialQuerySelection();
+      setSelectedRunId(selection.runId);
+      setSelectedSourceFilePath(selection.file);
+      setSelectedIssueIndex(selection.issueIndex ?? 0);
+      setLogPage(selection.logPage ?? 0);
+    }
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
     const url = new URL(window.location.href);
 
     if (selectedRunId) {

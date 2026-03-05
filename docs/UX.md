@@ -12,6 +12,7 @@ A minimal Dashboard is implemented with:
 - paginated issues and logs sections in run detail
 - source preview for selected issue backed by `GET /api/runs/:runId/source`
 - URL query-state for selected run, file, issue, and logs page (`?runId=...&file=...&issue=...&logPage=...`) with reload restore (including pagination context)
+- browser back/forward navigation restores the same URL state (`popstate` handling)
 - manual refresh action
 - loading, empty, and error states
 
