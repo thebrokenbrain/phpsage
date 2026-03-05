@@ -47,7 +47,23 @@ interface SourcePayload {
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 
+function readInitialQuerySelection(): { runId: string | null; file: string | null } {
+  if (typeof window === "undefined") {
+    return { runId: null, file: null };
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const runId = searchParams.get("runId");
+  const file = searchParams.get("file");
+
+  return {
+    runId: runId && runId.trim().length > 0 ? runId : null,
+    file: file && file.trim().length > 0 ? file : null
+  };
+}
+
 export function App(): JSX.Element {
+  const initialSelection = useMemo(() => readInitialQuerySelection(), []);
   const apiBaseUrl = useMemo(() => {
     const value = import.meta.env.VITE_API_BASE_URL as string | undefined;
     return value && value.trim().length > 0 ? value : defaultApiBaseUrl;
@@ -56,7 +72,7 @@ export function App(): JSX.Element {
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelection.runId);
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -66,7 +82,7 @@ export function App(): JSX.Element {
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
-  const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(null);
+  const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(initialSelection.file);
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
@@ -111,6 +127,28 @@ export function App(): JSX.Element {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+
+    if (selectedRunId) {
+      url.searchParams.set("runId", selectedRunId);
+    } else {
+      url.searchParams.delete("runId");
+    }
+
+    if (selectedSourceFilePath) {
+      url.searchParams.set("file", selectedSourceFilePath);
+    } else {
+      url.searchParams.delete("file");
+    }
+
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [selectedRunId, selectedSourceFilePath]);
+
+  useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
       setDetailLoading(true);
       setDetailError(null);
@@ -126,7 +164,13 @@ export function App(): JSX.Element {
         setIssuePage(0);
         setLogPage(0);
         setSelectedIssueIndex(0);
-        setSelectedSourceFilePath(null);
+        setSelectedSourceFilePath((currentPath) => {
+          if (!currentPath) {
+            return null;
+          }
+
+          return currentPath.startsWith(`${payload.targetPath}/`) ? currentPath : null;
+        });
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
         setDetailError(message);

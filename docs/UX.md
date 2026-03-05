@@ -11,6 +11,7 @@ A minimal Dashboard is implemented with:
 - files navigator in detail backed by `GET /api/runs/:runId/files`
 - paginated issues and logs sections in run detail
 - source preview for selected issue backed by `GET /api/runs/:runId/source`
+- URL query-state for selected run and file (`?runId=...&file=...`) with reload restore
 - manual refresh action
 - loading, empty, and error states
 
