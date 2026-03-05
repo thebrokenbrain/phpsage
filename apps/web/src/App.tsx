@@ -28,6 +28,11 @@ interface RunRecord extends RunSummary {
   issues: RunIssue[];
 }
 
+interface SourcePayload {
+  file: string;
+  content: string;
+}
+
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 
@@ -46,6 +51,10 @@ export function App(): JSX.Element {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [issuePage, setIssuePage] = useState(0);
   const [logPage, setLogPage] = useState(0);
+  const [selectedIssueIndex, setSelectedIssueIndex] = useState(0);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
 
   async function loadRuns(): Promise<void> {
     setLoading(true);
@@ -101,6 +110,7 @@ export function App(): JSX.Element {
         setSelectedRun(payload);
         setIssuePage(0);
         setLogPage(0);
+        setSelectedIssueIndex(0);
       } catch (fetchError) {
         const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
         setDetailError(message);
@@ -119,6 +129,48 @@ export function App(): JSX.Element {
 
     void loadRunDetail(selectedRunId);
   }, [apiBaseUrl, selectedRunId]);
+
+  useEffect(() => {
+    async function loadSource(runId: string, filePath: string): Promise<void> {
+      setSourceLoading(true);
+      setSourceError(null);
+
+      try {
+        const endpoint = `${apiBaseUrl}/api/runs/${runId}/source?file=${encodeURIComponent(filePath)}`;
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = (await response.json()) as SourcePayload;
+        setSourcePayload(payload);
+      } catch (fetchError) {
+        const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        setSourceError(message);
+        setSourcePayload(null);
+      } finally {
+        setSourceLoading(false);
+      }
+    }
+
+    if (!selectedRunId || !selectedRun || selectedRun.issues.length === 0) {
+      setSourceLoading(false);
+      setSourceError(null);
+      setSourcePayload(null);
+      return;
+    }
+
+    const safeIssueIndex = Math.min(selectedIssueIndex, selectedRun.issues.length - 1);
+    const issue = selectedRun.issues[safeIssueIndex];
+    if (!issue || !issue.file) {
+      setSourceLoading(false);
+      setSourceError(null);
+      setSourcePayload(null);
+      return;
+    }
+
+    void loadSource(selectedRunId, issue.file);
+  }, [apiBaseUrl, selectedIssueIndex, selectedRun, selectedRunId]);
 
   return (
     <main className="app">
@@ -214,15 +266,44 @@ export function App(): JSX.Element {
                   <ul className="detail-list">
                     {selectedRun.issues
                       .slice(issuePage * detailPageSize, (issuePage + 1) * detailPageSize)
-                      .map((issue, index) => (
-                        <li key={`${issue.file}-${issue.line}-${index}`}>
+                      .map((issue, index) => {
+                        const absoluteIndex = issuePage * detailPageSize + index;
+                        return (
+                        <li
+                          key={`${issue.file}-${issue.line}-${absoluteIndex}`}
+                          className={absoluteIndex === selectedIssueIndex ? "selected-issue" : ""}
+                          onClick={() => {
+                            setSelectedIssueIndex(absoluteIndex);
+                          }}
+                        >
                           <span className="mono">{issue.file}:{issue.line}</span> — {issue.message}
                         </li>
-                      ))}
+                        );
+                      })}
                   </ul>
                 ) : (
                   <p className="empty">No issues in selected run.</p>
                 )}
+              </section>
+
+              <section className="detail-block">
+                <div className="detail-block-header">
+                  <h3>Source Preview</h3>
+                </div>
+
+                {sourceLoading ? <p className="empty">Loading source preview...</p> : null}
+                {sourceError ? <p className="error">Could not load source: {sourceError}</p> : null}
+
+                {!sourceLoading && !sourceError && sourcePayload ? (
+                  <>
+                    <p className="mono">{sourcePayload.file}</p>
+                    <pre className="source-preview">{sourcePayload.content}</pre>
+                  </>
+                ) : null}
+
+                {!sourceLoading && !sourceError && !sourcePayload ? (
+                  <p className="empty">Select an issue to load source preview.</p>
+                ) : null}
               </section>
 
               <section className="detail-block">

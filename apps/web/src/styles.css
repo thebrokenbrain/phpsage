@@ -98,6 +98,15 @@ button:disabled {
   padding-left: 18px;
 }
 
+.detail-list li {
+  margin: 4px 0;
+}
+
+.detail-list li.selected-issue {
+  background: #eff6ff;
+  border-radius: 4px;
+}
+
 .detail-block {
   margin-top: 12px;
 }
@@ -122,4 +131,15 @@ button:disabled {
 .pager span {
   font-size: 0.85rem;
   color: #4b5563;
+}
+
+.source-preview {
+  margin-top: 8px;
+  padding: 10px;
+  background: #111827;
+  color: #f9fafb;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 260px;
+  white-space: pre;
 }

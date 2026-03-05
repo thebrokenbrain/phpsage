@@ -117,6 +117,7 @@ Estado actual:
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 - panel de detalle web ampliado con paginación de issues y logs
+- preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
 
 ### Verificación rápida del endpoint inicial
 
