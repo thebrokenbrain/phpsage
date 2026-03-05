@@ -149,6 +149,7 @@ export function App(): JSX.Element {
   const [issueSearchTerm, setIssueSearchTerm] = useState(initialSelection.issueSearchTerm);
   const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
+  const [logSearchTerm, setLogSearchTerm] = useState("");
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
   const [fileSearchTerm, setFileSearchTerm] = useState(initialSelection.fileSearchTerm);
@@ -255,6 +256,21 @@ export function App(): JSX.Element {
         return `${issue.file}:${issue.line} ${issue.message}`.toLowerCase().includes(normalizedSearchTerm);
       });
   }, [issueIdentifierFilter, issueSearchTerm, selectedRun]);
+
+  const filteredLogs = useMemo(() => {
+    if (!selectedRun) {
+      return [] as RunLogEntry[];
+    }
+
+    const normalizedSearchTerm = logSearchTerm.trim().toLowerCase();
+    if (normalizedSearchTerm.length === 0) {
+      return selectedRun.logs;
+    }
+
+    return selectedRun.logs.filter((logEntry) => {
+      return `${logEntry.stream} ${logEntry.message}`.toLowerCase().includes(normalizedSearchTerm);
+    });
+  }, [logSearchTerm, selectedRun]);
 
   async function loadRuns(): Promise<void> {
     setLoading(true);
@@ -630,19 +646,19 @@ export function App(): JSX.Element {
   }, [filteredIssueEntries.length, issuePage]);
 
   useEffect(() => {
-    if (!selectedRun || selectedRun.logs.length === 0) {
+    if (filteredLogs.length === 0) {
       if (logPage !== 0) {
         setLogPage(0);
       }
       return;
     }
 
-    const maxLogPage = Math.max(0, Math.ceil(selectedRun.logs.length / detailPageSize) - 1);
+    const maxLogPage = Math.max(0, Math.ceil(filteredLogs.length / detailPageSize) - 1);
     const clampedLogPage = Math.min(Math.max(0, logPage), maxLogPage);
     if (clampedLogPage !== logPage) {
       setLogPage(clampedLogPage);
     }
-  }, [logPage, selectedRun]);
+  }, [filteredLogs.length, logPage]);
 
   useEffect(() => {
     async function loadRunFiles(runId: string): Promise<void> {
@@ -1162,7 +1178,18 @@ export function App(): JSX.Element {
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Logs</h3>
-                  {selectedRun.logs.length > detailPageSize ? (
+                  <div className="detail-actions">
+                    <input
+                      type="search"
+                      placeholder="Filter logs"
+                      value={logSearchTerm}
+                      onChange={(event) => {
+                        setLogSearchTerm(event.target.value);
+                        setLogPage(0);
+                      }}
+                    />
+                  </div>
+                  {filteredLogs.length > detailPageSize ? (
                     <div className="pager">
                       <button
                         onClick={() => {
@@ -1173,16 +1200,16 @@ export function App(): JSX.Element {
                         Prev
                       </button>
                       <span>
-                        {logPage + 1}/{Math.max(1, Math.ceil(selectedRun.logs.length / detailPageSize))}
+                        {logPage + 1}/{Math.max(1, Math.ceil(filteredLogs.length / detailPageSize))}
                       </span>
                       <button
                         onClick={() => {
                           setLogPage((page) => {
-                            const maxPage = Math.max(0, Math.ceil(selectedRun.logs.length / detailPageSize) - 1);
+                            const maxPage = Math.max(0, Math.ceil(filteredLogs.length / detailPageSize) - 1);
                             return Math.min(maxPage, page + 1);
                           });
                         }}
-                        disabled={logPage >= Math.max(0, Math.ceil(selectedRun.logs.length / detailPageSize) - 1)}
+                        disabled={logPage >= Math.max(0, Math.ceil(filteredLogs.length / detailPageSize) - 1)}
                       >
                         Next
                       </button>
@@ -1190,9 +1217,9 @@ export function App(): JSX.Element {
                   ) : null}
                 </div>
 
-                {selectedRun.logs.length > 0 ? (
+                {filteredLogs.length > 0 ? (
                   <ul className="detail-list">
-                    {selectedRun.logs
+                    {filteredLogs
                       .slice(logPage * detailPageSize, (logPage + 1) * detailPageSize)
                       .map((logEntry, index) => (
                         <li key={`${logEntry.timestamp}-${logEntry.stream}-${index}`}>
@@ -1202,6 +1229,8 @@ export function App(): JSX.Element {
                         </li>
                       ))}
                   </ul>
+                ) : selectedRun.logs.length > 0 ? (
+                  <p className="empty">No logs match current filter.</p>
                 ) : (
                   <p className="empty">No logs in selected run.</p>
                 )}

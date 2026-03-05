@@ -135,6 +135,7 @@ Estado actual:
 - feedback de error del starter se limpia al cambiar `targetPath`
 - acción rápida `Reset target` para volver al path por defecto de ejemplo
 - panel de detalle web ampliado con paginación de issues y logs
+- filtro local de texto en panel de logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - filtro local de texto en panel de issues
 - filtro de issues persistido en URL
