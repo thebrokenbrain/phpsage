@@ -68,6 +68,7 @@ function readInitialQuerySelection(): {
   fileSearchTerm: string;
   startTargetPath: string | null;
   isLivePollingEnabled: boolean;
+  livePollingIntervalMs: number | null;
 } {
   if (typeof window === "undefined") {
     return {
@@ -78,7 +79,8 @@ function readInitialQuerySelection(): {
       runsStatusFilter: "all",
       fileSearchTerm: "",
       startTargetPath: null,
-      isLivePollingEnabled: true
+      isLivePollingEnabled: true,
+      livePollingIntervalMs: null
     };
   }
 
@@ -91,8 +93,10 @@ function readInitialQuerySelection(): {
   const fileQuery = searchParams.get("fileQuery");
   const target = searchParams.get("target");
   const live = searchParams.get("live");
+  const interval = searchParams.get("interval");
   const parsedIssueIndex = issue ? Number.parseInt(issue, 10) : Number.NaN;
   const parsedLogPage = logPage ? Number.parseInt(logPage, 10) : Number.NaN;
+  const parsedInterval = interval ? Number.parseInt(interval, 10) : Number.NaN;
 
   return {
     runId: runId && runId.trim().length > 0 ? runId : null,
@@ -102,7 +106,8 @@ function readInitialQuerySelection(): {
     runsStatusFilter: status === "running" || status === "finished" ? status : "all",
     fileSearchTerm: fileQuery ?? "",
     startTargetPath: target && target.trim().length > 0 ? target : null,
-    isLivePollingEnabled: live !== "0"
+    isLivePollingEnabled: live !== "0",
+    livePollingIntervalMs: Number.isFinite(parsedInterval) && parsedInterval > 0 ? parsedInterval : null
   };
 }
 
@@ -118,7 +123,7 @@ export function App(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
-  const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(defaultRunningPollIntervalMs);
+  const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
   const [startRunLoading, setStartRunLoading] = useState(false);
   const [startRunError, setStartRunError] = useState<string | null>(null);
@@ -287,6 +292,7 @@ export function App(): JSX.Element {
       setFileSearchTerm(selection.fileSearchTerm);
       setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
       setIsLivePollingEnabled(selection.isLivePollingEnabled);
+      setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
     }
 
     window.addEventListener("popstate", handlePopState);
@@ -333,6 +339,12 @@ export function App(): JSX.Element {
       url.searchParams.set("live", "0");
     }
 
+    if (livePollingIntervalMs === defaultRunningPollIntervalMs) {
+      url.searchParams.delete("interval");
+    } else {
+      url.searchParams.set("interval", String(livePollingIntervalMs));
+    }
+
     if (selectedSourceFilePath) {
       url.searchParams.set("file", selectedSourceFilePath);
     } else {
@@ -352,7 +364,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [fileSearchTerm, isLivePollingEnabled, logPage, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
+  }, [fileSearchTerm, isLivePollingEnabled, livePollingIntervalMs, logPage, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
