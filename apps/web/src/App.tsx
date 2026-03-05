@@ -149,6 +149,7 @@ export function App(): JSX.Element {
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
   const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [copyRunIdStatus, setCopyRunIdStatus] = useState<"idle" | "copied" | "error">("idle");
 
   const filteredRuns = useMemo(() => {
     if (runsStatusFilter === "all") {
@@ -309,6 +310,23 @@ export function App(): JSX.Element {
       }, 1500);
     } catch {
       setCopyLinkStatus("error");
+    }
+  }
+
+  async function copyRunId(): Promise<void> {
+    if (typeof window === "undefined" || !window.navigator.clipboard || !selectedRun) {
+      setCopyRunIdStatus("error");
+      return;
+    }
+
+    try {
+      await window.navigator.clipboard.writeText(selectedRun.runId);
+      setCopyRunIdStatus("copied");
+      window.setTimeout(() => {
+        setCopyRunIdStatus("idle");
+      }, 1500);
+    } catch {
+      setCopyRunIdStatus("error");
     }
   }
 
@@ -882,6 +900,13 @@ export function App(): JSX.Element {
           {!detailLoading && !detailError && selectedRun ? (
             <>
               <p className="mono">{selectedRun.runId}</p>
+              <button
+                onClick={() => {
+                  void copyRunId();
+                }}
+              >
+                {copyRunIdStatus === "copied" ? "Run ID copied" : "Copy run ID"}
+              </button>
               <p>
                 Status: {selectedRun.status} · Exit: {selectedRun.exitCode ?? "-"}
                 {selectedRun.status === "running" ? <span className="live-badge">Live updating</span> : null}
@@ -891,6 +916,8 @@ export function App(): JSX.Element {
               </p>
               <p className="mono">Target: {selectedRun.targetPath}</p>
               <p>Logs: {selectedRun.logs.length} · Issues: {selectedRun.issues.length}</p>
+
+              {copyRunIdStatus === "error" ? <p className="error">Could not copy run ID.</p> : null}
 
               <section className="detail-block">
                 <div className="detail-block-header">
