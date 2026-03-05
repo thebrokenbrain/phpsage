@@ -128,7 +128,9 @@ Estado actual:
 - CLI soporta `--timeout-ms <ms>` para abortar ejecuciones de PHPStan colgadas (exit code `124`)
 - CLI soporta `--json-summary` para emitir resumen estructurado (JSON) por ejecución/ciclo de watch
 - tests de integración CLI cubren `watch`, `timeout` y `json-summary`
+- tests de CLI también cubren casos negativos de parser (flags inválidas/valores faltantes/target inválido)
 - tests de server migrados para `RunService` y `FileRunRepository`
+- tests HTTP de server cubren validación de `POST /api/runs/start` para `targetPath`
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
 - selección por defecto prioriza runs en estado `running` cuando existen

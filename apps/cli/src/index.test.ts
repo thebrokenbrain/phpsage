@@ -282,3 +282,71 @@ test("watch emits watch-cycle summary and stops at max cycles", async () => {
     rmSync(workspaceDir, { recursive: true, force: true });
   }
 });
+
+test("analyse fails fast on unknown flag", async () => {
+  const workspaceDir = createTempWorkspace();
+  const targetPath = join(workspaceDir, "target");
+
+  try {
+    const result = await runCli([
+      "phpstan",
+      "analyse",
+      targetPath,
+      "--unknown-flag"
+    ]);
+
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /Unknown flag/i);
+  } finally {
+    rmSync(workspaceDir, { recursive: true, force: true });
+  }
+});
+
+test("analyse fails when a required flag value is missing", async () => {
+  const workspaceDir = createTempWorkspace();
+  const targetPath = join(workspaceDir, "target");
+
+  try {
+    const result = await runCli([
+      "phpstan",
+      "analyse",
+      targetPath,
+      "--port"
+    ]);
+
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /requires a value/i);
+  } finally {
+    rmSync(workspaceDir, { recursive: true, force: true });
+  }
+});
+
+test("analyse reports invalid target directory", async () => {
+  const workspaceDir = createTempWorkspace();
+  const server = await startMockServer();
+  const missingPath = join(workspaceDir, "missing-target");
+
+  const phpstanBin = createMockPhpstanBinary(
+    workspaceDir,
+    "#!/usr/bin/env node\nconsole.log(JSON.stringify({ files: {} }));\nprocess.exit(0);\n"
+  );
+
+  try {
+    const result = await runCli([
+      "phpstan",
+      "analyse",
+      missingPath,
+      "--server-url",
+      server.url,
+      "--phpstan-bin",
+      phpstanBin,
+      "--no-open"
+    ]);
+
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /Target path does not exist or cannot be accessed/i);
+  } finally {
+    await server.close();
+    rmSync(workspaceDir, { recursive: true, force: true });
+  }
+});
