@@ -25,6 +25,7 @@ A minimal Dashboard is implemented with:
 - log text filter is persisted in URL query-state (`logQuery`)
 - logs panel supports stream filter (`all`, `stdout`, `stderr`)
 - log stream filter is persisted in URL query-state (`logStream`)
+- logs panel includes `Clear log filters` action
 - issue rows display PHPStan identifier when available
 - issues panel includes local text filter with paginated result set
 - issue text filter is persisted in URL query-state (`issueQuery`)

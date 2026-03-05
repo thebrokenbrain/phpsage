@@ -1207,6 +1207,16 @@ export function App(): JSX.Element {
                 <div className="detail-block-header">
                   <h3>Logs</h3>
                   <div className="detail-actions">
+                    <button
+                      onClick={() => {
+                        setLogSearchTerm("");
+                        setLogStreamFilter("all");
+                        setLogPage(0);
+                      }}
+                      disabled={logSearchTerm.trim().length === 0 && logStreamFilter === "all"}
+                    >
+                      Clear log filters
+                    </button>
                     <select
                       value={logStreamFilter}
                       onChange={(event) => {

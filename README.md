@@ -139,6 +139,7 @@ Estado actual:
 - filtro de logs persistido en URL
 - filtro por stream (`stdout`/`stderr`) en panel de logs
 - filtro de stream de logs persistido en URL
+- acción rápida `Clear log filters` en panel de logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - filtro local de texto en panel de issues
 - filtro de issues persistido en URL
