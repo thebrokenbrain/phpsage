@@ -160,6 +160,7 @@ export function App(): JSX.Element {
   const [logSearchTerm, setLogSearchTerm] = useState(initialSelection.logSearchTerm);
   const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">(initialSelection.logStreamFilter);
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
+  const [isFilesSectionOpen, setIsFilesSectionOpen] = useState(true);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
   const [fileSearchTerm, setFileSearchTerm] = useState(initialSelection.fileSearchTerm);
   const [filesLoading, setFilesLoading] = useState(false);
@@ -1023,6 +1024,13 @@ export function App(): JSX.Element {
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Files</h3>
+                  <button
+                    onClick={() => {
+                      setIsFilesSectionOpen((isOpen) => !isOpen);
+                    }}
+                  >
+                    {isFilesSectionOpen ? "Hide" : "Show"}
+                  </button>
                   <div className="detail-actions">
                     {selectedSourceFilePath ? (
                       <button
@@ -1043,6 +1051,9 @@ export function App(): JSX.Element {
                     />
                   </div>
                 </div>
+
+                {isFilesSectionOpen ? (
+                  <>
 
                 {filesLoading ? <p className="empty">Loading files...</p> : null}
                 {filesError ? <p className="error">Could not load files: {filesError}</p> : null}
@@ -1071,6 +1082,8 @@ export function App(): JSX.Element {
 
                 {!filesLoading && !filesError && runFiles.length > 0 && visibleRunFiles.length === 0 ? (
                   <p className="empty">No files match current filter.</p>
+                ) : null}
+                  </>
                 ) : null}
               </section>
 
