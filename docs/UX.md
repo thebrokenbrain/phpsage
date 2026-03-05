@@ -11,6 +11,7 @@ A minimal Dashboard is implemented with:
 - runs table supports status filter (`all`, `running`, `finished`) persisted in URL query-state
 - runs table supports sort by updated timestamp (newest/oldest)
 - selected runs sort is persisted in URL query-state (`sort`)
+- dashboard includes counters for all/running/finished runs
 - selectable run detail panel backed by `GET /api/runs/:runId`
 - files navigator in detail backed by `GET /api/runs/:runId/files`
 - files navigator includes search filter by path persisted in URL query-state

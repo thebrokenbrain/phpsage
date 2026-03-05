@@ -174,6 +174,15 @@ export function App(): JSX.Element {
     return sortedRuns;
   }, [filteredRuns, runsSortOrder]);
 
+  const runsSummary = useMemo(() => {
+    const runningCount = runs.filter((run) => run.status === "running").length;
+    return {
+      total: runs.length,
+      running: runningCount,
+      finished: runs.length - runningCount
+    };
+  }, [runs]);
+
   const visibleRunFiles = useMemo(() => {
     const normalizedTerm = fileSearchTerm.trim().toLowerCase();
     if (normalizedTerm.length === 0) {
@@ -779,6 +788,12 @@ export function App(): JSX.Element {
       </section>
 
       {startRunError ? <p className="error">Could not start run: {startRunError}</p> : null}
+
+      <section className="runs-summary">
+        <span>All: {runsSummary.total}</span>
+        <span>Running: {runsSummary.running}</span>
+        <span>Finished: {runsSummary.finished}</span>
+      </section>
 
       {error ? <p className="error">Could not load runs: {error}</p> : null}
 

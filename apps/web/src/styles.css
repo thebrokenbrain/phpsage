@@ -52,6 +52,21 @@ body {
   padding: 8px;
 }
 
+.runs-summary {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.runs-summary span {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
 .header {
   display: flex;
   align-items: center;
