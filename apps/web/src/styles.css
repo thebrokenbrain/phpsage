@@ -23,6 +23,7 @@ body {
   align-items: end;
   gap: 8px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .run-starter label {
@@ -35,6 +36,11 @@ body {
 }
 
 .run-starter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.run-starter-presets {
   display: flex;
   gap: 8px;
 }

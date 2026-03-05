@@ -58,6 +58,7 @@ const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 const defaultRunningPollIntervalMs = 2000;
 const starterTargetStorageKey = "phpsage.runStarter.targetPath";
+const starterTargetPresets = ["/workspace/examples/php-sample", "/workspace/examples/php-sample-ok"];
 
 function readInitialQuerySelection(): {
   runId: string | null;
@@ -726,6 +727,18 @@ export function App(): JSX.Element {
             }}
           />
         </label>
+        <div className="run-starter-presets">
+          {starterTargetPresets.map((targetPreset) => (
+            <button
+              key={targetPreset}
+              onClick={() => {
+                setStartRunTargetPath(targetPreset);
+              }}
+            >
+              {targetPreset.split("/").pop()}
+            </button>
+          ))}
+        </div>
         <div className="run-starter-actions">
           <button
             onClick={() => {

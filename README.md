@@ -124,6 +124,7 @@ Estado actual:
 - `targetPath` del formulario de inicio persistido en URL para compartir contexto
 - recuperación del último `targetPath` desde localStorage cuando no viene en URL
 - acción para precargar en el formulario el `targetPath` del run seleccionado
+- presets rápidos de `targetPath` para ejemplos comunes
 - panel de detalle web ampliado con paginación de issues y logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)

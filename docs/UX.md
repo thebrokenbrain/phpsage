@@ -35,6 +35,7 @@ A minimal Dashboard is implemented with:
 - run starter target path is persisted in URL query-state (`target`)
 - if URL has no target, run starter restores last used target from localStorage
 - run starter can prefill target from currently selected run
+- run starter includes quick target presets for sample projects
 - loading, empty, and error states
 
 ## Target UX direction
