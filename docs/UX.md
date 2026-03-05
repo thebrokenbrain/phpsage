@@ -25,6 +25,7 @@ A minimal Dashboard is implemented with:
 - run detail shows a `Live updating` badge while polling is active
 - manual refresh action
 - UI can start a run by target path (`POST /api/runs/start` with `execute=true`)
+- run starter target path is persisted in URL query-state (`target`)
 - loading, empty, and error states
 
 ## Target UX direction

@@ -65,9 +65,10 @@ function readInitialQuerySelection(): {
   logPage: number | null;
   runsStatusFilter: "all" | "running" | "finished";
   fileSearchTerm: string;
+  startTargetPath: string | null;
 } {
   if (typeof window === "undefined") {
-    return { runId: null, file: null, issueIndex: null, logPage: null, runsStatusFilter: "all", fileSearchTerm: "" };
+    return { runId: null, file: null, issueIndex: null, logPage: null, runsStatusFilter: "all", fileSearchTerm: "", startTargetPath: null };
   }
 
   const searchParams = new URLSearchParams(window.location.search);
@@ -77,6 +78,7 @@ function readInitialQuerySelection(): {
   const logPage = searchParams.get("logPage");
   const status = searchParams.get("status");
   const fileQuery = searchParams.get("fileQuery");
+  const target = searchParams.get("target");
   const parsedIssueIndex = issue ? Number.parseInt(issue, 10) : Number.NaN;
   const parsedLogPage = logPage ? Number.parseInt(logPage, 10) : Number.NaN;
 
@@ -86,7 +88,8 @@ function readInitialQuerySelection(): {
     issueIndex: Number.isFinite(parsedIssueIndex) && parsedIssueIndex >= 0 ? parsedIssueIndex : null,
     logPage: Number.isFinite(parsedLogPage) && parsedLogPage >= 0 ? parsedLogPage : null,
     runsStatusFilter: status === "running" || status === "finished" ? status : "all",
-    fileSearchTerm: fileQuery ?? ""
+    fileSearchTerm: fileQuery ?? "",
+    startTargetPath: target && target.trim().length > 0 ? target : null
   };
 }
 
@@ -101,7 +104,7 @@ export function App(): JSX.Element {
   const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [startRunTargetPath, setStartRunTargetPath] = useState("/workspace/examples/php-sample");
+  const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
   const [startRunLoading, setStartRunLoading] = useState(false);
   const [startRunError, setStartRunError] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelection.runId);
@@ -244,6 +247,7 @@ export function App(): JSX.Element {
       setLogPage(selection.logPage ?? 0);
       setRunsStatusFilter(selection.runsStatusFilter);
       setFileSearchTerm(selection.fileSearchTerm);
+      setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
     }
 
     window.addEventListener("popstate", handlePopState);
@@ -278,6 +282,12 @@ export function App(): JSX.Element {
       url.searchParams.delete("fileQuery");
     }
 
+    if (startRunTargetPath.trim().length > 0) {
+      url.searchParams.set("target", startRunTargetPath);
+    } else {
+      url.searchParams.delete("target");
+    }
+
     if (selectedSourceFilePath) {
       url.searchParams.set("file", selectedSourceFilePath);
     } else {
@@ -297,7 +307,7 @@ export function App(): JSX.Element {
     }
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [fileSearchTerm, logPage, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath]);
+  }, [fileSearchTerm, logPage, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
