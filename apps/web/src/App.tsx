@@ -57,6 +57,7 @@ interface StartRunPayload {
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 const runningPollIntervalMs = 2000;
+const starterTargetStorageKey = "phpsage.runStarter.targetPath";
 
 function readInitialQuerySelection(): {
   runId: string | null;
@@ -233,6 +234,29 @@ export function App(): JSX.Element {
   useEffect(() => {
     void loadRuns();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (initialSelection.startTargetPath) {
+      return;
+    }
+
+    const storedTargetPath = window.localStorage.getItem(starterTargetStorageKey);
+    if (storedTargetPath && storedTargetPath.trim().length > 0) {
+      setStartRunTargetPath(storedTargetPath);
+    }
+  }, [initialSelection.startTargetPath]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(starterTargetStorageKey, startRunTargetPath);
+  }, [startRunTargetPath]);
 
   useEffect(() => {
     if (typeof window === "undefined") {

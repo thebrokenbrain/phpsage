@@ -120,6 +120,7 @@ Estado actual:
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
 - inicio de run desde UI por `targetPath` usando `POST /api/runs/start` con `execute=true`
 - `targetPath` del formulario de inicio persistido en URL para compartir contexto
+- recuperación del último `targetPath` desde localStorage cuando no viene en URL
 - panel de detalle web ampliado con paginación de issues y logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)

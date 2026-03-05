@@ -26,6 +26,7 @@ A minimal Dashboard is implemented with:
 - manual refresh action
 - UI can start a run by target path (`POST /api/runs/start` with `execute=true`)
 - run starter target path is persisted in URL query-state (`target`)
+- if URL has no target, run starter restores last used target from localStorage
 - loading, empty, and error states
 
 ## Target UX direction
