@@ -7,6 +7,7 @@ User experience guide for PHPSage.
 A minimal Dashboard is implemented with:
 
 - runs table backed by `GET /api/runs`
+- default run selection prefers an active `running` run when available
 - selectable run detail panel backed by `GET /api/runs/:runId`
 - files navigator in detail backed by `GET /api/runs/:runId/files`
 - paginated issues and logs sections in run detail

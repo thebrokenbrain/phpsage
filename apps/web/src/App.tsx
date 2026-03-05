@@ -112,6 +112,10 @@ export function App(): JSX.Element {
       const payload = (await response.json()) as RunSummary[];
       setRuns(payload);
 
+      const fallbackRun =
+        payload.find((run) => run.status === "running")
+        ?? payload[0];
+
       if (payload.length === 0) {
         setSelectedRunId(null);
         setSelectedRun(null);
@@ -120,11 +124,11 @@ export function App(): JSX.Element {
 
       setSelectedRunId((currentSelectedRunId) => {
         if (!currentSelectedRunId) {
-          return payload[0].runId;
+          return fallbackRun.runId;
         }
 
         const stillExists = payload.some((run) => run.runId === currentSelectedRunId);
-        return stillExists ? currentSelectedRunId : payload[0].runId;
+        return stillExists ? currentSelectedRunId : fallbackRun.runId;
       });
     } catch (fetchError) {
       const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
