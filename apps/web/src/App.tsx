@@ -1037,6 +1037,17 @@ export function App(): JSX.Element {
           </label>
           <button
             onClick={() => {
+              void (async () => {
+                await startRunFromUi();
+                setLastAutoRunAt(new Date().toISOString());
+              })();
+            }}
+            disabled={startRunLoading || startRunTargetPath.trim().length === 0}
+          >
+            Run now
+          </button>
+          <button
+            onClick={() => {
               void copyCurrentDeepLink();
             }}
           >

@@ -56,6 +56,7 @@ A minimal Dashboard is implemented with:
 - auto-run scheduler starts analysis at configured interval when no run is currently `running`
 - dashboard summary shows auto-run status and last auto-run timestamp
 - auto-run toggle and interval are persisted in URL query-state (`auto`, `autoInterval`)
+- header includes `Run now` action using current starter target
 - header includes `Copy link` action for sharing current dashboard URL state
 - header includes `Reset controls` action to restore default dashboard controls
 - header includes `API docs` quick access action
