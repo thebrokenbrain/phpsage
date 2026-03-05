@@ -60,6 +60,7 @@ A minimal Dashboard is implemented with:
 - dashboard indicates when auto-run is waiting for an active run to finish
 - dashboard shows countdown to next auto-run while enabled
 - countdown resets after a successful run start
+- dashboard summary includes auto-run trigger count for current session
 - header includes `Run now` action using current starter target
 - auto-run scheduler is skipped while starter target path is empty
 - header includes `Copy link` action for sharing current dashboard URL state

@@ -174,6 +174,7 @@ export function App(): JSX.Element {
   const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(initialSelection.autoRunIntervalMs ?? 15000);
   const [autoRunCountdownSec, setAutoRunCountdownSec] = useState(Math.ceil((initialSelection.autoRunIntervalMs ?? 15000) / 1000));
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
+  const [autoRunTriggerCount, setAutoRunTriggerCount] = useState(0);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
@@ -840,6 +841,7 @@ export function App(): JSX.Element {
       void (async () => {
         await startRunFromUi();
         setLastAutoRunAt(new Date().toISOString());
+        setAutoRunTriggerCount((currentValue) => currentValue + 1);
       })();
     }, autoRunIntervalMs);
 
@@ -1211,6 +1213,7 @@ export function App(): JSX.Element {
         {isAutoRunEnabled ? <span>Next auto-run in: {autoRunCountdownSec}s</span> : null}
         {isAutoRunEnabled && runsSummary.running > 0 ? <span>Auto-run waiting for active run</span> : null}
         {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
+        <span>Auto-run triggers: {autoRunTriggerCount}</span>
       </section>
 
       {activeControlLabels.length > 0 ? (
