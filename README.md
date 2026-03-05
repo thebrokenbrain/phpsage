@@ -140,6 +140,7 @@ Estado actual:
 - filtro de issues persistido en URL
 - filtro de presencia de identificador en panel de issues
 - filtro de identificador de issues persistido en URL
+- acción rápida `Clear issue filters` en panel de issues
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)
 - preview de source con numeración y resaltado de línea activa del issue
 - navegador de archivos por run en web (`GET /api/runs/:runId/files`)

@@ -1034,6 +1034,16 @@ export function App(): JSX.Element {
                 <div className="detail-block-header">
                   <h3>Issues</h3>
                   <div className="detail-actions">
+                    <button
+                      onClick={() => {
+                        setIssueSearchTerm("");
+                        setIssueIdentifierFilter("all");
+                        setIssuePage(0);
+                      }}
+                      disabled={issueSearchTerm.trim().length === 0 && issueIdentifierFilter === "all"}
+                    >
+                      Clear issue filters
+                    </button>
                     <select
                       value={issueIdentifierFilter}
                       onChange={(event) => {
