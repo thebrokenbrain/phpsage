@@ -35,6 +35,7 @@ interface WatchRuntimeState {
 	isCycleRunning: boolean;
 	rerunRequested: boolean;
 	isStopping: boolean;
+	stopReason: string | null;
 }
 
 interface AppCommandOptions {
@@ -116,7 +117,8 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 		lastExitCode: null,
 		isCycleRunning: false,
 		rerunRequested: false,
-		isStopping: false
+		isStopping: false,
+		stopReason: null
 	};
 
 	let lastSnapshot = createTargetSnapshot(options.targetPath, options.watchIgnoredDirectories);
@@ -125,6 +127,7 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 	}
 	let pollTimer: NodeJS.Timeout | null = null;
 	let debounceTimer: NodeJS.Timeout | null = null;
+	let resolveStopPromise: (() => void) | null = null;
 
 	const clearTimers = () => {
 		if (pollTimer) {
@@ -138,22 +141,30 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 		}
 	};
 
-	const shutdown = (signal: NodeJS.Signals) => {
+	const requestStop = (reason: string, signal?: NodeJS.Signals) => {
 		if (state.isStopping) {
 			return;
 		}
 
 		state.isStopping = true;
+		state.stopReason = reason;
 		clearTimers();
-		process.stdout.write(`\nStopping watch mode (${signal})...\n`);
+		if (signal) {
+			process.stdout.write(`\nStopping watch mode (${signal})...\n`);
+		} else {
+			process.stdout.write(`\nStopping watch mode (${reason})...\n`);
+		}
 		process.stdout.write(
 			`Watch summary: cycles=${state.cycleCount} ok=${state.successCount} failed=${state.failureCount} lastExit=${state.lastExitCode ?? "-"}\n`
 		);
 		process.exitCode = state.lastExitCode ?? 0;
+		if (resolveStopPromise) {
+			resolveStopPromise();
+		}
 	};
 
-	process.once("SIGINT", () => shutdown("SIGINT"));
-	process.once("SIGTERM", () => shutdown("SIGTERM"));
+	process.once("SIGINT", () => requestStop("signal", "SIGINT"));
+	process.once("SIGTERM", () => requestStop("signal", "SIGTERM"));
 
 	const executeCycle = async () => {
 		if (state.isStopping) {
@@ -170,8 +181,7 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 		const cycleStartedAt = Date.now();
 		try {
 			if (options.watchMaxCycles && state.cycleCount > options.watchMaxCycles) {
-				state.isStopping = true;
-				process.stdout.write(`Watch max cycles reached (${options.watchMaxCycles}). Stopping...\n`);
+				requestStop(`max-cycles:${options.watchMaxCycles}`);
 				return;
 			}
 
@@ -244,10 +254,14 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 		await executeCycle();
 	}
 
+	if (state.isStopping) {
+		return;
+	}
+
 	schedulePoll();
 
-	await new Promise<void>(() => {
-		// Keep process alive while watching.
+	await new Promise<void>((resolveWatchStop) => {
+		resolveStopPromise = resolveWatchStop;
 	});
 }
 

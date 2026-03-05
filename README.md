@@ -120,6 +120,7 @@ Estado actual:
 - watch CLI finaliza de forma limpia en `SIGINT`/`SIGTERM` con resumen de ciclos
 - watch CLI valida que el `targetPath` exista y sea directorio antes de arrancar
 - watch CLI muestra telemetría básica del watcher (número de archivos monitorizados y variación al detectar cambios)
+- watch CLI detiene el loop de forma determinista cuando alcanza `--watch-max-cycles` e informa motivo de parada
 - CLI soporta `--help`/`-h` y `--version`/`-v`
 - parser CLI valida flags desconocidas y flags con valor requerido para fallar rápido con error explícito
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
