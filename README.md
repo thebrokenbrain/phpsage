@@ -170,6 +170,8 @@ Estado actual:
 - selector en cabecera para intervalo de polling (`2s`, `5s`, `10s`)
 - intervalo de polling persistido en URL
 - controles en cabecera para auto-run (toggle + intervalo `10s`/`15s`/`30s`)
+- auto-run dispara análisis periódicos cuando no hay un run `running`
+- resumen de dashboard muestra estado y timestamp de último auto-run
 - acción `Copy link` para compartir el estado actual del dashboard
 - acción `Reset controls` para restaurar controles del dashboard
 - acción rápida `API docs` desde cabecera del dashboard

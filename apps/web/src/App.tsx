@@ -163,6 +163,7 @@ export function App(): JSX.Element {
   const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(false);
   const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(15000);
+  const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
@@ -764,6 +765,28 @@ export function App(): JSX.Element {
   }, [apiBaseUrl, isLivePollingEnabled, livePollingIntervalMs, selectedRun, selectedRunId]);
 
   useEffect(() => {
+    if (!isAutoRunEnabled) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      const hasRunningRun = runs.some((run) => run.status === "running");
+      if (hasRunningRun || startRunLoading) {
+        return;
+      }
+
+      void (async () => {
+        await startRunFromUi();
+        setLastAutoRunAt(new Date().toISOString());
+      })();
+    }, autoRunIntervalMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [autoRunIntervalMs, isAutoRunEnabled, runs, startRunLoading]);
+
+  useEffect(() => {
     if (!selectedRun) {
       setIssuePage(0);
       return;
@@ -1111,6 +1134,8 @@ export function App(): JSX.Element {
         <span>Running: {runsSummary.running}</span>
         <span>Finished: {runsSummary.finished}</span>
         {lastRefreshAt ? <span>Last refresh: {new Date(lastRefreshAt).toLocaleTimeString()}</span> : null}
+        <span>Auto-run: {isAutoRunEnabled ? "ON" : "OFF"}</span>
+        {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
       </section>
 
       {activeControlLabels.length > 0 ? (
