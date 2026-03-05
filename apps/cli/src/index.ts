@@ -20,6 +20,8 @@ interface CliOptions {
 	readonly watchQuiet: boolean;
 	readonly watchIgnoredDirectories: readonly string[];
 	readonly watchMaxCycles: number | null;
+	readonly watchExtensions: readonly string[];
+	readonly watchFiles: readonly string[];
 }
 
 interface TargetSnapshot {
@@ -121,7 +123,12 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 		stopReason: null
 	};
 
-	let lastSnapshot = createTargetSnapshot(options.targetPath, options.watchIgnoredDirectories);
+	let lastSnapshot = createTargetSnapshot(
+		options.targetPath,
+		options.watchIgnoredDirectories,
+		options.watchExtensions,
+		options.watchFiles
+	);
 	if (!options.watchQuiet) {
 		process.stdout.write(`Watch mode is tracking ${lastSnapshot.fileCount} files\n`);
 	}
@@ -234,7 +241,12 @@ async function runWatchMode(options: CliOptions): Promise<void> {
 		}
 
 		pollTimer = setTimeout(() => {
-			const nextSnapshot = createTargetSnapshot(options.targetPath, options.watchIgnoredDirectories);
+			const nextSnapshot = createTargetSnapshot(
+				options.targetPath,
+				options.watchIgnoredDirectories,
+				options.watchExtensions,
+				options.watchFiles
+			);
 			if (nextSnapshot.fingerprint !== lastSnapshot.fingerprint) {
 				if (!options.watchQuiet) {
 					process.stdout.write(
@@ -346,8 +358,15 @@ async function runPhpstanAndFinalize(options: CliOptions, runId: string): Promis
 	return exitCode;
 }
 
-function createTargetSnapshot(targetPath: string, ignoredDirectories: readonly string[] = []): TargetSnapshot {
+function createTargetSnapshot(
+	targetPath: string,
+	ignoredDirectories: readonly string[] = [],
+	watchExtensions: readonly string[] = ["php"],
+	watchFiles: readonly string[] = ["phpstan.neon", "phpstan.neon.dist", "composer.json"]
+): TargetSnapshot {
 	const ignoredDirectorySet = new Set<string>([".git", "node_modules", "vendor", ...ignoredDirectories]);
+	const normalizedWatchExtensions = new Set(watchExtensions.map((entry) => normalizeExtension(entry)));
+	const watchFileSet = new Set(watchFiles);
 	const entries: string[] = [];
 
 	function walk(currentPath: string): void {
@@ -369,7 +388,7 @@ function createTargetSnapshot(targetPath: string, ignoredDirectories: readonly s
 				continue;
 			}
 
-			if (!isWatchedPath(entry.name)) {
+			if (!isWatchedPath(entry.name, normalizedWatchExtensions, watchFileSet)) {
 				continue;
 			}
 
@@ -401,12 +420,22 @@ function ensureTargetPathIsDirectory(targetPath: string): void {
 	}
 }
 
-function isWatchedPath(fileName: string): boolean {
-	if (fileName.endsWith(".php")) {
+function isWatchedPath(
+	fileName: string,
+	watchExtensions: ReadonlySet<string>,
+	watchFiles: ReadonlySet<string>
+): boolean {
+	if (watchFiles.has(fileName)) {
 		return true;
 	}
 
-	return fileName === "phpstan.neon" || fileName === "phpstan.neon.dist" || fileName === "composer.json";
+	const extension = fileName.includes(".") ? fileName.split(".").pop() ?? "" : "";
+	return watchExtensions.has(normalizeExtension(extension));
+}
+
+function normalizeExtension(extension: string): string {
+	const normalized = extension.trim().toLowerCase();
+	return normalized.startsWith(".") ? normalized.slice(1) : normalized;
 }
 
 function buildPhpstanArgs(options: CliOptions): string[] {
@@ -506,6 +535,8 @@ function parseArguments(args: string[]): CliCommand | null {
 		"--watch-no-initial",
 		"--watch-quiet",
 		"--watch-ignore",
+		"--watch-ext",
+		"--watch-files",
 		"--watch-max-cycles",
 		"--docker",
 		"--server-url"
@@ -517,6 +548,8 @@ function parseArguments(args: string[]): CliCommand | null {
 		"--watch-interval",
 		"--watch-debounce",
 		"--watch-ignore",
+		"--watch-ext",
+		"--watch-files",
 		"--watch-max-cycles",
 		"--server-url"
 	]);
@@ -539,6 +572,8 @@ function parseArguments(args: string[]): CliCommand | null {
 	const watchRunOnStart = !args.includes("--watch-no-initial");
 	const watchQuiet = args.includes("--watch-quiet");
 	const watchIgnoredDirectories = parseListFlag(args, "--watch-ignore");
+	const watchExtensions = parseListFlag(args, "--watch-ext").map((entry) => normalizeExtension(entry));
+	const watchFiles = parseListFlag(args, "--watch-files");
 	const watchMaxCycles = parsePositiveIntegerFlagOrNull(args, "--watch-max-cycles");
 	const serverUrlFromEnv = process.env.PHPSAGE_SERVER_URL;
 
@@ -564,7 +599,9 @@ function parseArguments(args: string[]): CliCommand | null {
 			watchRunOnStart,
 			watchQuiet,
 			watchIgnoredDirectories,
-			watchMaxCycles
+			watchMaxCycles,
+			watchExtensions: watchExtensions.length > 0 ? watchExtensions : ["php"],
+			watchFiles: watchFiles.length > 0 ? watchFiles : ["phpstan.neon", "phpstan.neon.dist", "composer.json"]
 		}
 	};
 }
@@ -680,7 +717,7 @@ function printUsage(): void {
 			+ "  phpsage --help | -h\n"
 			+ "  phpsage --version | -v\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
-			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-max-cycles <n>] [--docker] [--server-url <url>]\n"
+			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-ext <php,inc>] [--watch-files <phpstan.neon,composer.json>] [--watch-max-cycles <n>] [--docker] [--server-url <url>]\n"
 	);
 }
 
