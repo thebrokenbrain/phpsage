@@ -416,6 +416,22 @@ export function App(): JSX.Element {
     }
   }
 
+  function resetDashboardControls(): void {
+    setRunsStatusFilter("all");
+    setRunsSortOrder("updatedDesc");
+    setIssueSearchTerm("");
+    setIssueIdentifierFilter("all");
+    setLogSearchTerm("");
+    setLogStreamFilter("all");
+    setFileSearchTerm("");
+    setIsLivePollingEnabled(true);
+    setLivePollingIntervalMs(defaultRunningPollIntervalMs);
+    setIsFilesSectionOpen(true);
+    setIsIssuesSectionOpen(true);
+    setIsSourceSectionOpen(true);
+    setIsLogsSectionOpen(true);
+  }
+
   useEffect(() => {
     void loadRuns();
   }, []);
@@ -896,6 +912,13 @@ export function App(): JSX.Element {
             }}
           >
             {copyLinkStatus === "copied" ? "Link copied" : "Copy link"}
+          </button>
+          <button
+            onClick={() => {
+              resetDashboardControls();
+            }}
+          >
+            Reset controls
           </button>
           <button
             onClick={() => {
