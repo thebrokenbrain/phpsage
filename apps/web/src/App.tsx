@@ -138,6 +138,7 @@ export function App(): JSX.Element {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [issuePage, setIssuePage] = useState(0);
+  const [issueSearchTerm, setIssueSearchTerm] = useState("");
   const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
   const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
@@ -219,6 +220,24 @@ export function App(): JSX.Element {
 
     return issue.line;
   }, [selectedIssueIndex, selectedRun, sourcePayload]);
+
+  const filteredIssueEntries = useMemo(() => {
+    if (!selectedRun) {
+      return [] as Array<{ issue: RunIssue; absoluteIndex: number }>;
+    }
+
+    const normalizedSearchTerm = issueSearchTerm.trim().toLowerCase();
+
+    return selectedRun.issues
+      .map((issue, absoluteIndex) => ({ issue, absoluteIndex }))
+      .filter(({ issue }) => {
+        if (normalizedSearchTerm.length === 0) {
+          return true;
+        }
+
+        return `${issue.file}:${issue.line} ${issue.message}`.toLowerCase().includes(normalizedSearchTerm);
+      });
+  }, [issueSearchTerm, selectedRun]);
 
   async function loadRuns(): Promise<void> {
     setLoading(true);
@@ -571,6 +590,13 @@ export function App(): JSX.Element {
       setIssuePage(derivedIssuePage);
     }
   }, [issuePage, selectedIssueIndex, selectedRun]);
+
+  useEffect(() => {
+    const maxIssuePage = Math.max(0, Math.ceil(filteredIssueEntries.length / detailPageSize) - 1);
+    if (issuePage > maxIssuePage) {
+      setIssuePage(maxIssuePage);
+    }
+  }, [filteredIssueEntries.length, issuePage]);
 
   useEffect(() => {
     if (!selectedRun || selectedRun.logs.length === 0) {
@@ -976,7 +1002,18 @@ export function App(): JSX.Element {
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Issues</h3>
-                  {selectedRun.issues.length > detailPageSize ? (
+                  <div className="detail-actions">
+                    <input
+                      type="search"
+                      placeholder="Filter issues"
+                      value={issueSearchTerm}
+                      onChange={(event) => {
+                        setIssueSearchTerm(event.target.value);
+                        setIssuePage(0);
+                      }}
+                    />
+                  </div>
+                  {filteredIssueEntries.length > detailPageSize ? (
                     <div className="pager">
                       <button
                         onClick={() => {
@@ -987,16 +1024,16 @@ export function App(): JSX.Element {
                         Prev
                       </button>
                       <span>
-                        {issuePage + 1}/{Math.max(1, Math.ceil(selectedRun.issues.length / detailPageSize))}
+                        {issuePage + 1}/{Math.max(1, Math.ceil(filteredIssueEntries.length / detailPageSize))}
                       </span>
                       <button
                         onClick={() => {
                           setIssuePage((page) => {
-                            const maxPage = Math.max(0, Math.ceil(selectedRun.issues.length / detailPageSize) - 1);
+                            const maxPage = Math.max(0, Math.ceil(filteredIssueEntries.length / detailPageSize) - 1);
                             return Math.min(maxPage, page + 1);
                           });
                         }}
-                        disabled={issuePage >= Math.max(0, Math.ceil(selectedRun.issues.length / detailPageSize) - 1)}
+                        disabled={issuePage >= Math.max(0, Math.ceil(filteredIssueEntries.length / detailPageSize) - 1)}
                       >
                         Next
                       </button>
@@ -1004,12 +1041,11 @@ export function App(): JSX.Element {
                   ) : null}
                 </div>
 
-                {selectedRun.issues.length > 0 ? (
+                {filteredIssueEntries.length > 0 ? (
                   <ul className="detail-list">
-                    {selectedRun.issues
+                    {filteredIssueEntries
                       .slice(issuePage * detailPageSize, (issuePage + 1) * detailPageSize)
-                      .map((issue, index) => {
-                        const absoluteIndex = issuePage * detailPageSize + index;
+                      .map(({ issue, absoluteIndex }) => {
                         return (
                         <li
                           key={`${issue.file}-${issue.line}-${absoluteIndex}`}
@@ -1025,6 +1061,8 @@ export function App(): JSX.Element {
                         );
                       })}
                   </ul>
+                ) : selectedRun.issues.length > 0 ? (
+                  <p className="empty">No issues match current filter.</p>
                 ) : (
                   <p className="empty">No issues in selected run.</p>
                 )}

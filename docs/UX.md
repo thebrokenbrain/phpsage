@@ -22,6 +22,7 @@ A minimal Dashboard is implemented with:
 - files panel includes explicit action to return from manual file override to selected issue context
 - paginated issues and logs sections in run detail
 - issue rows display PHPStan identifier when available
+- issues panel includes local text filter with paginated result set
 - source preview for selected issue backed by `GET /api/runs/:runId/source`
 - source preview shows line numbers and highlights active issue line when applicable
 - URL query-state for selected run, file, issue, and logs page (`?runId=...&file=...&issue=...&logPage=...`) with reload restore (including pagination context)
