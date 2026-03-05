@@ -54,12 +54,14 @@ This document must be updated in the same iteration where any endpoint is added 
 
 ```json
 {
-	"targetPath": "/workspace/examples/php-sample"
+	"targetPath": "/workspace/examples/php-sample",
+	"execute": true
 }
 ```
 
 - Response `201`: persisted run record with `status: "running"`
 - Response `400`: invalid `targetPath` (`required`, `does not exist`, `must be a directory`)
+- When `execute=true`, PHPStan is executed asynchronously and the run is updated via `log/finish` lifecycle.
 
 - `POST /api/runs/:runId/log`
 - Body:

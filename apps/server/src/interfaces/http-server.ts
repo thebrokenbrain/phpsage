@@ -1,14 +1,17 @@
 // This file exposes minimal HTTP routes for server bootstrap and run start lifecycle.
+import { spawn } from "node:child_process";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { existsSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 import { URL } from "node:url";
+import { parsePhpstanJsonOutput } from "@phpsage/shared";
 import { RunService } from "../application/run-service.js";
 import type { RunIssue } from "../domain/run.js";
 import type { RunSourceReader } from "../infrastructure/run-source-reader.js";
 
 interface StartRunBody {
   targetPath: string;
+  execute?: boolean;
 }
 
 interface AppendLogBody {
@@ -122,6 +125,9 @@ export function createHttpServer(runService: RunService, runSourceReader: RunSou
       }
 
       const run = await runService.start(targetPathValidation.targetPath);
+      if (body?.execute === true) {
+        void executeRerunAnalysis(runService, run.runId, run.targetPath);
+      }
       writeJson(response, 201, run);
       return;
     }
@@ -197,6 +203,71 @@ function getIssueCountByRelativeFile(targetPath: string, issues: RunIssue[]): Ma
   }
 
   return counts;
+}
+
+async function executeRerunAnalysis(runService: RunService, runId: string, targetPath: string): Promise<void> {
+  const execution = await executePhpstan(targetPath);
+
+  if (execution.stdout.trim()) {
+    await runService.appendLog(runId, "stdout", execution.stdout.trimEnd());
+  }
+
+  if (execution.stderr.trim()) {
+    await runService.appendLog(runId, "stderr", execution.stderr.trimEnd());
+  }
+
+  const issues = parseIssues(execution.stdout, execution.stderr);
+  await runService.finish(runId, issues, execution.exitCode);
+}
+
+async function executePhpstan(targetPath: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const args = ["analyse", targetPath, "--error-format=json", "--no-progress"];
+  const configPath = resolve(targetPath, "phpstan.neon");
+  if (existsSync(configPath)) {
+    args.push(`--configuration=${configPath}`);
+  }
+
+  const stdoutChunks: string[] = [];
+  const stderrChunks: string[] = [];
+
+  const exitCode = await new Promise<number>((resolveExitCode) => {
+    const child = spawn("phpstan", args, {
+      cwd: process.cwd(),
+      stdio: ["ignore", "pipe", "pipe"]
+    });
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdoutChunks.push(chunk.toString("utf-8"));
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderrChunks.push(chunk.toString("utf-8"));
+    });
+
+    child.on("error", (error) => {
+      stderrChunks.push(`PHPStan execution failed: ${error.message}\n`);
+      resolveExitCode(1);
+    });
+
+    child.on("close", (code) => {
+      resolveExitCode(typeof code === "number" ? code : 1);
+    });
+  });
+
+  return {
+    stdout: stdoutChunks.join(""),
+    stderr: stderrChunks.join(""),
+    exitCode
+  };
+}
+
+function parseIssues(stdout: string, stderr: string): RunIssue[] {
+  const fromStdout = parsePhpstanJsonOutput(stdout);
+  if (fromStdout.length > 0) {
+    return fromStdout;
+  }
+
+  return parsePhpstanJsonOutput(stderr);
 }
 
 function validateRunTargetPath(rawTargetPath: unknown): TargetPathValidationResult {
