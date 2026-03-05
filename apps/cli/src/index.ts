@@ -4,6 +4,8 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { parsePhpstanJsonOutput, type ParsedPhpstanIssue } from "@phpsage/shared";
 
+const cliVersion = "0.1.0";
+
 interface CliOptions {
 	readonly targetPath: string;
 	readonly serverUrl: string;
@@ -60,6 +62,18 @@ interface HealthResponse {
 }
 
 async function main(): Promise<void> {
+	if (process.argv.includes("--help") || process.argv.includes("-h")) {
+		printUsage();
+		process.exitCode = 0;
+		return;
+	}
+
+	if (process.argv.includes("--version") || process.argv.includes("-v")) {
+		process.stdout.write(`${cliVersion}\n`);
+		process.exitCode = 0;
+		return;
+	}
+
 	const command = parseArguments(process.argv.slice(2));
 	if (!command) {
 		printUsage();
@@ -466,6 +480,33 @@ function parseArguments(args: string[]): CliCommand | null {
 		return null;
 	}
 
+	validateFlags(args, [
+		"--port",
+		"--no-open",
+		"--cwd",
+		"--phpstan-bin",
+		"--memory-limit",
+		"--watch",
+		"--watch-interval",
+		"--watch-debounce",
+		"--watch-no-initial",
+		"--watch-quiet",
+		"--watch-ignore",
+		"--watch-max-cycles",
+		"--docker",
+		"--server-url"
+	], [
+		"--port",
+		"--cwd",
+		"--phpstan-bin",
+		"--memory-limit",
+		"--watch-interval",
+		"--watch-debounce",
+		"--watch-ignore",
+		"--watch-max-cycles",
+		"--server-url"
+	]);
+
 	const targetPath = args[2];
 	if (!targetPath) {
 		return null;
@@ -559,6 +600,8 @@ function parseAppArguments(args: string[]): AppCommandOptions | null {
 		return null;
 	}
 
+	validateFlags(args, ["--port", "--no-open", "--docker", "--server-url"], ["--port", "--server-url"]);
+
 	const dockerMode = args.includes("--docker");
 	const serverUrlFromFlag = getFlagValue(args, "--server-url");
 	const portFromFlag = getFlagValue(args, "--port");
@@ -582,12 +625,46 @@ function getFlagValue(args: string[], flag: string): string | undefined {
 		return undefined;
 	}
 
-	return args[index + 1];
+	const nextValue = args[index + 1];
+	if (!nextValue || nextValue.startsWith("--")) {
+		return undefined;
+	}
+
+	return nextValue;
+}
+
+function validateFlags(args: string[], allowedFlags: readonly string[], flagsWithValue: readonly string[]): void {
+	const allowedSet = new Set<string>(allowedFlags);
+	const withValueSet = new Set<string>(flagsWithValue);
+
+	for (let index = 0; index < args.length; index += 1) {
+		const argument = args[index];
+		if (!argument.startsWith("--")) {
+			continue;
+		}
+
+		if (!allowedSet.has(argument)) {
+			throw new Error(`Unknown flag: ${argument}`);
+		}
+
+		if (!withValueSet.has(argument)) {
+			continue;
+		}
+
+		const nextValue = args[index + 1];
+		if (!nextValue || nextValue.startsWith("--")) {
+			throw new Error(`Flag ${argument} requires a value`);
+		}
+
+		index += 1;
+	}
 }
 
 function printUsage(): void {
 	process.stdout.write(
 		"Usage:\n"
+			+ "  phpsage --help | -h\n"
+			+ "  phpsage --version | -v\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
 			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-max-cycles <n>] [--docker] [--server-url <url>]\n"
 	);
