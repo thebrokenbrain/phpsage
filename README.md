@@ -121,6 +121,7 @@ Estado actual:
 - ordenación de runs persistida en URL
 - contadores en dashboard para runs totales/running/finished
 - chips visuales con controles/filtros activos
+- indicador de hora de último refresco exitoso en dashboard
 - acción rápida `Jump to running` para seleccionar el run activo más reciente
 - acción `Clear selection` para limpiar run seleccionado y ocultar detalle
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)

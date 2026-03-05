@@ -13,6 +13,7 @@ A minimal Dashboard is implemented with:
 - selected runs sort is persisted in URL query-state (`sort`)
 - dashboard includes counters for all/running/finished runs
 - dashboard shows chips for currently active controls/filters
+- dashboard summary includes last successful refresh time
 - header includes `Jump to running` quick action
 - header includes `Clear selection` action to hide run detail
 - selectable run detail panel backed by `GET /api/runs/:runId`

@@ -160,6 +160,7 @@ export function App(): JSX.Element {
   const [runsSortOrder, setRunsSortOrder] = useState<"updatedDesc" | "updatedAsc">(initialSelection.runsSortOrder);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
   const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
@@ -370,6 +371,7 @@ export function App(): JSX.Element {
 
       const payload = (await response.json()) as RunSummary[];
       setRuns(payload);
+      setLastRefreshAt(new Date().toISOString());
 
       const fallbackRun =
         payload.find((run) => run.status === "running")
@@ -730,6 +732,7 @@ export function App(): JSX.Element {
         setRuns(runsPayload);
         setSelectedRun(detailPayload);
         setRunFiles(filesPayload.files);
+        setLastRefreshAt(new Date().toISOString());
         setFilesError(null);
         setDetailError(null);
         setSelectedSourceFilePath((currentPath) => {
@@ -1079,6 +1082,7 @@ export function App(): JSX.Element {
         <span>All: {runsSummary.total}</span>
         <span>Running: {runsSummary.running}</span>
         <span>Finished: {runsSummary.finished}</span>
+        {lastRefreshAt ? <span>Last refresh: {new Date(lastRefreshAt).toLocaleTimeString()}</span> : null}
       </section>
 
       {activeControlLabels.length > 0 ? (
