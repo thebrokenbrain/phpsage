@@ -18,6 +18,29 @@ body {
   padding: 24px;
 }
 
+.run-starter {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.run-starter label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #4b5563;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.run-starter input[type="text"] {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px;
+}
+
 .header {
   display: flex;
   align-items: center;

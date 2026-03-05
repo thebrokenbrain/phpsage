@@ -118,6 +118,7 @@ Estado actual:
 - selección por defecto prioriza runs en estado `running` cuando existen
 - filtro por estado en tabla de runs (`all`, `running`, `finished`) persistido en URL
 - detalle de run en web implementado al seleccionar fila (`GET /api/runs/:runId`)
+- inicio de run desde UI por `targetPath` usando `POST /api/runs/start` con `execute=true`
 - panel de detalle web ampliado con paginación de issues y logs
 - filas de issues muestran identificador de PHPStan cuando existe
 - preview de source en web para issue seleccionado (`GET /api/runs/:runId/source`)

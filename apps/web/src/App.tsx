@@ -44,6 +44,16 @@ interface SourcePayload {
   content: string;
 }
 
+interface StartRunPayload {
+  runId: string;
+  targetPath: string;
+  status: "running" | "finished";
+  createdAt: string;
+  updatedAt: string;
+  exitCode: number | null;
+  issueCount: number;
+}
+
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 const runningPollIntervalMs = 2000;
@@ -91,6 +101,9 @@ export function App(): JSX.Element {
   const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [startRunTargetPath, setStartRunTargetPath] = useState("/workspace/examples/php-sample");
+  const [startRunLoading, setStartRunLoading] = useState(false);
+  const [startRunError, setStartRunError] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelection.runId);
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -174,6 +187,43 @@ export function App(): JSX.Element {
       setError(message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function startRunFromUi(): Promise<void> {
+    const normalizedTargetPath = startRunTargetPath.trim();
+    if (normalizedTargetPath.length === 0) {
+      setStartRunError("Target path is required.");
+      return;
+    }
+
+    setStartRunLoading(true);
+    setStartRunError(null);
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/runs/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          targetPath: normalizedTargetPath,
+          execute: true
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = (await response.json()) as StartRunPayload;
+      setSelectedRunId(payload.runId);
+      await loadRuns();
+    } catch (startError) {
+      const message = startError instanceof Error ? startError.message : String(startError);
+      setStartRunError(message);
+    } finally {
+      setStartRunLoading(false);
     }
   }
 
@@ -498,6 +548,29 @@ export function App(): JSX.Element {
           </button>
         </div>
       </header>
+
+      <section className="run-starter">
+        <label>
+          Target path
+          <input
+            type="text"
+            value={startRunTargetPath}
+            onChange={(event) => {
+              setStartRunTargetPath(event.target.value);
+            }}
+          />
+        </label>
+        <button
+          onClick={() => {
+            void startRunFromUi();
+          }}
+          disabled={startRunLoading}
+        >
+          {startRunLoading ? "Starting..." : "Start run"}
+        </button>
+      </section>
+
+      {startRunError ? <p className="error">Could not start run: {startRunError}</p> : null}
 
       {error ? <p className="error">Could not load runs: {error}</p> : null}
 

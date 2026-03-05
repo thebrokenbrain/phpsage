@@ -24,6 +24,7 @@ A minimal Dashboard is implemented with:
 - files navigator also auto-refreshes in that 2s cycle while selected run is `running`
 - run detail shows a `Live updating` badge while polling is active
 - manual refresh action
+- UI can start a run by target path (`POST /api/runs/start` with `execute=true`)
 - loading, empty, and error states
 
 ## Target UX direction
