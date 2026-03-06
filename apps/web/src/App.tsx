@@ -36,7 +36,6 @@ import { useAutoRunErrorReset } from "./hooks/use-auto-run-error-reset.js";
 import { ActiveControls } from "./components/active-controls.js";
 import { RunsSummary } from "./components/runs-summary.js";
 import { RunStarter } from "./components/run-starter.js";
-import { RunsTable } from "./components/runs-table.js";
 import { SelectionEmpty } from "./components/selection-empty.js";
 import { RunDetailMeta } from "./components/run-detail-meta.js";
 import { FilesDetailBlock } from "./components/files-detail-block.js";
@@ -55,6 +54,7 @@ import { HeaderRunFilters } from "./components/header-run-filters.js";
 import { HeaderToggleControls } from "./components/header-toggle-controls.js";
 import { HeaderIntervalControls } from "./components/header-interval-controls.js";
 import { HeaderActionButtons } from "./components/header-action-buttons.js";
+import { RunsPane } from "./components/runs-pane.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -554,32 +554,18 @@ export function App(): JSX.Element {
       <ActiveControls labels={activeControlLabels} />
 
       <section className="workspace-grid">
-        <div className="runs-pane">
-          <div className="pane-header">
-            <h2>Runs</h2>
-            <span className="pane-meta">{visibleRuns.length} visible</span>
-          </div>
-
-          {error ? <p className="error">Could not load runs: {error}</p> : null}
-
-          {!loading && runs.length === 0 ? <p className="empty">No runs yet.</p> : null}
-
-          {visibleRuns.length > 0 ? (
-            <RunsTable
-              visibleRuns={visibleRuns}
-              selectedRunId={selectedRunId}
-              onSelectRun={(runId) => {
-                setSelectedRunId(runId);
-                setSelectedIssueIndex(0);
-                setSelectedSourceFilePath(null);
-              }}
-            />
-          ) : null}
-
-          {!loading && runs.length > 0 && visibleRuns.length === 0 ? (
-            <p className="empty">No runs match current status filter.</p>
-          ) : null}
-        </div>
+        <RunsPane
+          visibleRuns={visibleRuns}
+          selectedRunId={selectedRunId}
+          onSelectRun={(runId) => {
+            setSelectedRunId(runId);
+            setSelectedIssueIndex(0);
+            setSelectedSourceFilePath(null);
+          }}
+          error={error}
+          loading={loading}
+          runsCount={runs.length}
+        />
 
         <div className="inspector-pane">
           <div className="pane-header">
