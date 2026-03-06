@@ -17,6 +17,7 @@ import { useIssueNavigation } from "./hooks/use-issue-navigation.js";
 import { useRunViewModel } from "./hooks/use-run-view-model.js";
 import { useRunSource } from "./hooks/use-run-source.js";
 import { useUrlPopstateSync } from "./hooks/use-url-popstate-sync.js";
+import { useDashboardUrlSync } from "./hooks/use-dashboard-url-sync.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -413,6 +414,35 @@ export function App(): JSX.Element {
     }
   });
 
+  useDashboardUrlSync({
+    selectedRunId,
+    runsStatusFilter,
+    runsSortOrder,
+    fileSearchTerm,
+    issueSearchTerm,
+    issueIdentifierFilter,
+    logSearchTerm,
+    logStreamFilter,
+    isFilesSectionOpen,
+    isIssuesSectionOpen,
+    isSourceSectionOpen,
+    isLogsSectionOpen,
+    isAutoRunEnabled,
+    autoRunIntervalMs,
+    autoRunTargetMode,
+    autoRunPauseWhenHidden,
+    autoRunMaxFailures,
+    startRunTargetPath,
+    isLivePollingEnabled,
+    livePollingIntervalMs,
+    selectedSourceFilePath,
+    selectedIssueIndex,
+    logPage,
+    hasIssuesForSelectedRun: Boolean(selectedRun && selectedRun.issues.length > 0),
+    hasLogsForSelectedRun: Boolean(selectedRun && selectedRun.logs.length > 0),
+    defaultRunningPollIntervalMs
+  });
+
   const { selectIssueByIndex } = useIssueNavigation({
     issues: selectedRun?.issues ?? [],
     selectedRunTargetPath: selectedRun?.targetPath ?? null,
@@ -777,154 +807,6 @@ export function App(): JSX.Element {
       })
     );
   }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode, isAutoRunEnabled]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const url = new URL(window.location.href);
-
-    if (selectedRunId) {
-      url.searchParams.set("runId", selectedRunId);
-    } else {
-      url.searchParams.delete("runId");
-    }
-
-    if (runsStatusFilter === "all") {
-      url.searchParams.delete("status");
-    } else {
-      url.searchParams.set("status", runsStatusFilter);
-    }
-
-    if (runsSortOrder === "updatedDesc") {
-      url.searchParams.delete("sort");
-    } else {
-      url.searchParams.set("sort", runsSortOrder);
-    }
-
-    if (fileSearchTerm.trim().length > 0) {
-      url.searchParams.set("fileQuery", fileSearchTerm);
-    } else {
-      url.searchParams.delete("fileQuery");
-    }
-
-    if (issueSearchTerm.trim().length > 0) {
-      url.searchParams.set("issueQuery", issueSearchTerm);
-    } else {
-      url.searchParams.delete("issueQuery");
-    }
-
-    if (issueIdentifierFilter === "all") {
-      url.searchParams.delete("issueIdentifier");
-    } else {
-      url.searchParams.set("issueIdentifier", issueIdentifierFilter);
-    }
-
-    if (logSearchTerm.trim().length > 0) {
-      url.searchParams.set("logQuery", logSearchTerm);
-    } else {
-      url.searchParams.delete("logQuery");
-    }
-
-    if (logStreamFilter === "all") {
-      url.searchParams.delete("logStream");
-    } else {
-      url.searchParams.set("logStream", logStreamFilter);
-    }
-
-    if (isFilesSectionOpen) {
-      url.searchParams.delete("filesOpen");
-    } else {
-      url.searchParams.set("filesOpen", "0");
-    }
-
-    if (isIssuesSectionOpen) {
-      url.searchParams.delete("issuesOpen");
-    } else {
-      url.searchParams.set("issuesOpen", "0");
-    }
-
-    if (isSourceSectionOpen) {
-      url.searchParams.delete("sourceOpen");
-    } else {
-      url.searchParams.set("sourceOpen", "0");
-    }
-
-    if (isLogsSectionOpen) {
-      url.searchParams.delete("logsOpen");
-    } else {
-      url.searchParams.set("logsOpen", "0");
-    }
-
-    if (isAutoRunEnabled) {
-      url.searchParams.set("auto", "1");
-    } else {
-      url.searchParams.delete("auto");
-    }
-
-    if (autoRunIntervalMs === 15000) {
-      url.searchParams.delete("autoInterval");
-    } else {
-      url.searchParams.set("autoInterval", String(autoRunIntervalMs));
-    }
-
-    if (autoRunTargetMode === "starter") {
-      url.searchParams.delete("autoTarget");
-    } else {
-      url.searchParams.set("autoTarget", autoRunTargetMode);
-    }
-
-    if (autoRunPauseWhenHidden) {
-      url.searchParams.delete("autoPauseHidden");
-    } else {
-      url.searchParams.set("autoPauseHidden", "0");
-    }
-
-    if (autoRunMaxFailures === 3) {
-      url.searchParams.delete("autoMaxFailures");
-    } else {
-      url.searchParams.set("autoMaxFailures", String(autoRunMaxFailures));
-    }
-
-    if (startRunTargetPath.trim().length > 0) {
-      url.searchParams.set("target", startRunTargetPath);
-    } else {
-      url.searchParams.delete("target");
-    }
-
-    if (isLivePollingEnabled) {
-      url.searchParams.delete("live");
-    } else {
-      url.searchParams.set("live", "0");
-    }
-
-    if (livePollingIntervalMs === defaultRunningPollIntervalMs) {
-      url.searchParams.delete("interval");
-    } else {
-      url.searchParams.set("interval", String(livePollingIntervalMs));
-    }
-
-    if (selectedSourceFilePath) {
-      url.searchParams.set("file", selectedSourceFilePath);
-    } else {
-      url.searchParams.delete("file");
-    }
-
-    if (selectedRun && selectedRun.issues.length > 0) {
-      url.searchParams.set("issue", String(selectedIssueIndex));
-    } else {
-      url.searchParams.delete("issue");
-    }
-
-    if (selectedRun && selectedRun.logs.length > 0 && logPage > 0) {
-      url.searchParams.set("logPage", String(logPage));
-    } else {
-      url.searchParams.delete("logPage");
-    }
-
-    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode, fileSearchTerm, isAutoRunEnabled, isFilesSectionOpen, isIssuesSectionOpen, isLivePollingEnabled, isLogsSectionOpen, isSourceSectionOpen, issueIdentifierFilter, issueSearchTerm, livePollingIntervalMs, logPage, logSearchTerm, logStreamFilter, runsSortOrder, runsStatusFilter, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath, startRunTargetPath]);
 
   useEffect(() => {
     async function loadRunDetail(runId: string): Promise<void> {
