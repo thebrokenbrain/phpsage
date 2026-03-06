@@ -20,6 +20,7 @@ import { useDashboardUrlSync } from "./hooks/use-dashboard-url-sync.js";
 import { useRunDetail } from "./hooks/use-run-detail.js";
 import { useRunFiles } from "./hooks/use-run-files.js";
 import { useAiHealth } from "./hooks/use-ai-health.js";
+import { useAutoRunCountdown } from "./hooks/use-auto-run-countdown.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -158,7 +159,6 @@ export function App(): JSX.Element {
   const [autoRunPauseWhenHidden, setAutoRunPauseWhenHidden] = useState(initialSelection.autoRunPauseWhenHidden);
   const [autoRunMaxFailures, setAutoRunMaxFailures] = useState(initialSelection.autoRunMaxFailures ?? 3);
   const [autoRunConsecutiveFailures, setAutoRunConsecutiveFailures] = useState(0);
-  const [autoRunCountdownSec, setAutoRunCountdownSec] = useState(Math.ceil((initialSelection.autoRunIntervalMs ?? 15000) / 1000));
   const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
   const [lastAutoRunError, setLastAutoRunError] = useState<string | null>(null);
   const [autoRunTriggerCount, setAutoRunTriggerCount] = useState(0);
@@ -351,6 +351,14 @@ export function App(): JSX.Element {
     const multiplier = 1 + Math.min(autoRunConsecutiveFailures, 4);
     return autoRunIntervalMs * multiplier;
   }, [autoRunConsecutiveFailures, autoRunIntervalMs]);
+
+  const {
+    autoRunCountdownSec,
+    setAutoRunCountdownSec
+  } = useAutoRunCountdown({
+    isAutoRunEnabled,
+    effectiveIntervalMs: autoRunEffectiveIntervalMs
+  });
 
   const visibleRunFiles = useMemo(() => {
     const normalizedTerm = fileSearchTerm.trim().toLowerCase();
@@ -830,31 +838,6 @@ export function App(): JSX.Element {
       window.clearInterval(intervalId);
     };
   }, [apiBaseUrl, isLivePollingEnabled, livePollingIntervalMs, refreshRunDetail, refreshRunFiles, selectedRun, selectedRunId]);
-
-  useEffect(() => {
-    setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
-  }, [autoRunEffectiveIntervalMs]);
-
-  useEffect(() => {
-    if (!isAutoRunEnabled) {
-      setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
-      return;
-    }
-
-    const timerId = window.setInterval(() => {
-      setAutoRunCountdownSec((currentValue) => {
-        if (currentValue <= 1) {
-          return Math.ceil(autoRunEffectiveIntervalMs / 1000);
-        }
-
-        return currentValue - 1;
-      });
-    }, 1000);
-
-    return () => {
-      window.clearInterval(timerId);
-    };
-  }, [autoRunEffectiveIntervalMs, isAutoRunEnabled]);
 
   useEffect(() => {
     setLastAutoRunError(null);
