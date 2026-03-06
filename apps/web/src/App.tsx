@@ -28,6 +28,7 @@ import { useDashboardStorage } from "./hooks/use-dashboard-storage.js";
 import { useDashboardPagination } from "./hooks/use-dashboard-pagination.js";
 import { useRunsList } from "./hooks/use-runs-list.js";
 import { useCopyActions } from "./hooks/use-copy-actions.js";
+import { useRunsFiltersViewModel } from "./hooks/use-runs-filters-view-model.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -236,128 +237,30 @@ export function App(): JSX.Element {
     failureThreshold: aiHealthFailureThreshold
   });
 
-  const filteredRuns = useMemo(() => {
-    if (runsStatusFilter === "all") {
-      return runs;
-    }
-
-    return runs.filter((run) => run.status === runsStatusFilter);
-  }, [runs, runsStatusFilter]);
-
-  const visibleRuns = useMemo(() => {
-    const sortedRuns = [...filteredRuns];
-    sortedRuns.sort((leftRun, rightRun) => {
-      const leftTimestamp = new Date(leftRun.updatedAt).getTime();
-      const rightTimestamp = new Date(rightRun.updatedAt).getTime();
-
-      if (runsSortOrder === "updatedAsc") {
-        return leftTimestamp - rightTimestamp;
-      }
-
-      return rightTimestamp - leftTimestamp;
-    });
-
-    return sortedRuns;
-  }, [filteredRuns, runsSortOrder]);
-
-  const runsSummary = useMemo(() => {
-    const runningCount = runs.filter((run) => run.status === "running").length;
-    return {
-      total: runs.length,
-      running: runningCount,
-      finished: runs.length - runningCount
-    };
-  }, [runs]);
-
-  const activeControlLabels = useMemo(() => {
-    const labels: string[] = [];
-
-    if (runsStatusFilter !== "all") {
-      labels.push(`status:${runsStatusFilter}`);
-    }
-
-    if (runsSortOrder !== "updatedDesc") {
-      labels.push(`sort:${runsSortOrder}`);
-    }
-
-    if (fileSearchTerm.trim().length > 0) {
-      labels.push("fileQuery");
-    }
-
-    if (issueSearchTerm.trim().length > 0) {
-      labels.push("issueQuery");
-    }
-
-    if (issueIdentifierFilter !== "all") {
-      labels.push(`issueIdentifier:${issueIdentifierFilter}`);
-    }
-
-    if (logSearchTerm.trim().length > 0) {
-      labels.push("logQuery");
-    }
-
-    if (logStreamFilter !== "all") {
-      labels.push(`logStream:${logStreamFilter}`);
-    }
-
-    if (!isLivePollingEnabled) {
-      labels.push("live:off");
-    }
-
-    if (livePollingIntervalMs !== defaultRunningPollIntervalMs) {
-      labels.push(`interval:${livePollingIntervalMs}`);
-    }
-
-    if (isAutoRunEnabled) {
-      labels.push("auto:on");
-      if (autoRunIntervalMs !== 15000) {
-        labels.push(`autoInterval:${autoRunIntervalMs}`);
-      }
-      if (autoRunTargetMode !== "starter") {
-        labels.push(`autoTarget:${autoRunTargetMode}`);
-      }
-      if (!autoRunPauseWhenHidden) {
-        labels.push("autoPauseHidden:off");
-      }
-      if (autoRunMaxFailures !== 3) {
-        labels.push(`autoMaxFailures:${autoRunMaxFailures}`);
-      }
-      if (autoRunConsecutiveFailures > 0) {
-        labels.push(`autoBackoff:x${1 + Math.min(autoRunConsecutiveFailures, 4)}`);
-      }
-    }
-
-    return labels;
-  }, [
-    autoRunIntervalMs,
-    autoRunConsecutiveFailures,
-    autoRunMaxFailures,
-    autoRunPauseWhenHidden,
+  const {
+    visibleRuns,
+    runsSummary,
+    activeControlLabels,
+    latestRunningRunId
+  } = useRunsFiltersViewModel({
+    runs,
+    runsStatusFilter,
+    runsSortOrder,
     fileSearchTerm,
-    isAutoRunEnabled,
-    isLivePollingEnabled,
-    issueIdentifierFilter,
     issueSearchTerm,
-    livePollingIntervalMs,
+    issueIdentifierFilter,
     logSearchTerm,
     logStreamFilter,
+    isLivePollingEnabled,
+    livePollingIntervalMs,
+    defaultRunningPollIntervalMs,
+    isAutoRunEnabled,
+    autoRunIntervalMs,
     autoRunTargetMode,
-    runsSortOrder,
-    runsStatusFilter
-  ]);
-
-  const latestRunningRunId = useMemo(() => {
-    const runningRuns = runs.filter((run) => run.status === "running");
-    if (runningRuns.length === 0) {
-      return null;
-    }
-
-    const sortedRunningRuns = [...runningRuns].sort(
-      (leftRun, rightRun) => new Date(rightRun.updatedAt).getTime() - new Date(leftRun.updatedAt).getTime()
-    );
-
-    return sortedRunningRuns[0]?.runId ?? null;
-  }, [runs]);
+    autoRunPauseWhenHidden,
+    autoRunMaxFailures,
+    autoRunConsecutiveFailures
+  });
 
   const resolvedAutoRunTargetPath = useMemo(() => {
     return autoRunTargetMode === "selected"
