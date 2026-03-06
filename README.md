@@ -136,6 +136,7 @@ Estado actual:
 - tests HTTP de server también cubren `GET /api/runs`, `GET /api/runs/:runId`, `POST /api/runs/:runId/log`, `POST /api/runs/:runId/finish`, `GET /api/runs/:runId/source` y `GET /api/runs/:runId/files`
 - endpoint IA de health implementado: `GET /api/ai/health` (estado/configuración activa por entorno)
 - endpoint IA de explain implementado: `POST /api/ai/explain` (respuesta fallback determinista en esta fase)
+- endpoint IA de suggest-fix implementado: `POST /api/ai/suggest-fix` (diff fallback determinista en esta fase)
 - smoke no-IA reproducible (`./scripts/smoke-no-ai.sh`) validando dos rutas E2E: muestra con errores (`exitCode=1`) y muestra limpia (`exitCode=0`)
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`
@@ -225,6 +226,9 @@ Estado actual:
 - acción `Copy link` para compartir el estado actual del dashboard
 - acción `Reset controls` para restaurar controles del dashboard
 - acción rápida `API docs` desde cabecera del dashboard
+- dashboard consulta `GET /api/ai/health` y muestra estado LLM (`ON/OFF`) + proveedor/modelo activos
+- panel `AI Assist` en detalle de run para issue activo, con carga contextual de `explain` y `suggest-fix`
+- panel `AI Assist` renderiza recomendaciones y diff propuesto (`proposedDiff`) en formato legible
 
 ### Verificación rápida del endpoint inicial
 

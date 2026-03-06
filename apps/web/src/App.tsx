@@ -44,6 +44,33 @@ interface SourcePayload {
   content: string;
 }
 
+interface AiHealthPayload {
+  status: "ok";
+  enabled: boolean;
+  activeProvider: string | null;
+  activeModel: string | null;
+}
+
+interface AiExplainPayload {
+  explanation: string;
+  recommendations: string[];
+  source: "fallback";
+  provider: string;
+  fallbackReason: string;
+  usage: null;
+  debug: null;
+}
+
+interface AiSuggestFixPayload {
+  proposedDiff: string;
+  rationale: string;
+  source: "fallback";
+  provider: string;
+  fallbackReason: string;
+  usage: null;
+  debug: null;
+}
+
 interface StartRunPayload {
   runId: string;
   targetPath: string;
@@ -226,6 +253,13 @@ export function App(): JSX.Element {
   const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
   const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
   const [copyRunIdStatus, setCopyRunIdStatus] = useState<"idle" | "copied" | "error">("idle");
+  const [isLlmAvailable, setIsLlmAvailable] = useState<boolean | null>(null);
+  const [activeAiProvider, setActiveAiProvider] = useState<string | null>(null);
+  const [activeAiModel, setActiveAiModel] = useState<string | null>(null);
+  const [aiExplain, setAiExplain] = useState<AiExplainPayload | null>(null);
+  const [aiSuggestFix, setAiSuggestFix] = useState<AiSuggestFixPayload | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const filteredRuns = useMemo(() => {
     if (runsStatusFilter === "all") {
@@ -387,6 +421,24 @@ export function App(): JSX.Element {
 
     return issue.line;
   }, [selectedIssueIndex, selectedRun, sourcePayload]);
+
+  const activeIssue = useMemo(() => {
+    if (!selectedRun || selectedRun.issues.length === 0) {
+      return null;
+    }
+
+    const safeIssueIndex = Math.min(Math.max(0, selectedIssueIndex), selectedRun.issues.length - 1);
+    return selectedRun.issues[safeIssueIndex] ?? null;
+  }, [selectedIssueIndex, selectedRun]);
+
+  const activeSourceSnippet = useMemo(() => {
+    if (!sourcePayload || !activeIssueLineInSource) {
+      return undefined;
+    }
+
+    const sourceLines = sourcePayload.content.split("\n");
+    return sourceLines[activeIssueLineInSource - 1]?.trim() || undefined;
+  }, [activeIssueLineInSource, sourcePayload]);
 
   const filteredIssueEntries = useMemo(() => {
     if (!selectedRun) {
@@ -589,6 +641,129 @@ export function App(): JSX.Element {
   useEffect(() => {
     void loadRuns();
   }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadAiHealth(): Promise<void> {
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/ai/health`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = (await response.json()) as AiHealthPayload;
+        if (isCancelled) {
+          return;
+        }
+
+        setIsLlmAvailable(payload.enabled);
+        setActiveAiProvider(payload.activeProvider);
+        setActiveAiModel(payload.activeModel);
+      } catch {
+        if (isCancelled) {
+          return;
+        }
+
+        setIsLlmAvailable(false);
+        setActiveAiProvider(null);
+        setActiveAiModel(null);
+      }
+    }
+
+    void loadAiHealth();
+    const intervalId = window.setInterval(() => {
+      void loadAiHealth();
+    }, 15000);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
+    if (!activeIssue) {
+      setAiExplain(null);
+      setAiSuggestFix(null);
+      setAiError(null);
+      setIsAiLoading(false);
+      return;
+    }
+
+    if (isLlmAvailable !== true) {
+      setAiExplain(null);
+      setAiSuggestFix(null);
+      setAiError(isLlmAvailable === false ? "LLM is currently unavailable" : null);
+      setIsAiLoading(false);
+      return;
+    }
+
+    const abortController = new AbortController();
+    setAiExplain(null);
+    setAiSuggestFix(null);
+    setAiError(null);
+    setIsAiLoading(true);
+
+    const payload = {
+      issueMessage: activeIssue.message,
+      issueIdentifier: activeIssue.identifier,
+      filePath: activeIssue.file,
+      line: activeIssue.line,
+      sourceSnippet: activeSourceSnippet
+    };
+
+    void (async () => {
+      try {
+        const [explainResponse, suggestFixResponse] = await Promise.all([
+          fetch(`${apiBaseUrl}/api/ai/explain`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload),
+            signal: abortController.signal
+          }),
+          fetch(`${apiBaseUrl}/api/ai/suggest-fix`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload),
+            signal: abortController.signal
+          })
+        ]);
+
+        if (!explainResponse.ok || !suggestFixResponse.ok) {
+          throw new Error("Cannot load AI assistance");
+        }
+
+        const explainPayload = (await explainResponse.json()) as AiExplainPayload;
+        const suggestFixPayload = (await suggestFixResponse.json()) as AiSuggestFixPayload;
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        setAiExplain(explainPayload);
+        setAiSuggestFix(suggestFixPayload);
+      } catch (fetchError) {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        setAiError(message);
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsAiLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      abortController.abort();
+    };
+  }, [activeIssue, activeSourceSnippet, apiBaseUrl, isLlmAvailable]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1521,6 +1696,9 @@ export function App(): JSX.Element {
         {isAutoRunEnabled && runsSummary.running > 0 ? <span>Auto-run waiting for active run</span> : null}
         {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
         {lastAutoRunError ? <span>Auto-run error: {lastAutoRunError}</span> : null}
+        <span>LLM: {isLlmAvailable === null ? "..." : isLlmAvailable ? "ON" : "OFF"}</span>
+        {activeAiProvider ? <span>AI provider: {activeAiProvider}</span> : null}
+        {activeAiModel ? <span>AI model: {activeAiModel}</span> : null}
         <span>Auto-run triggers: {autoRunTriggerCount}</span>
         <span>Auto-run failures: {autoRunFailureCount}</span>
         {autoRunConsecutiveFailures > 0 ? <span>Auto-run consecutive failures: {autoRunConsecutiveFailures}</span> : null}
@@ -1957,6 +2135,38 @@ export function App(): JSX.Element {
                   ) : (
                     <p className="empty">No logs in selected run.</p>
                   )
+                ) : null}
+              </section>
+
+              <section className="detail-block">
+                <div className="detail-block-header">
+                  <h3>AI Assist</h3>
+                </div>
+
+                {!activeIssue ? <p className="empty">Select an issue to load AI assistance.</p> : null}
+                {activeIssue && isLlmAvailable === null ? <p className="empty">Checking AI health...</p> : null}
+                {activeIssue && isLlmAvailable === false ? <p className="empty">LLM is currently unavailable.</p> : null}
+                {activeIssue && isLlmAvailable === true && isAiLoading ? <p className="empty">Loading AI assistance...</p> : null}
+                {activeIssue && isLlmAvailable === true && aiError ? <p className="error">Could not load AI assistance: {aiError}</p> : null}
+
+                {activeIssue && isLlmAvailable === true && !isAiLoading && !aiError && aiExplain ? (
+                  <>
+                    <p>{aiExplain.explanation}</p>
+                    {aiExplain.recommendations.length > 0 ? (
+                      <ul className="detail-list">
+                        {aiExplain.recommendations.map((recommendation, recommendationIndex) => (
+                          <li key={`${recommendation}-${recommendationIndex}`}>{recommendation}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </>
+                ) : null}
+
+                {activeIssue && isLlmAvailable === true && !isAiLoading && !aiError && aiSuggestFix ? (
+                  <>
+                    <p>{aiSuggestFix.rationale}</p>
+                    <pre className="source-preview ai-diff-preview">{aiSuggestFix.proposedDiff}</pre>
+                  </>
                 ) : null}
               </section>
             </>

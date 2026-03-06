@@ -86,6 +86,9 @@ A minimal Dashboard is implemented with:
 - header includes `Copy link` action for sharing current dashboard URL state
 - header includes `Reset controls` action to restore default dashboard controls
 - header includes `API docs` quick access action
+- dashboard shows LLM status (`ON/OFF`) from `GET /api/ai/health` and active provider/model when available
+- run detail includes `AI Assist` panel bound to active issue context
+- `AI Assist` loads explain and suggest-fix payloads together and renders recommendations + proposed diff
 - manual refresh action
 - UI can start a run by target path (`POST /api/runs/start` with `execute=true`)
 - run starter target path is persisted in URL query-state (`target`)

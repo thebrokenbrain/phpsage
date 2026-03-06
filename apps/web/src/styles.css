@@ -492,6 +492,12 @@ button:disabled {
   line-height: 1.45;
 }
 
+.ai-diff-preview {
+  margin-top: 6px;
+  max-height: 220px;
+  border-color: #334155;
+}
+
 .source-line {
   display: flex;
   gap: 8px;
