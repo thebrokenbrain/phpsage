@@ -44,6 +44,7 @@ import { IssuesDetailBlock } from "./components/issues-detail-block.js";
 import { SourceDetailBlock } from "./components/source-detail-block.js";
 import { LogsDetailBlock } from "./components/logs-detail-block.js";
 import { AiAssistDetailBlock } from "./components/ai-assist-detail-block.js";
+import { useVisibleRunFiles } from "./hooks/use-visible-run-files.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -287,14 +288,7 @@ export function App(): JSX.Element {
     startRunTargetPath
   });
 
-  const visibleRunFiles = useMemo(() => {
-    const normalizedTerm = fileSearchTerm.trim().toLowerCase();
-    if (normalizedTerm.length === 0) {
-      return runFiles;
-    }
-
-    return runFiles.filter((fileEntry) => fileEntry.path.toLowerCase().includes(normalizedTerm));
-  }, [fileSearchTerm, runFiles]);
+  const visibleRunFiles = useVisibleRunFiles({ fileSearchTerm, runFiles });
 
   const {
     issues,
