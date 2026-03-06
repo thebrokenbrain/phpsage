@@ -87,7 +87,7 @@ A minimal Dashboard is implemented with:
 - header includes `Reset controls` action to restore default dashboard controls
 - header includes `API docs` quick access action
 - header includes `Start ingest` action using the current starter target path
-- dashboard shows latest AI ingest job status (`queued`/`running`/`completed`/`failed`) with job id and target path
+- dashboard shows latest AI ingest job status (`queued`/`running`/`completed`/`failed`) with job id, target path and progressive updates via polling
 - dashboard shows LLM status (`ON/OFF`) from `GET /api/ai/health` and active provider/model when available
 - run detail includes `AI Assist` panel bound to active issue context
 - `AI Assist` loads explain and suggest-fix payloads together and renders recommendations + proposed diff

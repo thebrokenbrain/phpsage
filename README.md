@@ -138,6 +138,8 @@ Estado actual:
 - endpoint IA de ingest implementado: `POST /api/ai/ingest` (creación de job asíncrono)
 - endpoint IA de estado de ingest implementado: `GET /api/ai/ingest/:jobId`
 - comando CLI de ingest implementado: `phpsage rag ingest [--target-path <path>] [--wait]`
+- ingest IA procesa recursivamente el filesystem objetivo y calcula `filesIndexed`/`chunksIndexed`
+- jobs de ingest persisten en `data/ai/ingest-jobs/<jobId>.json`
 - endpoint IA de explain implementado: `POST /api/ai/explain` (respuesta fallback determinista en esta fase)
 - endpoint IA de suggest-fix implementado: `POST /api/ai/suggest-fix` (diff fallback determinista en esta fase)
 - smoke no-IA reproducible (`./scripts/smoke-no-ai.sh`) validando dos rutas E2E: muestra con errores (`exitCode=1`) y muestra limpia (`exitCode=0`)
