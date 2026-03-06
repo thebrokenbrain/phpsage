@@ -16,6 +16,7 @@ import { useKeyboardIssueNavigation } from "./hooks/use-keyboard-issue-navigatio
 import { useIssueNavigation } from "./hooks/use-issue-navigation.js";
 import { useRunViewModel } from "./hooks/use-run-view-model.js";
 import { useRunSource } from "./hooks/use-run-source.js";
+import { useUrlPopstateSync } from "./hooks/use-url-popstate-sync.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -383,6 +384,35 @@ export function App(): JSX.Element {
     filePath: resolvedSourceFilePath
   });
 
+  useUrlPopstateSync({
+    readSelectionFromUrl: readInitialQuerySelection,
+    applySelection: (selection) => {
+      setSelectedRunId(selection.runId);
+      setSelectedSourceFilePath(selection.file);
+      setSelectedIssueIndex(selection.issueIndex ?? 0);
+      setLogPage(selection.logPage ?? 0);
+      setRunsStatusFilter(selection.runsStatusFilter);
+      setRunsSortOrder(selection.runsSortOrder);
+      setFileSearchTerm(selection.fileSearchTerm);
+      setIssueSearchTerm(selection.issueSearchTerm);
+      setIssueIdentifierFilter(selection.issueIdentifierFilter);
+      setLogSearchTerm(selection.logSearchTerm);
+      setLogStreamFilter(selection.logStreamFilter);
+      setIsFilesSectionOpen(selection.isFilesSectionOpen);
+      setIsIssuesSectionOpen(selection.isIssuesSectionOpen);
+      setIsSourceSectionOpen(selection.isSourceSectionOpen);
+      setIsLogsSectionOpen(selection.isLogsSectionOpen);
+      setIsAutoRunEnabled(selection.isAutoRunEnabled);
+      setAutoRunIntervalMs(selection.autoRunIntervalMs ?? 15000);
+      setAutoRunTargetMode(selection.autoRunTargetMode);
+      setAutoRunPauseWhenHidden(selection.autoRunPauseWhenHidden);
+      setAutoRunMaxFailures(selection.autoRunMaxFailures ?? 3);
+      setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
+      setIsLivePollingEnabled(selection.isLivePollingEnabled);
+      setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
+    }
+  });
+
   const { selectIssueByIndex } = useIssueNavigation({
     issues: selectedRun?.issues ?? [],
     selectedRunTargetPath: selectedRun?.targetPath ?? null,
@@ -747,45 +777,6 @@ export function App(): JSX.Element {
       })
     );
   }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode, isAutoRunEnabled]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    function handlePopState(): void {
-      const selection = readInitialQuerySelection();
-      setSelectedRunId(selection.runId);
-      setSelectedSourceFilePath(selection.file);
-      setSelectedIssueIndex(selection.issueIndex ?? 0);
-      setLogPage(selection.logPage ?? 0);
-      setRunsStatusFilter(selection.runsStatusFilter);
-      setRunsSortOrder(selection.runsSortOrder);
-      setFileSearchTerm(selection.fileSearchTerm);
-      setIssueSearchTerm(selection.issueSearchTerm);
-      setIssueIdentifierFilter(selection.issueIdentifierFilter);
-      setLogSearchTerm(selection.logSearchTerm);
-      setLogStreamFilter(selection.logStreamFilter);
-      setIsFilesSectionOpen(selection.isFilesSectionOpen);
-      setIsIssuesSectionOpen(selection.isIssuesSectionOpen);
-      setIsSourceSectionOpen(selection.isSourceSectionOpen);
-      setIsLogsSectionOpen(selection.isLogsSectionOpen);
-      setIsAutoRunEnabled(selection.isAutoRunEnabled);
-      setAutoRunIntervalMs(selection.autoRunIntervalMs ?? 15000);
-      setAutoRunTargetMode(selection.autoRunTargetMode);
-      setAutoRunPauseWhenHidden(selection.autoRunPauseWhenHidden);
-      setAutoRunMaxFailures(selection.autoRunMaxFailures ?? 3);
-      setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
-      setIsLivePollingEnabled(selection.isLivePollingEnabled);
-      setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
-    }
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
