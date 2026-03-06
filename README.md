@@ -116,13 +116,14 @@ phpsage/
   packages/
     shared/
   docs/
-    rag/
+    phpstan/
   examples/
   assets/
     logo/
   data/
     runs/
   scripts/
+  .env.example
   docker-compose.yml
   Dockerfile
   package.json
@@ -136,7 +137,7 @@ Descripción por directorio:
 - `packages/shared`: contratos/tipos compartidos y utilidades puras (por ejemplo parser de salida PHPStan).
 - `docs`: documentación funcional y técnica (`API.md`, `UX.md`, `openapi.yaml`).
 - `examples`: proyectos PHP de ejemplo para pruebas y smoke.
-- `docs/rag`: corpus markdown para ingest y recuperación de contexto.
+- `docs/phpstan`: corpus markdown para ingest y recuperación de contexto.
 - `assets/logo`: recursos de marca.
 - `data/runs`: persistencia local de runs en JSON.
 - `scripts`: automatizaciones de smoke, reindex y wrappers de utilidad.

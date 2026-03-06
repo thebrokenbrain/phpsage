@@ -158,7 +158,7 @@ test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId retur
 
 test("POST /api/ai/ingest uses default target when body targetPath is missing", async () => {
   const previousDefaultTarget = process.env.AI_INGEST_DEFAULT_TARGET;
-  process.env.AI_INGEST_DEFAULT_TARGET = "/workspace/docs/rag";
+  process.env.AI_INGEST_DEFAULT_TARGET = "/workspace/docs/phpstan";
 
   const httpServer = await startTestHttpServer();
 
@@ -173,7 +173,7 @@ test("POST /api/ai/ingest uses default target when body targetPath is missing", 
 
     assert.equal(response.status, 202);
     const payload = (await response.json()) as { targetPath: string };
-    assert.equal(payload.targetPath, "/workspace/docs/rag");
+    assert.equal(payload.targetPath, "/workspace/docs/phpstan");
   } finally {
     await httpServer.close();
     if (previousDefaultTarget === undefined) {

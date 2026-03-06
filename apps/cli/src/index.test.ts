@@ -121,7 +121,7 @@ async function startMockServer(): Promise<MockServer> {
       const jobs = [
         {
           jobId: "job-3",
-          targetPath: "/workspace/docs/rag",
+          targetPath: "/workspace/docs/phpstan",
           status: "failed",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -378,7 +378,7 @@ test("rag ingest starts a job without waiting", async () => {
       "--server-url",
       server.url,
       "--target-path",
-      "/workspace/docs/rag"
+      "/workspace/docs/phpstan"
     ]);
 
     assert.equal(result.code, 0);

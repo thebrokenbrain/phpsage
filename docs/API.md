@@ -19,7 +19,7 @@ Implemented and active in `apps/server/src/interfaces/http-server.ts`.
 - RAG backend mode: `AI_RAG_BACKEND=filesystem|qdrant`
 - RAG retrieval depth: `AI_RAG_TOP_K`
 - Auto ingest on server boot: `AI_RAG_AUTO_INGEST_ON_BOOT=true`
-- Ingest default target: `AI_INGEST_DEFAULT_TARGET` (default `/workspace/docs/rag`)
+- Ingest default target: `AI_INGEST_DEFAULT_TARGET` (default `/workspace/docs/phpstan`)
 - AI debug payload toggle: `AI_DEBUG_LLM_IO=true`
 
 ## Endpoints

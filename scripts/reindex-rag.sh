@@ -7,11 +7,11 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-TARGET_PATH="${1:-/workspace/docs/rag}"
+TARGET_PATH="${1:-/workspace/docs/phpstan}"
 WAIT_MODE="${2:-}"
 
 if [ "${TARGET_PATH}" = "--wait" ]; then
-  TARGET_PATH="/workspace/docs/rag"
+  TARGET_PATH="/workspace/docs/phpstan"
   WAIT_MODE="--wait"
 fi
 
