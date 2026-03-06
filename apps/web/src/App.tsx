@@ -53,6 +53,7 @@ import { useActiveSourceSnippet } from "./hooks/use-active-source-snippet.js";
 import { DashboardBrand } from "./components/dashboard-brand.js";
 import { HeaderRunFilters } from "./components/header-run-filters.js";
 import { HeaderToggleControls } from "./components/header-toggle-controls.js";
+import { HeaderIntervalControls } from "./components/header-interval-controls.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -467,73 +468,16 @@ export function App(): JSX.Element {
             autoRunPauseWhenHidden={autoRunPauseWhenHidden}
             setAutoRunPauseWhenHidden={setAutoRunPauseWhenHidden}
           />
-          <label>
-            Interval
-            <select
-              value={livePollingIntervalMs}
-              onChange={(event) => {
-                const nextValue = Number.parseInt(event.target.value, 10);
-                if (Number.isFinite(nextValue) && nextValue > 0) {
-                  setLivePollingIntervalMs(nextValue);
-                }
-              }}
-            >
-              <option value={2000}>2s</option>
-              <option value={5000}>5s</option>
-              <option value={10000}>10s</option>
-            </select>
-          </label>
-          <label>
-            Auto interval
-            <select
-              value={autoRunIntervalMs}
-              onChange={(event) => {
-                const nextValue = Number.parseInt(event.target.value, 10);
-                if (Number.isFinite(nextValue) && nextValue > 0) {
-                  setAutoRunIntervalMs(nextValue);
-                }
-              }}
-            >
-              <option value={10000}>10s</option>
-              <option value={15000}>15s</option>
-              <option value={30000}>30s</option>
-              <option value={60000}>60s</option>
-            </select>
-          </label>
-          <label>
-            Auto max failures
-            <select
-              value={autoRunMaxFailures}
-              onChange={(event) => {
-                const nextValue = Number.parseInt(event.target.value, 10);
-                if (Number.isFinite(nextValue) && nextValue > 0) {
-                  setAutoRunMaxFailures(nextValue);
-                }
-              }}
-            >
-              <option value={1}>1</option>
-              <option value={3}>3</option>
-              <option value={5}>5</option>
-            </select>
-          </label>
-          <label>
-            Auto target
-            <select
-              value={autoRunTargetMode}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (value === "selected") {
-                  setAutoRunTargetMode("selected");
-                  return;
-                }
-
-                setAutoRunTargetMode("starter");
-              }}
-            >
-              <option value="starter">Starter target</option>
-              <option value="selected">Selected run target</option>
-            </select>
-          </label>
+          <HeaderIntervalControls
+            livePollingIntervalMs={livePollingIntervalMs}
+            setLivePollingIntervalMs={setLivePollingIntervalMs}
+            autoRunIntervalMs={autoRunIntervalMs}
+            setAutoRunIntervalMs={setAutoRunIntervalMs}
+            autoRunMaxFailures={autoRunMaxFailures}
+            setAutoRunMaxFailures={setAutoRunMaxFailures}
+            autoRunTargetMode={autoRunTargetMode}
+            setAutoRunTargetMode={setAutoRunTargetMode}
+          />
           <button
             onClick={() => {
               void (async () => {
