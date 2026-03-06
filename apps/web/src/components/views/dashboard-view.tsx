@@ -32,6 +32,23 @@ export function DashboardView({
   isAiLoading,
   aiError
 }: DashboardViewProps): JSX.Element {
+  const exitCode = selectedRun?.exitCode;
+  const hasExitCode = typeof exitCode === "number";
+  const isSuccessExit = exitCode === 0;
+
+  let exitCodeMessage = "Waiting for analysis result.";
+  if (hasExitCode) {
+    if (exitCode === 0) {
+      exitCodeMessage = "PHPStan finished successfully with no reported issues.";
+    } else if (exitCode === 1) {
+      exitCodeMessage = "PHPStan reported errors. Review the issues below.";
+    } else if (exitCode === 124) {
+      exitCodeMessage = "PHPStan timed out before finishing the analysis.";
+    } else {
+      exitCodeMessage = "PHPStan ended with an execution error.";
+    }
+  }
+
   return (
     <>
       <section className="card">
@@ -40,7 +57,10 @@ export function DashboardView({
           <div>Run: {selectedRun?.runId ?? "-"}</div>
           <div>Status: {selectedRun?.status ?? "-"}</div>
           <div>Path: {selectedRun?.targetPath ?? "-"}</div>
-          <div>Exit code: {selectedRun?.exitCode ?? "-"}</div>
+          <div className={`exit-code-summary ${hasExitCode && isSuccessExit ? "ok" : "error"}`}>
+            <strong>Exit code: {hasExitCode ? exitCode : "-"}</strong>
+            <span>{exitCodeMessage}</span>
+          </div>
         </div>
       </section>
 

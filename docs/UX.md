@@ -1,114 +1,92 @@
-# UX — PHPSage
+# UX - PHPSage
 
-User experience guide for PHPSage.
+User experience contract for current implementation.
 
-## Current status
+## Current UX State
 
-A minimal Dashboard is implemented with:
+The web app is implemented with three main views:
 
-- runs table backed by `GET /api/runs`
-- default run selection prefers an active `running` run when available
-- runs table supports status filter (`all`, `running`, `finished`) persisted in URL query-state
-- runs table supports sort by updated timestamp (newest/oldest)
-- selected runs sort is persisted in URL query-state (`sort`)
-- dashboard includes counters for all/running/finished runs
-- dashboard shows chips for currently active controls/filters
-- active controls chips include auto-run state/interval when enabled
-- dashboard summary includes last successful refresh time
-- header includes `Jump to running` quick action
-- header includes `Clear selection` action to hide run detail
-- selectable run detail panel backed by `GET /api/runs/:runId`
-- when no run is selected, dashboard shows helper panel to guide next action
-- run detail header includes created/updated timestamps
-- run detail includes `Copy run ID` action
-- files navigator in detail backed by `GET /api/runs/:runId/files`
-- Files section can be collapsed/expanded
-- files navigator includes search filter by path persisted in URL query-state
-- collapsed/expanded state of detail sections is persisted in URL query-state
-- files panel includes explicit action to return from manual file override to selected issue context
-- paginated issues and logs sections in run detail
-- logs panel includes local text filter with paginated result set
-- Logs section can be collapsed/expanded
-- log text filter is persisted in URL query-state (`logQuery`)
-- logs panel supports stream filter (`all`, `stdout`, `stderr`)
-- log stream filter is persisted in URL query-state (`logStream`)
-- logs panel includes `Clear log filters` action
-- issue rows display PHPStan identifier when available
-- issues panel includes local text filter with paginated result set
-- Issues section can be collapsed/expanded
-- issue text filter is persisted in URL query-state (`issueQuery`)
-- issues panel supports identifier presence filter (`all`, `with`, `without`)
-- issue identifier filter is persisted in URL query-state (`issueIdentifier`)
-- issues panel includes `Clear issue filters` action
-- source preview for selected issue backed by `GET /api/runs/:runId/source`
-- Source Preview section can be collapsed/expanded
-- source preview shows line numbers and highlights active issue line when applicable
-- URL query-state for selected run, file, issue, and logs page (`?runId=...&file=...&issue=...&logPage=...`) with reload restore (including pagination context)
-- browser back/forward navigation restores the same URL state (`popstate` handling)
-- issue/log navigation keeps local context synchronized without re-fetching run detail when run does not change
-- selected run auto-refreshes every 2s while status is `running` (list + detail polling)
-- files navigator also auto-refreshes in that 2s cycle while selected run is `running`
-- run detail shows a `Live updating` badge while polling is active
-- header includes live polling on/off toggle
-- live polling toggle is persisted in URL query-state (`live=0` when disabled)
-- header includes live polling interval selector (`2s`, `5s`, `10s`)
-- selected polling interval is persisted in URL query-state (`interval`)
-- header includes auto-run on/off toggle and interval selector (`10s`, `15s`, `30s`, `60s`)
-- header includes `Pause when hidden` toggle for auto-run
-- header includes `Auto max failures` selector (`1`, `3`, `5`)
-- auto-run supports target mode (`starter` or `selected run target`)
-- auto-run scheduler starts analysis at configured interval when no run is currently `running`
-- auto-run scheduler can pause while browser tab is hidden
-- auto-run scheduler applies temporary backoff after failed automatic starts
-- dashboard summary shows auto-run status and last auto-run timestamp
-- `last auto-run` only tracks scheduler-triggered starts (manual `Run now` does not update it)
-- auto-run toggle, interval, target mode and resilience settings are persisted in URL query-state (`auto`, `autoInterval`, `autoTarget`, `autoPauseHidden`, `autoMaxFailures`)
-- auto-run settings are restored from localStorage when URL has no explicit auto-run query-state
-- dashboard indicates when auto-run is waiting for an active run to finish
-- dashboard shows countdown to next auto-run while enabled
-- countdown resets to full interval when auto-run is disabled
-- countdown resets after a successful run start
-- summary shows effective interval (base interval + backoff multiplier)
-- dashboard summary includes successful auto-run trigger count for current session
-- header includes `Reset auto count` action
-- header includes `Reset auto failures` action
-- header includes `Clear auto status` action to remove last auto-run timestamp
-- auto-run is automatically disabled if auto-triggered run start fails
-- dashboard summary exposes last auto-run error when an automatic trigger fails
-- dashboard summary includes auto-run failure counter for current session
-- dashboard summary includes consecutive failure counter while backoff is active
-- when auto-run is disabled after failure, summary shows pause reason
-- header includes `Run now` action using currently resolved run target
-- `Run now` resolves target with the same mode as auto-run scheduler (`starter` or `selected`)
-- summary indicates when `selected` mode is using starter fallback because no run is selected
-- auto-run scheduler is skipped while starter target path is empty
-- header includes `Re-enable auto-run` quick action
-- header includes `Copy link` action for sharing current dashboard URL state
-- header includes `Reset controls` action to restore default dashboard controls
-- header includes `API docs` quick access action
-- header includes `Start ingest` action using server default ingest target (`/workspace/rag` unless overridden by `AI_INGEST_DEFAULT_TARGET`)
-- dashboard shows latest AI ingest job status (`queued`/`running`/`completed`/`failed`) with job id, target path and progressive updates via polling
-- dashboard shows LLM status (`ON/OFF`) from `GET /api/ai/health` and active provider/model when available
-- `AI Assist` includes a toggle to expand or collapse retrieved context content blocks for the active issue
-- dashboard shows `Recent Ingest Jobs` panel with manual refresh and latest status/stats snapshots
-- `Recent Ingest Jobs` panel includes a status filter (`all|queued|running|completed|failed`) to focus troubleshooting views
-- each ingest row can be expanded to inspect `jobId`, timestamps (`created/started/finished/updated`) and error details
-- run detail includes `AI Assist` panel bound to active issue context
-- `AI Assist` loads explain and suggest-fix payloads together and renders recommendations + proposed diff
-- manual refresh action
-- UI can start a run by target path (`POST /api/runs/start` with `execute=true`)
-- run starter target path is persisted in URL query-state (`target`)
-- if URL has no target, run starter restores last used target from localStorage
-- run starter can prefill target from currently selected run
-- run starter includes quick target presets for sample projects
-- pressing `Enter` on target input starts a run
-- start action is disabled when target path is empty
-- starter error feedback clears automatically on target changes
-- run starter includes `Reset target` quick action to default sample path
-- loading, empty, and error states
+- `Dashboard`
+- `Insights`
+- `Issue`
 
-## Target UX direction
+Navigation and state are URL-synced where relevant.
 
-- live run visualization
-- issue and file navigation
-- clear analysis flow from CLI/API/UI
+## Dashboard
+
+Implemented behavior:
+
+- Run list with selection and active run highlighting
+- Run start from UI by target path (`POST /api/runs/start` with `execute=true`)
+- Run start target helpers:
+  - presets
+  - enter-to-run
+  - reset target
+  - prefill from selected run
+- Run detail panel with:
+  - status/timestamps
+  - logs
+  - issues
+  - source preview
+  - files navigator
+- Local filters for logs/issues and persisted UI controls
+- Live polling while selected run is `running`
+- Auto-run controls with interval and resilience settings
+- AI status indicator (`ON/OFF`, provider/model)
+- Recent ingest jobs panel (status, filters, detail expansion)
+
+## Insights
+
+Implemented behavior:
+
+- Identifier summary from selected run
+- KPI cards:
+  - total issues
+  - unique identifiers
+  - top identifier
+  - known coverage
+- Visual charts:
+  - horizontal distribution bars per identifier
+  - donut chart for top 5 share
+- Identifier list with PHPStan docs links when identifier is known
+
+## Issue View
+
+Implemented behavior:
+
+- Active issue context
+- File/code navigation with highlighted issue lines
+- AI Assist panel bound to active issue:
+  - explain output
+  - suggest-fix output
+  - readable diff rendering
+  - fallback messaging when no safe patch is available
+
+## Side Panel UX
+
+Implemented behavior:
+
+- `Project Files` header with styled project chip
+- `Runs` section with simplified run cards (no issue-count pill)
+- `Files` section tree + issue badges per file
+- Header alignment for `Project Files`, `Runs`, and `Files`
+
+## AI Debug UX
+
+When backend debug is enabled (`AI_DEBUG_LLM_IO=true`) and payload is available:
+
+- `Debug LLM I/O` toggle appears in AI Assist
+- Debug panel shows:
+  - strategy
+  - endpoint
+  - system prompt
+  - user prompt
+  - request body
+- Raw provider response block is intentionally hidden in UI
+
+## UX Principles in Current Build
+
+- Fast operational feedback for active runs
+- Clear state visibility (running/finished, errors, AI status)
+- Minimal friction to re-run analyses
+- Safe-by-default AI patch behavior

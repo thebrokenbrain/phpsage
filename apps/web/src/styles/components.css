@@ -88,6 +88,38 @@
   padding: 6px 8px;
 }
 
+.exit-code-summary {
+  display: grid;
+  gap: 4px;
+}
+
+.exit-code-summary strong {
+  font-size: 13px;
+}
+
+.exit-code-summary span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.exit-code-summary.ok {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.exit-code-summary.ok strong {
+  color: #166534;
+}
+
+.exit-code-summary.error {
+  border-color: #fecaca;
+  background: #fff1f2;
+}
+
+.exit-code-summary.error strong {
+  color: #9f1239;
+}
+
 .ai-card ul {
   margin: 6px 0 0 16px;
   padding: 0;
