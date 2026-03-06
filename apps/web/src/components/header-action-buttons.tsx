@@ -1,3 +1,5 @@
+import type { AiIngestJobPayload } from "../types.js";
+
 interface HeaderActionButtonsProps {
   startRunLoading: boolean;
   resolvedAutoRunTargetPath: string;
@@ -28,6 +30,10 @@ interface HeaderActionButtonsProps {
   selectedRunId: string | null;
   refreshRuns: () => Promise<void>;
   loading: boolean;
+  ingestTargetPath: string;
+  ingestLoading: boolean;
+  startIngestFromUi: (targetPath?: string) => Promise<void>;
+  activeIngestJob: AiIngestJobPayload | null;
 }
 
 export function HeaderActionButtons({
@@ -59,8 +65,18 @@ export function HeaderActionButtons({
   setSelectedSourceFilePath,
   selectedRunId,
   refreshRuns,
-  loading
+  loading,
+  ingestTargetPath,
+  ingestLoading,
+  startIngestFromUi,
+  activeIngestJob
 }: HeaderActionButtonsProps): JSX.Element {
+  const ingestButtonLabel = ingestLoading
+    ? "Starting ingest..."
+    : activeIngestJob && (activeIngestJob.status === "queued" || activeIngestJob.status === "running")
+      ? `Ingest ${activeIngestJob.status}...`
+      : "Start ingest";
+
   return (
     <>
       <button
@@ -72,6 +88,14 @@ export function HeaderActionButtons({
         disabled={startRunLoading || resolvedAutoRunTargetPath.trim().length === 0}
       >
         Run now
+      </button>
+      <button
+        onClick={() => {
+          void startIngestFromUi(ingestTargetPath);
+        }}
+        disabled={ingestLoading || ingestTargetPath.trim().length === 0 || activeIngestJob?.status === "running"}
+      >
+        {ingestButtonLabel}
       </button>
       <button
         onClick={() => {

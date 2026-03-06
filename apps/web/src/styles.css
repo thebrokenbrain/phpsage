@@ -126,6 +126,12 @@ body {
   margin-bottom: 10px;
 }
 
+.info {
+  margin: 8px 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
 .runs-summary span {
   border: 1px solid var(--border);
   background: var(--surface-1);

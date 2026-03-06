@@ -49,6 +49,21 @@ export interface AiHealthPayload {
   readonly activeModel: string | null;
 }
 
+export interface AiIngestJobPayload {
+  readonly jobId: string;
+  readonly targetPath: string;
+  readonly status: "queued" | "running" | "completed" | "failed";
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly startedAt: string | null;
+  readonly finishedAt: string | null;
+  readonly error: string | null;
+  readonly stats: {
+    readonly filesIndexed: number;
+    readonly chunksIndexed: number;
+  } | null;
+}
+
 export interface AiExplainPayload {
   readonly explanation: string;
   readonly recommendations: string[];

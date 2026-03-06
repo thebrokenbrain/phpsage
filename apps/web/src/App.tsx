@@ -18,6 +18,7 @@ import { useDashboardUrlSync } from "./hooks/use-dashboard-url-sync.js";
 import { useRunDetail } from "./hooks/use-run-detail.js";
 import { useRunFiles } from "./hooks/use-run-files.js";
 import { useAiHealth } from "./hooks/use-ai-health.js";
+import { useAiIngest } from "./hooks/use-ai-ingest.js";
 import { useAutoRunCountdown } from "./hooks/use-auto-run-countdown.js";
 import { useAutoRunVisibilityPause } from "./hooks/use-auto-run-visibility-pause.js";
 import { useAutoRunScheduler } from "./hooks/use-auto-run-scheduler.js";
@@ -138,6 +139,16 @@ export function App(): JSX.Element {
   } = useAiHealth({
     apiBase: apiBaseUrl,
     failureThreshold: aiHealthFailureThreshold
+  });
+
+  const {
+    activeIngestJob,
+    ingestLoading,
+    ingestError,
+    startIngestFromUi
+  } = useAiIngest({
+    apiBase: apiBaseUrl,
+    pollIntervalMs: 1200
   });
 
   const {
@@ -510,6 +521,10 @@ export function App(): JSX.Element {
             selectedRunId={selectedRunId}
             refreshRuns={refreshRuns}
             loading={loading}
+            ingestTargetPath={startRunTargetPath}
+            ingestLoading={ingestLoading}
+            startIngestFromUi={startIngestFromUi}
+            activeIngestJob={activeIngestJob}
           />
         </div>
       </header>
@@ -527,6 +542,12 @@ export function App(): JSX.Element {
       />
 
       {startRunError ? <p className="error">Could not start run: {startRunError}</p> : null}
+      {ingestError ? <p className="error">Could not start or refresh ingest: {ingestError}</p> : null}
+      {activeIngestJob ? (
+        <p className="info">
+          Ingest job <code>{activeIngestJob.jobId}</code> for <code>{activeIngestJob.targetPath}</code>: <strong>{activeIngestJob.status}</strong>
+        </p>
+      ) : null}
 
       <RunsSummary
         total={runsSummary.total}
