@@ -41,6 +41,7 @@ import { SelectionEmpty } from "./components/selection-empty.js";
 import { RunDetailMeta } from "./components/run-detail-meta.js";
 import { FilesDetailBlock } from "./components/files-detail-block.js";
 import { IssuesDetailBlock } from "./components/issues-detail-block.js";
+import { SourceDetailBlock } from "./components/source-detail-block.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -872,49 +873,14 @@ export function App(): JSX.Element {
                 selectedRun={selectedRun}
               />
 
-              <section className="detail-block">
-                <div className="detail-block-header">
-                  <h3>Source Preview</h3>
-                  <button
-                    onClick={() => {
-                      setIsSourceSectionOpen((isOpen) => !isOpen);
-                    }}
-                  >
-                    {isSourceSectionOpen ? "Hide" : "Show"}
-                  </button>
-                </div>
-
-                {isSourceSectionOpen ? (
-                  <>
-
-                {sourceLoading ? <p className="empty">Loading source preview...</p> : null}
-                {sourceError ? <p className="error">Could not load source: {sourceError}</p> : null}
-
-                {!sourceLoading && !sourceError && sourcePayload ? (
-                  <>
-                    <p className="mono">{sourcePayload.file}</p>
-                    <pre className="source-preview">
-                      {sourcePayload.content.split("\n").map((lineContent, index) => {
-                        const lineNumber = index + 1;
-                        const isActiveLine = activeIssueLineInSource === lineNumber;
-
-                        return (
-                          <div key={`${lineNumber}-${lineContent}`} className={isActiveLine ? "source-line active" : "source-line"}>
-                            <span className="source-line-number">{lineNumber}</span>
-                            <span>{lineContent}</span>
-                          </div>
-                        );
-                      })}
-                    </pre>
-                  </>
-                ) : null}
-
-                {!sourceLoading && !sourceError && !sourcePayload ? (
-                  <p className="empty">Select an issue to load source preview.</p>
-                ) : null}
-                  </>
-                ) : null}
-              </section>
+              <SourceDetailBlock
+                isSourceSectionOpen={isSourceSectionOpen}
+                setIsSourceSectionOpen={setIsSourceSectionOpen}
+                sourceLoading={sourceLoading}
+                sourceError={sourceError}
+                sourcePayload={sourcePayload}
+                activeIssueLineInSource={activeIssueLineInSource}
+              />
 
               <section className="detail-block">
                 <div className="detail-block-header">
