@@ -78,3 +78,5 @@ export interface StartRunPayload {
   readonly exitCode: number | null;
   readonly issueCount: number;
 }
+
+export type ViewMode = "dashboard" | "insights" | "issue";
