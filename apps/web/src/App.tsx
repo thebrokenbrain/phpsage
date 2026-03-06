@@ -844,7 +844,7 @@ export function App(): JSX.Element {
           >
             Clear selection
           </button>
-          <button onClick={() => void loadRuns()} disabled={loading}>
+          <button onClick={() => void refreshRuns()} disabled={loading}>
             {loading ? "Loading..." : "Refresh"}
           </button>
         </div>
