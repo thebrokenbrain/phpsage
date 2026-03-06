@@ -571,6 +571,12 @@ components:
           type: string
         prompt:
           type: string
+        systemPrompt:
+          type: string
+          nullable: true
+        userPrompt:
+          type: string
+          nullable: true
         requestBody:
           type: object
           additionalProperties: true

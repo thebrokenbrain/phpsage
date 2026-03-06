@@ -18,6 +18,8 @@ export interface AiLlmDebugPayload {
   readonly strategy: string;
   readonly endpoint: string;
   readonly prompt: string;
+  readonly systemPrompt?: string;
+  readonly userPrompt?: string;
   readonly requestBody: Record<string, unknown>;
   readonly rawResponse: unknown;
 }

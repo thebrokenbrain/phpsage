@@ -28,6 +28,12 @@ interface OpenAiResponsesResponse {
   };
 }
 
+interface PromptBundle {
+  readonly systemPrompt: string;
+  readonly userPrompt: string;
+  readonly prompt: string;
+}
+
 export class OpenAiLlmClient implements AiLlmClient {
   public constructor(
     private readonly baseUrl: string,
@@ -38,33 +44,34 @@ export class OpenAiLlmClient implements AiLlmClient {
   ) {}
 
   public async explain(input: AiLlmInput): Promise<AiLlmOutput> {
-    return this.generate(this.toExplainPrompt(input));
+    return this.generate(this.toExplainPromptBundle(input));
   }
 
   public async suggestFix(input: AiLlmInput): Promise<AiLlmOutput> {
-    return this.generate(this.toSuggestFixPrompt(input));
+    return this.generate(this.toSuggestFixPromptBundle(input));
   }
 
-  private async generate(prompt: string): Promise<AiLlmOutput> {
+  private async generate(promptBundle: PromptBundle): Promise<AiLlmOutput> {
     if (!this.apiKey || this.apiKey.trim().length === 0) {
       throw new Error("OPENAI_API_KEY is required");
     }
 
     try {
-      return await this.generateWithResponsesApi(prompt);
+      return await this.generateWithResponsesApi(promptBundle);
     } catch (error) {
       if (!this.shouldFallbackToChatCompletions(error)) {
         throw error;
       }
 
-      return this.generateWithChatCompletions(prompt);
+      return this.generateWithChatCompletions(promptBundle);
     }
   }
 
-  private async generateWithResponsesApi(prompt: string): Promise<AiLlmOutput> {
+  private async generateWithResponsesApi(promptBundle: PromptBundle): Promise<AiLlmOutput> {
     const requestBody = {
       model: this.model,
-      input: prompt
+      instructions: promptBundle.systemPrompt,
+      input: promptBundle.userPrompt
     };
     const payload = await this.postJson<OpenAiResponsesResponse>("/v1/responses", requestBody);
 
@@ -73,7 +80,7 @@ export class OpenAiLlmClient implements AiLlmClient {
       return {
         text: answerFromOutputText,
         usage: this.buildUsageFromResponses(payload),
-        debug: this.buildDebugPayload("responses", "/v1/responses", requestBody, payload, prompt)
+        debug: this.buildDebugPayload("responses", "/v1/responses", requestBody, payload, promptBundle)
       };
     }
 
@@ -91,17 +98,21 @@ export class OpenAiLlmClient implements AiLlmClient {
     return {
       text: answerFromContent,
       usage: this.buildUsageFromResponses(payload),
-      debug: this.buildDebugPayload("responses", "/v1/responses", requestBody, payload, prompt)
+      debug: this.buildDebugPayload("responses", "/v1/responses", requestBody, payload, promptBundle)
     };
   }
 
-  private async generateWithChatCompletions(prompt: string): Promise<AiLlmOutput> {
+  private async generateWithChatCompletions(promptBundle: PromptBundle): Promise<AiLlmOutput> {
     const requestBody = {
       model: this.model,
       messages: [
         {
+          role: "system",
+          content: promptBundle.systemPrompt
+        },
+        {
           role: "user",
-          content: prompt
+          content: promptBundle.userPrompt
         }
       ],
       temperature: 0.1
@@ -116,7 +127,7 @@ export class OpenAiLlmClient implements AiLlmClient {
     return {
       text: answer,
       usage: this.buildUsageFromChat(payload),
-      debug: this.buildDebugPayload("chat-completions", "/v1/chat/completions", requestBody, payload, prompt)
+      debug: this.buildDebugPayload("chat-completions", "/v1/chat/completions", requestBody, payload, promptBundle)
     };
   }
 
@@ -125,7 +136,7 @@ export class OpenAiLlmClient implements AiLlmClient {
     endpoint: string,
     requestBody: Record<string, unknown>,
     rawResponse: unknown,
-    prompt: string
+    promptBundle: PromptBundle
   ): AiLlmDebugPayload | null {
     if (!this.debugLlmIoEnabled) {
       return null;
@@ -134,7 +145,9 @@ export class OpenAiLlmClient implements AiLlmClient {
     return {
       strategy,
       endpoint,
-      prompt,
+      prompt: promptBundle.prompt,
+      systemPrompt: promptBundle.systemPrompt,
+      userPrompt: promptBundle.userPrompt,
       requestBody,
       rawResponse
     };
@@ -210,9 +223,9 @@ export class OpenAiLlmClient implements AiLlmClient {
     };
   }
 
-  private toExplainPrompt(input: AiLlmInput): string {
-    const lines = [
-      "You are PHPSage. Explain this PHP static analysis issue briefly and clearly.",
+  private toExplainPromptBundle(input: AiLlmInput): PromptBundle {
+    const systemPrompt = "You are PHPSage. Explain PHP static analysis issues briefly and clearly.";
+    const userPromptLines = [
       `Message: ${input.issueMessage}`,
       `Identifier: ${input.issueIdentifier ?? "unknown"}`,
       `File: ${input.filePath ?? "unknown"}`,
@@ -221,22 +234,27 @@ export class OpenAiLlmClient implements AiLlmClient {
     ];
 
     if (input.sourceSnippet) {
-      lines.push("Source snippet:");
-      lines.push(input.sourceSnippet);
+      userPromptLines.push("Source snippet:");
+      userPromptLines.push(input.sourceSnippet);
     }
 
     if (input.retrievedContext) {
-      lines.push("Retrieved context:");
-      lines.push(input.retrievedContext);
+      userPromptLines.push("Retrieved context:");
+      userPromptLines.push(input.retrievedContext);
     }
 
-    return lines.join("\n");
+    const userPrompt = userPromptLines.join("\n");
+    return {
+      systemPrompt,
+      userPrompt,
+      prompt: `${systemPrompt}\n\n${userPrompt}`
+    };
   }
 
-  private toSuggestFixPrompt(input: AiLlmInput): string {
+  private toSuggestFixPromptBundle(input: AiLlmInput): PromptBundle {
     const filePath = input.filePath ?? "unknown.php";
-    const lines = [
-      "You are PHPSage. Propose a minimal unified diff patch for this PHP static analysis issue.",
+    const systemPrompt = "You are PHPSage. Propose minimal and safe unified diff patches for PHP static analysis issues.";
+    const userPromptLines = [
       "Return valid JSON only with shape: {\"proposedDiff\":\"...\",\"rationale\":\"...\"}.",
       "The proposedDiff must be a unified diff with headers and one hunk.",
       `Message: ${input.issueMessage}`,
@@ -247,15 +265,20 @@ export class OpenAiLlmClient implements AiLlmClient {
     ];
 
     if (input.sourceSnippet) {
-      lines.push("Source snippet:");
-      lines.push(input.sourceSnippet);
+      userPromptLines.push("Source snippet:");
+      userPromptLines.push(input.sourceSnippet);
     }
 
     if (input.retrievedContext) {
-      lines.push("Retrieved context:");
-      lines.push(input.retrievedContext);
+      userPromptLines.push("Retrieved context:");
+      userPromptLines.push(input.retrievedContext);
     }
 
-    return lines.join("\n");
+    const userPrompt = userPromptLines.join("\n");
+    return {
+      systemPrompt,
+      userPrompt,
+      prompt: `${systemPrompt}\n\n${userPrompt}`
+    };
   }
 }

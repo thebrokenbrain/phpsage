@@ -136,8 +136,12 @@ function AiDebugPanel({
           <pre className="ai-debug-block">{debug.endpoint}</pre>
         </div>
         <div>
-          <div className="ai-debug-label">Prompt</div>
-          <pre className="ai-debug-block">{debug.prompt}</pre>
+          <div className="ai-debug-label">System prompt</div>
+          <pre className="ai-debug-block">{debug.systemPrompt ?? "(not provided)"}</pre>
+        </div>
+        <div>
+          <div className="ai-debug-label">User prompt</div>
+          <pre className="ai-debug-block">{debug.userPrompt ?? debug.prompt}</pre>
         </div>
         <div>
           <div className="ai-debug-label">Request body</div>

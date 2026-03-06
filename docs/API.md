@@ -216,6 +216,7 @@ This document must be updated in the same iteration where any endpoint is added 
 
 - When LLM is unavailable or fails, endpoint returns deterministic fallback with `source="fallback"` and a populated `fallbackReason`.
 - `AI_PROVIDER=ollama` uses runtime Ollama generation (`OLLAMA_BASE_URL` + `OLLAMA_MODEL`).
+- With `AI_DEBUG_LLM_IO=true`, `debug` now includes both `systemPrompt` and `userPrompt` (plus the legacy combined `prompt`).
 
 - Response `400`: invalid payload (`issueMessage is required`)
 

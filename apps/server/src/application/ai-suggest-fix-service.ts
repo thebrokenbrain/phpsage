@@ -145,17 +145,22 @@ export class AiSuggestFixService {
     fallbackReason: string,
     rejectedReason: string | null
   ): AiLlmDebugPayload {
+    const systemPrompt = "You are PHPSage. Propose minimal and safe unified diff patches for PHP static analysis issues.";
+    const userPrompt = [
+      `Message: ${request.issueMessage}`,
+      `Identifier: ${request.issueIdentifier ?? "unknown"}`,
+      `File: ${request.filePath ?? "unknown"}`,
+      `Line: ${request.line ?? 0}`,
+      request.sourceSnippet ? `Source snippet:\n${request.sourceSnippet}` : "",
+      contextItems.length > 0 ? "Context included from RAG retriever." : "No RAG context available."
+    ].filter(Boolean).join("\n");
+
     return {
       strategy: "fallback-suggest-fix",
       endpoint: "local-fallback",
-      prompt: [
-        `Message: ${request.issueMessage}`,
-        `Identifier: ${request.issueIdentifier ?? "unknown"}`,
-        `File: ${request.filePath ?? "unknown"}`,
-        `Line: ${request.line ?? 0}`,
-        request.sourceSnippet ? `Source snippet:\n${request.sourceSnippet}` : "",
-        contextItems.length > 0 ? "Context included from RAG retriever." : "No RAG context available."
-      ].filter(Boolean).join("\n"),
+      prompt: `${systemPrompt}\n\n${userPrompt}`,
+      systemPrompt,
+      userPrompt,
       requestBody: {
         issueMessage: request.issueMessage,
         issueIdentifier: request.issueIdentifier ?? null,

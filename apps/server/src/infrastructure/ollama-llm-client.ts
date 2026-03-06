@@ -4,6 +4,12 @@ interface OllamaGenerateResponse {
   readonly response?: string;
 }
 
+interface PromptBundle {
+  readonly systemPrompt: string;
+  readonly userPrompt: string;
+  readonly prompt: string;
+}
+
 export class OllamaLlmClient implements AiLlmClient {
   public constructor(
     private readonly baseUrl: string,
@@ -13,14 +19,14 @@ export class OllamaLlmClient implements AiLlmClient {
   ) {}
 
   public async explain(input: AiLlmInput): Promise<AiLlmOutput> {
-    return this.generate(this.toExplainPrompt(input));
+    return this.generate(this.toExplainPromptBundle(input));
   }
 
   public async suggestFix(input: AiLlmInput): Promise<AiLlmOutput> {
-    return this.generate(this.toSuggestFixPrompt(input));
+    return this.generate(this.toSuggestFixPromptBundle(input));
   }
 
-  private async generate(prompt: string): Promise<AiLlmOutput> {
+  private async generate(promptBundle: PromptBundle): Promise<AiLlmOutput> {
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       controller.abort();
@@ -30,7 +36,8 @@ export class OllamaLlmClient implements AiLlmClient {
       const requestBody = {
         model: this.model,
         stream: false,
-        prompt
+        system: promptBundle.systemPrompt,
+        prompt: promptBundle.userPrompt
       };
 
       const response = await fetch(`${this.baseUrl.replace(/\/+$/, "")}/api/generate`, {
@@ -60,7 +67,7 @@ export class OllamaLlmClient implements AiLlmClient {
           outputTokens: null,
           totalTokens: null
         },
-        debug: this.buildDebugPayload("ollama-generate", "/api/generate", requestBody, payload, prompt)
+        debug: this.buildDebugPayload("ollama-generate", "/api/generate", requestBody, payload, promptBundle)
       };
     } finally {
       clearTimeout(timeout);
@@ -72,7 +79,7 @@ export class OllamaLlmClient implements AiLlmClient {
     endpoint: string,
     requestBody: Record<string, unknown>,
     rawResponse: unknown,
-    prompt: string
+    promptBundle: PromptBundle
   ): AiLlmDebugPayload | null {
     if (!this.debugLlmIoEnabled) {
       return null;
@@ -81,15 +88,17 @@ export class OllamaLlmClient implements AiLlmClient {
     return {
       strategy,
       endpoint,
-      prompt,
+      prompt: promptBundle.prompt,
+      systemPrompt: promptBundle.systemPrompt,
+      userPrompt: promptBundle.userPrompt,
       requestBody,
       rawResponse
     };
   }
 
-  private toExplainPrompt(input: AiLlmInput): string {
-    const parts = [
-      "You are PHPSage, explain this PHP static-analysis issue in concise plain English.",
+  private toExplainPromptBundle(input: AiLlmInput): PromptBundle {
+    const systemPrompt = "You are PHPSage. Explain PHP static-analysis issues in concise plain English.";
+    const userPromptParts = [
       `Message: ${input.issueMessage}`,
       `Identifier: ${input.issueIdentifier ?? "unknown"}`,
       `File: ${input.filePath ?? "unknown"}`,
@@ -97,23 +106,28 @@ export class OllamaLlmClient implements AiLlmClient {
     ];
 
     if (input.sourceSnippet) {
-      parts.push("Source snippet:");
-      parts.push(input.sourceSnippet);
+      userPromptParts.push("Source snippet:");
+      userPromptParts.push(input.sourceSnippet);
     }
 
     if (input.retrievedContext) {
-      parts.push("Relevant PHPStan reference context:");
-      parts.push(input.retrievedContext);
+      userPromptParts.push("Relevant PHPStan reference context:");
+      userPromptParts.push(input.retrievedContext);
     }
 
-    parts.push("Return 2 short actionable recommendations.");
-    return parts.join("\n");
+    userPromptParts.push("Return 2 short actionable recommendations.");
+    const userPrompt = userPromptParts.join("\n");
+    return {
+      systemPrompt,
+      userPrompt,
+      prompt: `${systemPrompt}\n\n${userPrompt}`
+    };
   }
 
-  private toSuggestFixPrompt(input: AiLlmInput): string {
+  private toSuggestFixPromptBundle(input: AiLlmInput): PromptBundle {
     const filePath = input.filePath ?? "unknown.php";
-    const parts = [
-      "You are PHPSage, propose a minimal unified diff patch for this PHP static-analysis issue.",
+    const systemPrompt = "You are PHPSage. Propose minimal and safe unified diff patches for PHP static-analysis issues.";
+    const userPromptParts = [
       "Output strictly a unified diff with headers and hunks. Do not output markdown fences.",
       `Message: ${input.issueMessage}`,
       `Identifier: ${input.issueIdentifier ?? "unknown"}`,
@@ -122,16 +136,21 @@ export class OllamaLlmClient implements AiLlmClient {
     ];
 
     if (input.sourceSnippet) {
-      parts.push("Source snippet:");
-      parts.push(input.sourceSnippet);
+      userPromptParts.push("Source snippet:");
+      userPromptParts.push(input.sourceSnippet);
     }
 
     if (input.retrievedContext) {
-      parts.push("Relevant PHPStan reference context:");
-      parts.push(input.retrievedContext);
+      userPromptParts.push("Relevant PHPStan reference context:");
+      userPromptParts.push(input.retrievedContext);
     }
 
-    parts.push(`Use these headers exactly: --- a/${filePath} and +++ b/${filePath}.`);
-    return parts.join("\n");
+    userPromptParts.push(`Use these headers exactly: --- a/${filePath} and +++ b/${filePath}.`);
+    const userPrompt = userPromptParts.join("\n");
+    return {
+      systemPrompt,
+      userPrompt,
+      prompt: `${systemPrompt}\n\n${userPrompt}`
+    };
   }
 }
