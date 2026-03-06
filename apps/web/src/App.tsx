@@ -43,6 +43,7 @@ import { FilesDetailBlock } from "./components/files-detail-block.js";
 import { IssuesDetailBlock } from "./components/issues-detail-block.js";
 import { SourceDetailBlock } from "./components/source-detail-block.js";
 import { LogsDetailBlock } from "./components/logs-detail-block.js";
+import { AiAssistDetailBlock } from "./components/ai-assist-detail-block.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -897,45 +898,14 @@ export function App(): JSX.Element {
                 selectedRun={selectedRun}
               />
 
-              <section className="detail-block">
-                <div className="detail-block-header">
-                  <h3>AI Assist</h3>
-                </div>
-
-                {!activeIssue ? <p className="empty">Select an issue to load AI assistance.</p> : null}
-                {activeIssue && isLlmAvailable === null ? <p className="empty">Checking AI health...</p> : null}
-                {activeIssue && isLlmAvailable === false ? <p className="empty">LLM is currently unavailable.</p> : null}
-                {activeIssue && isLlmAvailable === true && isAiLoading ? <p className="empty">Loading AI assistance...</p> : null}
-                {activeIssue && isLlmAvailable === true && aiError ? <p className="error">Could not load AI assistance: {aiError}</p> : null}
-
-                {activeIssue && isLlmAvailable === true && !isAiLoading && !aiError && aiExplain ? (
-                  <>
-                    <p className="ai-meta">
-                      Explain source: {aiExplain.source} · provider: {aiExplain.provider}
-                    </p>
-                    {aiExplain.fallbackReason ? <p className="ai-meta">Explain fallback: {aiExplain.fallbackReason}</p> : null}
-                    <p>{aiExplain.explanation}</p>
-                    {aiExplain.recommendations.length > 0 ? (
-                      <ul className="detail-list">
-                        {aiExplain.recommendations.map((recommendation, recommendationIndex) => (
-                          <li key={`${recommendation}-${recommendationIndex}`}>{recommendation}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </>
-                ) : null}
-
-                {activeIssue && isLlmAvailable === true && !isAiLoading && !aiError && aiSuggestFix ? (
-                  <>
-                    <p className="ai-meta">
-                      Suggest source: {aiSuggestFix.source} · provider: {aiSuggestFix.provider}
-                    </p>
-                    {aiSuggestFix.fallbackReason ? <p className="ai-meta">Suggest fallback: {aiSuggestFix.fallbackReason}</p> : null}
-                    <p>{aiSuggestFix.rationale}</p>
-                    <pre className="source-preview ai-diff-preview">{aiSuggestFix.proposedDiff}</pre>
-                  </>
-                ) : null}
-              </section>
+              <AiAssistDetailBlock
+                activeIssue={activeIssue}
+                isLlmAvailable={isLlmAvailable}
+                isAiLoading={isAiLoading}
+                aiError={aiError}
+                aiExplain={aiExplain}
+                aiSuggestFix={aiSuggestFix}
+              />
             </>
           ) : null}
             </section>
