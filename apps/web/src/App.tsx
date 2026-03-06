@@ -15,6 +15,7 @@ import { useAiAssistance } from "./hooks/use-ai-assistance.js";
 import { useKeyboardIssueNavigation } from "./hooks/use-keyboard-issue-navigation.js";
 import { useIssueNavigation } from "./hooks/use-issue-navigation.js";
 import { useRunViewModel } from "./hooks/use-run-view-model.js";
+import { useRunSource } from "./hooks/use-run-source.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -184,10 +185,7 @@ export function App(): JSX.Element {
   const [filesLoading, setFilesLoading] = useState(false);
   const [filesError, setFilesError] = useState<string | null>(null);
   const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(initialSelection.file);
-  const [sourceLoading, setSourceLoading] = useState(false);
   const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(initialSelection.isSourceSectionOpen);
-  const [sourceError, setSourceError] = useState<string | null>(null);
-  const [sourcePayload, setSourcePayload] = useState<SourcePayload | null>(null);
   const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
   const [copyRunIdStatus, setCopyRunIdStatus] = useState<"idle" | "copied" | "error">("idle");
   const [isLlmAvailable, setIsLlmAvailable] = useState<boolean | null>(null);
@@ -362,6 +360,28 @@ export function App(): JSX.Element {
 
     return activeIssue.line;
   }, [activeIssue, sourcePayload]);
+
+  const resolvedSourceFilePath = useMemo(() => {
+    if (!selectedRunId || !selectedRun) {
+      return null;
+    }
+
+    if (selectedSourceFilePath) {
+      return selectedSourceFilePath;
+    }
+
+    return activeIssue?.file ?? null;
+  }, [activeIssue?.file, selectedRun, selectedRunId, selectedSourceFilePath]);
+
+  const {
+    sourcePayload,
+    sourceLoading,
+    sourceError
+  } = useRunSource({
+    apiBase: apiBaseUrl,
+    runId: selectedRunId,
+    filePath: resolvedSourceFilePath
+  });
 
   const { selectIssueByIndex } = useIssueNavigation({
     issues: selectedRun?.issues ?? [],
@@ -1182,60 +1202,6 @@ export function App(): JSX.Element {
 
     void loadRunFiles(selectedRunId);
   }, [apiBaseUrl, selectedRunId]);
-
-  useEffect(() => {
-    async function loadSource(runId: string, filePath: string): Promise<void> {
-      setSourceLoading(true);
-      setSourceError(null);
-
-      try {
-        const endpoint = `${apiBaseUrl}/api/runs/${runId}/source?file=${encodeURIComponent(filePath)}`;
-        const response = await fetch(endpoint);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload = (await response.json()) as SourcePayload;
-        setSourcePayload(payload);
-      } catch (fetchError) {
-        const message = formatError(fetchError);
-        setSourceError(message);
-        setSourcePayload(null);
-      } finally {
-        setSourceLoading(false);
-      }
-    }
-
-    if (!selectedRunId || !selectedRun) {
-      setSourceLoading(false);
-      setSourceError(null);
-      setSourcePayload(null);
-      return;
-    }
-
-    if (selectedSourceFilePath) {
-      void loadSource(selectedRunId, selectedSourceFilePath);
-      return;
-    }
-
-    if (selectedRun.issues.length === 0) {
-      setSourceLoading(false);
-      setSourceError(null);
-      setSourcePayload(null);
-      return;
-    }
-
-    const safeIssueIndex = Math.min(selectedIssueIndex, selectedRun.issues.length - 1);
-    const issue = selectedRun.issues[safeIssueIndex];
-    if (!issue || !issue.file) {
-      setSourceLoading(false);
-      setSourceError(null);
-      setSourcePayload(null);
-      return;
-    }
-
-    void loadSource(selectedRunId, issue.file);
-  }, [apiBaseUrl, selectedIssueIndex, selectedRun, selectedRunId, selectedSourceFilePath]);
 
   return (
     <main className="app">
