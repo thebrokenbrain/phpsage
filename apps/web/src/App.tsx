@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   AiHealthPayload,
   RunFileItem,
@@ -13,6 +13,7 @@ import type {
 import { formatError } from "./utils/app-helpers.js";
 import { useAiAssistance } from "./hooks/use-ai-assistance.js";
 import { useKeyboardIssueNavigation } from "./hooks/use-keyboard-issue-navigation.js";
+import { useIssueNavigation } from "./hooks/use-issue-navigation.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -370,16 +371,12 @@ export function App(): JSX.Element {
     return Math.min(Math.max(0, selectedIssueIndex), selectedRun.issues.length - 1);
   }, [selectedIssueIndex, selectedRun]);
 
-  const selectIssueByIndex = useCallback((nextIndex: number) => {
-    if (!selectedRun || selectedRun.issues.length === 0) {
-      setSelectedIssueIndex(0);
-      return;
-    }
-
-    const boundedIndex = Math.min(Math.max(nextIndex, 0), Math.max(selectedRun.issues.length - 1, 0));
-    setSelectedIssueIndex(boundedIndex);
-    setSelectedSourceFilePath(null);
-  }, [selectedRun]);
+  const { selectIssueByIndex } = useIssueNavigation({
+    issues: selectedRun?.issues ?? [],
+    selectedRunTargetPath: selectedRun?.targetPath ?? null,
+    setSelectedIssueIndex,
+    setSelectedFilePath: setSelectedSourceFilePath
+  });
 
   const activeSourceSnippet = useMemo(() => {
     if (!sourcePayload || !activeIssueLineInSource) {
