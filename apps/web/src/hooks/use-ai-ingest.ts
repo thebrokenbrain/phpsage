@@ -60,6 +60,39 @@ export function useAiIngest({ apiBase, pollIntervalMs }: UseAiIngestOptions): Us
   }, [apiBase]);
 
   useEffect(() => {
+    let isCancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch(`${apiBase}/api/ai/ingest/latest`, {
+          method: "GET"
+        });
+
+        if (response.status === 404 || isCancelled) {
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const latest = (await response.json()) as AiIngestJobPayload;
+        if (!isCancelled) {
+          setActiveIngestJob(latest);
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setIngestError(error instanceof Error ? error.message : String(error));
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [apiBase]);
+
+  useEffect(() => {
     if (!activeIngestJob) {
       return;
     }

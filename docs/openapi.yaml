@@ -65,6 +65,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/ai/ingest/latest:
+    get:
+      summary: Get latest ingest job
+      responses:
+        '200':
+          description: Most recent ingest job in current server lifecycle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiIngestJob'
+        '404':
+          description: Ingest job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/ai/explain:
     post:
       summary: Explain PHPStan issue

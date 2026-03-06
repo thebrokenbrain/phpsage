@@ -96,6 +96,17 @@ export function createHttpServer(
       return;
     }
 
+    if (method === "GET" && requestUrl.pathname === "/api/ai/ingest/latest") {
+      const latestJob = await aiIngestService.getLatest();
+      if (!latestJob) {
+        writeJson(response, 404, { error: "Ingest job not found" });
+        return;
+      }
+
+      writeJson(response, 200, latestJob);
+      return;
+    }
+
     const ingestJobId = getAiIngestJobId(requestUrl.pathname);
     if (method === "GET" && ingestJobId) {
       const job = await aiIngestService.getById(ingestJobId);

@@ -77,3 +77,16 @@ test("AiIngestService marks job as failed when processor throws", async () => {
   assert.match(failed.error ?? "", /ingest failed/);
   assert.ok(failed.finishedAt);
 });
+
+test("AiIngestService exposes latest started job", async () => {
+  const service = new AiIngestService(new InMemoryAiIngestJobRepository(), new SuccessProcessor());
+
+  const first = await service.start("/workspace/rag");
+  const second = await service.start("/workspace/examples/php-sample");
+
+  assert.notEqual(first.jobId, second.jobId);
+
+  const latest = await service.getLatest();
+  assert.ok(latest);
+  assert.equal(latest?.jobId, second.jobId);
+});

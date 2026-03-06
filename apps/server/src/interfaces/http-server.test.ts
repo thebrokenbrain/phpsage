@@ -165,6 +165,32 @@ test("GET /api/ai/ingest/:jobId returns 404 when job does not exist", async () =
   }
 });
 
+test("GET /api/ai/ingest/latest returns most recent ingest job", async () => {
+  const httpServer = await startTestHttpServer();
+
+  try {
+    await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetPath: "/workspace/rag" })
+    });
+
+    const second = await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetPath: "/workspace/examples/php-sample" })
+    });
+    assert.equal(second.status, 202);
+
+    const latestResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest/latest`);
+    assert.equal(latestResponse.status, 200);
+    const payload = (await latestResponse.json()) as { targetPath: string };
+    assert.equal(payload.targetPath, "/workspace/examples/php-sample");
+  } finally {
+    await httpServer.close();
+  }
+});
+
 test("POST /api/ai/explain validates missing issueMessage", async () => {
   const httpServer = await startTestHttpServer();
 

@@ -152,6 +152,12 @@ This document must be updated in the same iteration where any endpoint is added 
 - Response `200`: current ingest job state
 - Response `404`: `{ "error": "Ingest job not found" }`
 
+- `GET /api/ai/ingest/latest`
+- Response `200`: most recently started ingest job in current server lifecycle
+- Response `404`: `{ "error": "Ingest job not found" }`
+
+- Auto-ingest can be enabled with `AI_RAG_AUTO_INGEST_ON_BOOT=true`.
+
 - `POST /api/ai/explain`
 - Body:
 

@@ -20,6 +20,8 @@ const aiRagTopK = readPositiveIntegerEnvOrDefault("AI_RAG_TOP_K", 3);
 const aiRagBackend = (process.env.AI_RAG_BACKEND?.trim().toLowerCase() || "filesystem") as "filesystem" | "qdrant";
 const qdrantUrl = process.env.QDRANT_URL?.trim() || "http://qdrant:6333";
 const qdrantCollection = process.env.QDRANT_COLLECTION?.trim() || "phpsage-rag";
+const aiRagAutoIngestOnBoot = readBooleanEnvOrDefault("AI_RAG_AUTO_INGEST_ON_BOOT", false);
+const aiIngestDefaultTarget = process.env.AI_INGEST_DEFAULT_TARGET?.trim() || "/workspace/rag";
 
 const runRepository = new FileRunRepository(runsDirectoryPath);
 const runService = new RunService(runRepository);
@@ -36,6 +38,10 @@ const server = createHttpServer(runService, runSourceReader, aiIngestService, ai
 
 server.listen(port, () => {
   process.stdout.write(`phpsage-server listening on :${port}\n`);
+
+  if (aiRagAutoIngestOnBoot) {
+    void triggerAutoIngestOnBoot(aiIngestService, aiIngestDefaultTarget);
+  }
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
@@ -58,4 +64,32 @@ function readPositiveIntegerEnvOrDefault(name: string, fallback: number): number
   }
 
   return parsedValue;
+}
+
+function readBooleanEnvOrDefault(name: string, fallback: boolean): boolean {
+  const value = process.env[name];
+  if (!value || value.trim().length === 0) {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
+}
+
+async function triggerAutoIngestOnBoot(aiIngestService: AiIngestService, targetPath: string): Promise<void> {
+  try {
+    const job = await aiIngestService.start(targetPath);
+    process.stdout.write(`[ai-rag] auto-ingest scheduled: jobId=${job.jobId} target=${job.targetPath}\n`);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`[ai-rag] auto-ingest failed to schedule: ${reason}\n`);
+  }
 }

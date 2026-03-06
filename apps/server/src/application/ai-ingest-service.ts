@@ -5,6 +5,8 @@ import type { AiIngestJob, AiIngestJobRepository } from "../ports/ai-ingest-job-
 import type { AiIngestProcessor } from "../ports/ai-ingest-processor.js";
 
 export class AiIngestService {
+  private latestJobId: string | null = null;
+
   public constructor(
     private readonly jobRepository: AiIngestJobRepository,
     private readonly ingestProcessor: AiIngestProcessor
@@ -25,12 +27,21 @@ export class AiIngestService {
     };
 
     await this.jobRepository.save(job);
+    this.latestJobId = job.jobId;
     void this.execute(job.jobId);
     return job;
   }
 
   public async getById(jobId: string): Promise<AiIngestJob | null> {
     return this.jobRepository.findById(jobId);
+  }
+
+  public async getLatest(): Promise<AiIngestJob | null> {
+    if (!this.latestJobId) {
+      return null;
+    }
+
+    return this.jobRepository.findById(this.latestJobId);
   }
 
   private async execute(jobId: string): Promise<void> {
