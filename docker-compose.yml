@@ -15,10 +15,18 @@ services:
     env_file:
       - ${PHPSAGE_ENV_FILE:-.env.example}
     depends_on:
-      - qdrant
-      - ollama
+      qdrant:
+        condition: service_started
+      ollama:
+        condition: service_started
     working_dir: /workspace
     command: ["sh", "-lc", "npm run build && node apps/server/dist/index.js"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/healthz').then((response)=>{if(!response.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 20s
     ports:
       - "8080:8080"
 
@@ -27,8 +35,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      phpsage-server:
+        condition: service_healthy
     working_dir: /workspace
     command: ["npm", "run", "dev", "--workspace", "@phpsage/web", "--", "--host", "0.0.0.0", "--port", "5173"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then((response)=>{if(!response.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 15s
     ports:
       - "5173:5173"
 

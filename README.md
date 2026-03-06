@@ -48,7 +48,7 @@ Stack objetivo de producto (a completar en iteraciones):
 ### Instalación y arranque (flujo recomendado)
 
 ```bash
-docker compose up --build -d phpsage-server
+docker compose up --build -d --wait phpsage-server
 ```
 
 Servicios de soporte IA disponibles en compose:
@@ -64,8 +64,8 @@ docker compose run --rm phpsage-cli npm run build
 ./scripts/smoke-ollama.sh
 ./scripts/smoke-openai.sh
 ./scripts/reindex-rag.sh --wait
-docker compose up --build -d phpsage-server
-docker compose up --build -d phpsage-web
+docker compose up --build -d --wait phpsage-server
+docker compose up --build -d --wait phpsage-web
 docker compose up --build -d api-docs
 curl http://localhost:8080/healthz
 docker compose down --remove-orphans
@@ -270,7 +270,7 @@ Estado actual:
 
 ```bash
 docker compose run --rm phpsage-cli npm run build
-docker compose up --build -d phpsage-server
+docker compose up --build -d --wait phpsage-server
 curl http://localhost:8080/healthz
 curl -X POST http://localhost:8080/api/runs/start \
   -H "Content-Type: application/json" \
