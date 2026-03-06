@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHttpServer } from "./http-server.js";
 import { AiExplainService } from "../application/ai-explain-service.js";
+import { AiSuggestFixService } from "../application/ai-suggest-fix-service.js";
 import { RunService } from "../application/run-service.js";
 import type { RunRecord, RunSummary } from "../domain/run.js";
 import type { RunRepository } from "../ports/run-repository.js";
@@ -40,7 +41,8 @@ async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Pr
   const runService = new RunService(new InMemoryRunRepository());
   const runSourceReader = new RunSourceReader();
   const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
-  const server = createHttpServer(runService, runSourceReader, aiExplainService);
+  const aiSuggestFixService = new AiSuggestFixService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
+  const server = createHttpServer(runService, runSourceReader, aiExplainService, aiSuggestFixService);
 
   await new Promise<void>((resolveStart) => {
     server.listen(0, "127.0.0.1", () => {
@@ -127,6 +129,77 @@ test("POST /api/ai/explain returns fallback explanation payload", async () => {
     assert.equal(payload.usage, null);
     assert.equal(payload.debug, null);
     assert.ok(payload.recommendations.length >= 2);
+  } finally {
+    await httpServer.close();
+    if (previousProvider === undefined) {
+      delete process.env.PHPSAGE_AI_PROVIDER;
+    } else {
+      process.env.PHPSAGE_AI_PROVIDER = previousProvider;
+    }
+  }
+});
+
+test("POST /api/ai/suggest-fix validates missing issueMessage", async () => {
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/suggest-fix`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({})
+    });
+
+    assert.equal(response.status, 400);
+    const payload = (await response.json()) as { error: string };
+    assert.match(payload.error, /issueMessage is required/i);
+  } finally {
+    await httpServer.close();
+  }
+});
+
+test("POST /api/ai/suggest-fix returns fallback diff payload", async () => {
+  const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
+  process.env.PHPSAGE_AI_PROVIDER = "openai";
+
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/suggest-fix`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        issueMessage: "Undefined variable: $undefinedVariable",
+        issueIdentifier: "variable.undefined",
+        filePath: "src/Broken.php",
+        line: 7,
+        sourceSnippet: "return $undefinedVariable + $value;"
+      })
+    });
+
+    assert.equal(response.status, 200);
+    const payload = (await response.json()) as {
+      proposedDiff: string;
+      rationale: string;
+      source: string;
+      provider: string;
+      fallbackReason: string;
+      usage: null;
+      debug: null;
+    };
+
+    assert.match(payload.proposedDiff, /--- a\/src\/Broken.php/);
+    assert.match(payload.proposedDiff, /\+\+\+ b\/src\/Broken.php/);
+    assert.match(payload.proposedDiff, /\+return \$value \+ \$value;/);
+    assert.match(payload.rationale, /Undefined variable: \$undefinedVariable/);
+    assert.equal(payload.source, "fallback");
+    assert.equal(payload.provider, "openai");
+    assert.match(payload.fallbackReason, /not configured/i);
+    assert.equal(payload.usage, null);
+    assert.equal(payload.debug, null);
   } finally {
     await httpServer.close();
     if (previousProvider === undefined) {

@@ -1,6 +1,7 @@
 // This file composes server dependencies and starts the HTTP API.
 import { resolve } from "node:path";
 import { AiExplainService } from "./application/ai-explain-service.js";
+import { AiSuggestFixService } from "./application/ai-suggest-fix-service.js";
 import { RunService } from "./application/run-service.js";
 import { FileRunRepository } from "./infrastructure/file-run-repository.js";
 import { RunSourceReader } from "./infrastructure/run-source-reader.js";
@@ -13,7 +14,8 @@ const runRepository = new FileRunRepository(runsDirectoryPath);
 const runService = new RunService(runRepository);
 const runSourceReader = new RunSourceReader();
 const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
-const server = createHttpServer(runService, runSourceReader, aiExplainService);
+const aiSuggestFixService = new AiSuggestFixService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
+const server = createHttpServer(runService, runSourceReader, aiExplainService, aiSuggestFixService);
 
 server.listen(port, () => {
   process.stdout.write(`phpsage-server listening on :${port}\n`);

@@ -49,6 +49,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/ai/suggest-fix:
+    post:
+      summary: Suggest patch for PHPStan issue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiSuggestFixRequest'
+      responses:
+        '200':
+          description: Suggest-fix result payload (fallback for now)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSuggestFixResponse'
+        '400':
+          description: Invalid suggest-fix payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/runs:
     get:
       summary: List run summaries
@@ -313,6 +335,39 @@ components:
           type: array
           items:
             type: string
+        source:
+          type: string
+          enum: [fallback]
+        provider:
+          type: string
+        fallbackReason:
+          type: string
+        usage:
+          type: 'null'
+        debug:
+          type: 'null'
+    AiSuggestFixRequest:
+      type: object
+      required: [issueMessage]
+      properties:
+        issueMessage:
+          type: string
+        issueIdentifier:
+          type: string
+        filePath:
+          type: string
+        line:
+          type: integer
+        sourceSnippet:
+          type: string
+    AiSuggestFixResponse:
+      type: object
+      required: [proposedDiff, rationale, source, provider, fallbackReason, usage, debug]
+      properties:
+        proposedDiff:
+          type: string
+        rationale:
+          type: string
         source:
           type: string
           enum: [fallback]

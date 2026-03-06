@@ -6,6 +6,7 @@ import { isAbsolute, relative, resolve } from "node:path";
 import { URL } from "node:url";
 import { parsePhpstanJsonOutput } from "@phpsage/shared";
 import type { AiExplainService } from "../application/ai-explain-service.js";
+import type { AiSuggestFixService } from "../application/ai-suggest-fix-service.js";
 import { RunService } from "../application/run-service.js";
 import type { RunIssue } from "../domain/run.js";
 import type { RunSourceReader } from "../infrastructure/run-source-reader.js";
@@ -48,7 +49,8 @@ interface AiHealthResponse {
 export function createHttpServer(
   runService: RunService,
   runSourceReader: RunSourceReader,
-  aiExplainService: AiExplainService
+  aiExplainService: AiExplainService,
+  aiSuggestFixService: AiSuggestFixService
 ) {
   return createServer(async (request, response) => {
     applyCorsHeaders(response);
@@ -96,6 +98,27 @@ export function createHttpServer(
       });
 
       writeJson(response, 200, explanation);
+      return;
+    }
+
+    if (method === "POST" && requestUrl.pathname === "/api/ai/suggest-fix") {
+      const body = (await readJsonBody(request)) as ExplainBody | null;
+      const issueMessage = typeof body?.issueMessage === "string" ? body.issueMessage.trim() : "";
+
+      if (!issueMessage) {
+        writeJson(response, 400, { error: "issueMessage is required" });
+        return;
+      }
+
+      const suggestion = await aiSuggestFixService.suggestFix({
+        issueMessage,
+        issueIdentifier: typeof body?.issueIdentifier === "string" ? body.issueIdentifier : undefined,
+        filePath: typeof body?.filePath === "string" ? body.filePath : undefined,
+        line: typeof body?.line === "number" ? body.line : undefined,
+        sourceSnippet: typeof body?.sourceSnippet === "string" ? body.sourceSnippet : undefined
+      });
+
+      writeJson(response, 200, suggestion);
       return;
     }
 

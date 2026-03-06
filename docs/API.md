@@ -139,3 +139,32 @@ This document must be updated in the same iteration where any endpoint is added 
 ```
 
 - Response `400`: invalid payload (`issueMessage is required`)
+
+- `POST /api/ai/suggest-fix`
+- Body:
+
+```json
+{
+	"issueMessage": "Undefined variable: $undefinedVariable",
+	"issueIdentifier": "variable.undefined",
+	"filePath": "src/Broken.php",
+	"line": 7,
+	"sourceSnippet": "return $undefinedVariable + $value;"
+}
+```
+
+- Response `200`: deterministic fallback suggest-fix payload
+
+```json
+{
+	"proposedDiff": "--- a/src/Broken.php\n+++ b/src/Broken.php\n@@ -7,1 +7,1 @@\n-return $undefinedVariable + $value;\n+return $value + $value;",
+	"rationale": "...",
+	"source": "fallback",
+	"provider": "openai",
+	"fallbackReason": "LLM provider is not configured for suggest-fix yet",
+	"usage": null,
+	"debug": null
+}
+```
+
+- Response `400`: invalid payload (`issueMessage is required`)
