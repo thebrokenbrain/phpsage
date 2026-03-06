@@ -498,6 +498,12 @@ button:disabled {
   border-color: #334155;
 }
 
+.ai-meta {
+  margin: 4px 0;
+  color: #334155;
+  font-size: 0.8rem;
+}
+
 .source-line {
   display: flex;
   gap: 8px;

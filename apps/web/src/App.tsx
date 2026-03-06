@@ -2008,6 +2008,10 @@ export function App(): JSX.Element {
 
                 {activeIssue && isLlmAvailable === true && !isAiLoading && !aiError && aiExplain ? (
                   <>
+                    <p className="ai-meta">
+                      Explain source: {aiExplain.source} · provider: {aiExplain.provider}
+                    </p>
+                    {aiExplain.fallbackReason ? <p className="ai-meta">Explain fallback: {aiExplain.fallbackReason}</p> : null}
                     <p>{aiExplain.explanation}</p>
                     {aiExplain.recommendations.length > 0 ? (
                       <ul className="detail-list">
@@ -2021,6 +2025,10 @@ export function App(): JSX.Element {
 
                 {activeIssue && isLlmAvailable === true && !isAiLoading && !aiError && aiSuggestFix ? (
                   <>
+                    <p className="ai-meta">
+                      Suggest source: {aiSuggestFix.source} · provider: {aiSuggestFix.provider}
+                    </p>
+                    {aiSuggestFix.fallbackReason ? <p className="ai-meta">Suggest fallback: {aiSuggestFix.fallbackReason}</p> : null}
                     <p>{aiSuggestFix.rationale}</p>
                     <pre className="source-preview ai-diff-preview">{aiSuggestFix.proposedDiff}</pre>
                   </>
