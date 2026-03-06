@@ -215,6 +215,7 @@ This document must be updated in the same iteration where any endpoint is added 
 ```
 
 - When LLM is unavailable or fails, endpoint returns deterministic fallback with `source="fallback"` and a populated `fallbackReason`.
+- `AI_PROVIDER=ollama` uses runtime Ollama generation (`OLLAMA_BASE_URL` + `OLLAMA_MODEL`).
 
 - Response `400`: invalid payload (`issueMessage is required`)
 
@@ -232,6 +233,7 @@ This document must be updated in the same iteration where any endpoint is added 
 ```
 
 - Response `200`: suggest-fix payload (`source=llm|fallback`)
+- LLM patches are validated with guardrails (unified diff checks, suspicious-content heuristics, and `php -l`).
 
 ```json
 {

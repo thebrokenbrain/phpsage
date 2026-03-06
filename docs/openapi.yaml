@@ -131,7 +131,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
   /api/ai/suggest-fix:
     post:
-      summary: Suggest patch for PHPStan issue
+      summary: Suggest patch for PHPStan issue (with patch guardrails)
       requestBody:
         required: true
         content:
@@ -140,7 +140,7 @@ paths:
               $ref: '#/components/schemas/AiSuggestFixRequest'
       responses:
         '200':
-          description: Suggest-fix result payload (llm-first with fallback)
+          description: Suggest-fix result payload (llm-first with fallback and patch guard validation)
           content:
             application/json:
               schema:

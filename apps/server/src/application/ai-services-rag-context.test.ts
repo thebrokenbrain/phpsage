@@ -5,6 +5,7 @@ import { test } from "node:test";
 import { AiExplainService } from "./ai-explain-service.js";
 import { AiSuggestFixService } from "./ai-suggest-fix-service.js";
 import type { AiLlmClient } from "../ports/ai-llm-client.js";
+import type { AiPatchGuard } from "../ports/ai-patch-guard.js";
 import type { AiRagRetriever } from "../ports/ai-rag-retriever.js";
 
 const retriever: AiRagRetriever = {
@@ -91,4 +92,66 @@ test("AiSuggestFixService falls back when llm output is invalid", async () => {
 
   assert.equal(result.source, "fallback");
   assert.match(result.fallbackReason ?? "", /LLM request failed/i);
+});
+
+test("AiSuggestFixService falls back when patch guard rejects llm diff", async () => {
+  const llmClient: AiLlmClient = {
+    explain: async () => ({ text: "", usage: null, debug: null }),
+    suggestFix: async () => ({
+      text: [
+        "--- a/src/Broken.php",
+        "+++ b/src/Broken.php",
+        "@@ -7,1 +7,1 @@",
+        "-return $undefinedVariable + $value;",
+        "+return $value + $value;"
+      ].join("\\n"),
+      usage: null,
+      debug: null
+    })
+  };
+
+  const rejectingGuard: AiPatchGuard = {
+    validate: async () => ({
+      accepted: false,
+      rejectedReason: "php -l failed"
+    })
+  };
+
+  const service = new AiSuggestFixService("openai", retriever, 3, llmClient, rejectingGuard);
+  const result = await service.suggestFix({
+    issueMessage: "Undefined variable: $undefinedVariable",
+    issueIdentifier: "variable.undefined",
+    filePath: "src/Broken.php",
+    line: 7,
+    sourceSnippet: "return $undefinedVariable + $value;"
+  });
+
+  assert.equal(result.source, "fallback");
+  assert.match(result.fallbackReason ?? "", /Patch rejected by guardrails/i);
+});
+
+test("AiExplainService supports ollama-backed llm client", async () => {
+  const ollamaClient: AiLlmClient = {
+    explain: async () => ({
+      text: "Short explanation\\n- First action\\n- Second action",
+      usage: {
+        model: "llama3.2",
+        inputTokens: null,
+        outputTokens: null,
+        totalTokens: null
+      },
+      debug: null
+    }),
+    suggestFix: async () => ({ text: "", usage: null, debug: null })
+  };
+
+  const service = new AiExplainService("ollama", retriever, 3, ollamaClient);
+  const result = await service.explain({
+    issueMessage: "Call to an undefined method",
+    issueIdentifier: "method.notFound"
+  });
+
+  assert.equal(result.source, "llm");
+  assert.equal(result.provider, "ollama");
+  assert.deepEqual(result.recommendations, ["First action", "Second action"]);
 });

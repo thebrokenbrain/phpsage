@@ -2,6 +2,7 @@
 
 import type { AiRagContextItem, AiRagRetriever } from "../ports/ai-rag-retriever.js";
 import type { AiLlmClient, AiLlmDebugPayload, AiLlmUsage } from "../ports/ai-llm-client.js";
+import type { AiPatchGuard } from "../ports/ai-patch-guard.js";
 import { retrieveContextItemsSafely, summarizeContextSources } from "./ai-rag-context.js";
 
 export interface AiSuggestFixRequest {
@@ -28,7 +29,8 @@ export class AiSuggestFixService {
     private readonly providerName: string = "fallback",
     private readonly ragRetriever?: AiRagRetriever,
     private readonly ragTopK: number = 3,
-    private readonly llmClient?: AiLlmClient
+    private readonly llmClient?: AiLlmClient,
+    private readonly patchGuard?: AiPatchGuard
   ) {}
 
   public async suggestFix(request: AiSuggestFixRequest): Promise<AiSuggestFixResponse> {
@@ -45,6 +47,17 @@ export class AiSuggestFixService {
           retrievedContext: contextItems.map((item) => item.content).join("\n\n")
         });
         const parsed = this.parseSuggestFixOutput(output.text);
+
+        if (this.patchGuard) {
+          const guardResult = await this.patchGuard.validate({
+            filePath: request.filePath,
+            proposedDiff: parsed.proposedDiff
+          });
+
+          if (!guardResult.accepted) {
+            throw new Error(`Patch rejected by guardrails: ${guardResult.rejectedReason ?? "unknown reason"}`);
+          }
+        }
 
         return {
           proposedDiff: parsed.proposedDiff,
