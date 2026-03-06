@@ -17,6 +17,8 @@ interface MockServerState {
   startCount: number;
   finishPayloads: RunFinishPayload[];
   logCount: number;
+  ingestCreateCount: number;
+  ingestGetCount: number;
 }
 
 interface MockServer {
@@ -61,7 +63,9 @@ async function startMockServer(): Promise<MockServer> {
   const state: MockServerState = {
     startCount: 0,
     finishPayloads: [],
-    logCount: 0
+    logCount: 0,
+    ingestCreateCount: 0,
+    ingestGetCount: 0
   };
 
   const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
@@ -82,6 +86,48 @@ async function startMockServer(): Promise<MockServer> {
       await readRequestBody(request);
       response.setHeader("content-type", "application/json");
       response.end(JSON.stringify({ runId: `run-${state.startCount}` }));
+      return;
+    }
+
+    if (request.method === "POST" && request.url === "/api/ai/ingest") {
+      state.ingestCreateCount += 1;
+      const rawBody = await readRequestBody(request);
+      const body = rawBody ? (JSON.parse(rawBody) as { targetPath?: string }) : {};
+
+      response.setHeader("content-type", "application/json");
+      response.end(
+        JSON.stringify({
+          jobId: `job-${state.ingestCreateCount}`,
+          targetPath: body.targetPath ?? "/workspace/examples/php-sample",
+          status: "queued",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          startedAt: null,
+          finishedAt: null,
+          error: null,
+          stats: null
+        })
+      );
+      return;
+    }
+
+    if (request.method === "GET" && request.url.startsWith("/api/ai/ingest/")) {
+      state.ingestGetCount += 1;
+      const status = state.ingestGetCount >= 2 ? "completed" : "running";
+      response.setHeader("content-type", "application/json");
+      response.end(
+        JSON.stringify({
+          jobId: request.url.split("/").pop(),
+          targetPath: "/workspace/examples/php-sample",
+          status,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          startedAt: new Date().toISOString(),
+          finishedAt: status === "completed" ? new Date().toISOString() : null,
+          error: null,
+          stats: status === "completed" ? { filesIndexed: 3, chunksIndexed: 10 } : null
+        })
+      );
       return;
     }
 
@@ -280,6 +326,52 @@ test("watch emits watch-cycle summary and stops at max cycles", async () => {
   } finally {
     await server.close();
     rmSync(workspaceDir, { recursive: true, force: true });
+  }
+});
+
+test("rag ingest starts a job without waiting", async () => {
+  const server = await startMockServer();
+
+  try {
+    const result = await runCli([
+      "rag",
+      "ingest",
+      "--server-url",
+      server.url,
+      "--target-path",
+      "/workspace/docs/rag"
+    ]);
+
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /Ingest job queued:/);
+    assert.equal(server.state.ingestCreateCount, 1);
+    assert.equal(server.state.ingestGetCount, 0);
+  } finally {
+    await server.close();
+  }
+});
+
+test("rag ingest --wait polls until completion", async () => {
+  const server = await startMockServer();
+
+  try {
+    const result = await runCli([
+      "rag",
+      "ingest",
+      "--server-url",
+      server.url,
+      "--wait",
+      "--poll-interval-ms",
+      "50"
+    ]);
+
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /Ingest job completed:/);
+    assert.match(result.stdout, /Ingest stats filesIndexed=3 chunksIndexed=10/);
+    assert.equal(server.state.ingestCreateCount, 1);
+    assert.ok(server.state.ingestGetCount >= 2);
+  } finally {
+    await server.close();
   }
 });
 

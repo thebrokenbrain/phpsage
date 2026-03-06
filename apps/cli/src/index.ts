@@ -55,6 +55,13 @@ interface AppCommandOptions {
 	readonly openBrowser: boolean;
 }
 
+interface RagIngestCommandOptions {
+	readonly serverUrl: string;
+	readonly targetPath?: string;
+	readonly waitForCompletion: boolean;
+	readonly pollIntervalMs: number;
+}
+
 type CliCommand =
 	| {
 			readonly kind: "analyse";
@@ -63,6 +70,10 @@ type CliCommand =
 	| {
 			readonly kind: "app";
 			readonly options: AppCommandOptions;
+		}
+	| {
+			readonly kind: "rag-ingest";
+			readonly options: RagIngestCommandOptions;
 		};
 
 interface StartRunResponse {
@@ -72,6 +83,21 @@ interface StartRunResponse {
 interface HealthResponse {
 	readonly statusCode: number;
 	readonly text: string;
+}
+
+interface AiIngestJobResponse {
+	readonly jobId: string;
+	readonly targetPath: string;
+	readonly status: "queued" | "running" | "completed" | "failed";
+	readonly createdAt: string;
+	readonly updatedAt: string;
+	readonly startedAt: string | null;
+	readonly finishedAt: string | null;
+	readonly error: string | null;
+	readonly stats: {
+		readonly filesIndexed: number;
+		readonly chunksIndexed: number;
+	} | null;
 }
 
 async function main(): Promise<void> {
@@ -101,6 +127,11 @@ async function main(): Promise<void> {
 		return;
 	}
 
+	if (command.kind === "rag-ingest") {
+		await runRagIngest(command.options);
+		return;
+	}
+
 	const { options } = command;
 	ensureTargetPathIsDirectory(options.targetPath);
 
@@ -118,6 +149,44 @@ async function main(): Promise<void> {
 		process.stdout.write(`${JSON.stringify({ event: "analyse-summary", ...result })}\n`);
 	}
 	process.exitCode = result.exitCode;
+}
+
+async function runRagIngest(options: RagIngestCommandOptions): Promise<void> {
+	const payload = options.targetPath ? { targetPath: options.targetPath } : {};
+	const job = await postJson<AiIngestJobResponse>(`${options.serverUrl}/api/ai/ingest`, payload);
+
+	process.stdout.write(`Ingest job queued: ${job.jobId} (${job.targetPath})\n`);
+
+	if (!options.waitForCompletion) {
+		return;
+	}
+
+	const finalJob = await waitForIngestJobCompletion(options, job.jobId);
+	process.stdout.write(`Ingest job ${finalJob.status}: ${finalJob.jobId}\n`);
+	if (finalJob.stats) {
+		process.stdout.write(
+			`Ingest stats filesIndexed=${finalJob.stats.filesIndexed} chunksIndexed=${finalJob.stats.chunksIndexed}\n`
+		);
+	}
+
+	if (finalJob.status === "failed") {
+		const reason = finalJob.error ? ` (${finalJob.error})` : "";
+		throw new Error(`Ingest failed${reason}`);
+	}
+}
+
+async function waitForIngestJobCompletion(
+	options: RagIngestCommandOptions,
+	jobId: string
+): Promise<AiIngestJobResponse> {
+	while (true) {
+		const job = await getJson<AiIngestJobResponse>(`${options.serverUrl}/api/ai/ingest/${jobId}`);
+		if (job.status === "completed" || job.status === "failed") {
+			return job;
+		}
+
+		await wait(options.pollIntervalMs);
+	}
 }
 
 async function runWatchMode(options: CliOptions): Promise<void> {
@@ -628,6 +697,14 @@ function parseArguments(args: string[]): CliCommand | null {
 		};
 	}
 
+	const ragIngestOptions = parseRagIngestArguments(args);
+	if (ragIngestOptions) {
+		return {
+			kind: "rag-ingest",
+			options: ragIngestOptions
+		};
+	}
+
 	if (args.length < 3 || args[0] !== "phpstan" || args[1] !== "analyse") {
 		return null;
 	}
@@ -719,6 +796,39 @@ function parseArguments(args: string[]): CliCommand | null {
 			watchFiles: watchFiles.length > 0 ? watchFiles : ["phpstan.neon", "phpstan.neon.dist", "composer.json"],
 			jsonSummary
 		}
+	};
+}
+
+function parseRagIngestArguments(args: string[]): RagIngestCommandOptions | null {
+	if (args.length < 2 || args[0] !== "rag" || args[1] !== "ingest") {
+		return null;
+	}
+
+	validateFlags(args, ["--port", "--docker", "--server-url", "--target-path", "--wait", "--poll-interval-ms"], [
+		"--port",
+		"--server-url",
+		"--target-path",
+		"--poll-interval-ms"
+	]);
+
+	const dockerMode = args.includes("--docker");
+	const serverUrlFromFlag = getFlagValue(args, "--server-url");
+	const portFromFlag = getFlagValue(args, "--port");
+	const targetPath = getFlagValue(args, "--target-path");
+	const waitForCompletion = args.includes("--wait");
+	const pollIntervalMs = parsePositiveIntegerFlag(args, "--poll-interval-ms", 1000);
+	const serverUrlFromEnv = process.env.PHPSAGE_SERVER_URL;
+
+	const defaultPort = portFromFlag ?? "8080";
+	const defaultServerUrl = dockerMode
+		? `http://phpsage-server:${defaultPort}`
+		: `http://localhost:${defaultPort}`;
+
+	return {
+		serverUrl: serverUrlFromFlag ?? serverUrlFromEnv ?? defaultServerUrl,
+		targetPath,
+		waitForCompletion,
+		pollIntervalMs
 	};
 }
 
@@ -833,8 +943,22 @@ function printUsage(): void {
 			+ "  phpsage --help | -h\n"
 			+ "  phpsage --version | -v\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
+			+ "  phpsage rag ingest [--target-path <path>] [--wait] [--poll-interval-ms <ms>] [--port <port>] [--docker] [--server-url <url>]\n"
 			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--timeout-ms <ms>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-ext <php,inc>] [--watch-files <phpstan.neon,composer.json>] [--watch-max-cycles <n>] [--json-summary] [--docker] [--server-url <url>]\n"
 	);
+}
+
+async function getJson<TResponse = unknown>(url: string): Promise<TResponse> {
+	const response = await fetch(url, {
+		method: "GET"
+	});
+
+	if (!response.ok) {
+		const text = await response.text();
+		throw new Error(`HTTP ${response.status}: ${text}`);
+	}
+
+	return (await response.json()) as TResponse;
 }
 
 async function postJson<TResponse = unknown>(url: string, body: unknown): Promise<TResponse> {
