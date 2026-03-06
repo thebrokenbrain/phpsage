@@ -33,6 +33,7 @@ import { useResetDashboardControls } from "./hooks/use-reset-dashboard-controls.
 import { readInitialQuerySelection } from "./hooks/use-initial-query-selection.js";
 import { useSelectedSourceFileGuard } from "./hooks/use-selected-source-file-guard.js";
 import { useAutoRunErrorReset } from "./hooks/use-auto-run-error-reset.js";
+import { ActiveControls } from "./components/active-controls.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -828,13 +829,7 @@ export function App(): JSX.Element {
         {!isAutoRunEnabled && autoRunDisabledReason ? <span>Auto-run paused reason: {autoRunDisabledReason}</span> : null}
       </section>
 
-      {activeControlLabels.length > 0 ? (
-        <section className="active-controls">
-          {activeControlLabels.map((controlLabel) => (
-            <span key={controlLabel}>{controlLabel}</span>
-          ))}
-        </section>
-      ) : null}
+      <ActiveControls labels={activeControlLabels} />
 
       <section className="workspace-grid">
         <div className="runs-pane">
