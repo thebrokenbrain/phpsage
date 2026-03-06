@@ -143,10 +143,6 @@ function AiDebugPanel({
           <div className="ai-debug-label">Request body</div>
           <pre className="ai-debug-block">{toJsonDebug(debug.requestBody)}</pre>
         </div>
-        <div>
-          <div className="ai-debug-label">Raw response</div>
-          <pre className="ai-debug-block">{toJsonDebug(debug.rawResponse)}</pre>
-        </div>
       </div>
     </details>
   );
