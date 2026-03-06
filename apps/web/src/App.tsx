@@ -1,85 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-
-interface RunSummary {
-  runId: string;
-  targetPath: string;
-  status: "running" | "finished";
-  createdAt: string;
-  updatedAt: string;
-  exitCode: number | null;
-  issueCount: number;
-}
-
-interface RunIssue {
-  file: string;
-  line: number;
-  message: string;
-  identifier?: string;
-}
-
-interface RunLogEntry {
-  timestamp: string;
-  stream: "stdout" | "stderr";
-  message: string;
-}
-
-interface RunRecord extends RunSummary {
-  logs: RunLogEntry[];
-  issues: RunIssue[];
-}
-
-interface RunFileItem {
-  path: string;
-  issueCount: number;
-  hasIssues: boolean;
-}
-
-interface RunFilesPayload {
-  targetPath: string;
-  files: RunFileItem[];
-}
-
-interface SourcePayload {
-  file: string;
-  content: string;
-}
-
-interface AiHealthPayload {
-  status: "ok";
-  enabled: boolean;
-  activeProvider: string | null;
-  activeModel: string | null;
-}
-
-interface AiExplainPayload {
-  explanation: string;
-  recommendations: string[];
-  source: "fallback";
-  provider: string;
-  fallbackReason: string;
-  usage: null;
-  debug: null;
-}
-
-interface AiSuggestFixPayload {
-  proposedDiff: string;
-  rationale: string;
-  source: "fallback";
-  provider: string;
-  fallbackReason: string;
-  usage: null;
-  debug: null;
-}
-
-interface StartRunPayload {
-  runId: string;
-  targetPath: string;
-  status: "running" | "finished";
-  createdAt: string;
-  updatedAt: string;
-  exitCode: number | null;
-  issueCount: number;
-}
+import type {
+  AiExplainPayload,
+  AiHealthPayload,
+  AiSuggestFixPayload,
+  RunFileItem,
+  RunFilesPayload,
+  RunIssue,
+  RunLogEntry,
+  RunRecord,
+  RunSummary,
+  SourcePayload,
+  StartRunPayload
+} from "./types.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
