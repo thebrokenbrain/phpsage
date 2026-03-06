@@ -191,6 +191,33 @@ body {
 .runs-summary span {
   border: 1px solid var(--border);
   background: var(--surface-1);
+.ingest-job-row {
+  display: block;
+  border-bottom: 1px dashed rgba(15, 23, 42, 0.12);
+  padding-bottom: 8px;
+}
+.ingest-job-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+.ingest-job-detail {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+}
+.ingest-job-detail p {
+  margin: 4px 0;
+}
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 0.8rem;
