@@ -26,6 +26,7 @@ import { useAutoRunScheduler } from "./hooks/use-auto-run-scheduler.js";
 import { useRunningRunPolling } from "./hooks/use-running-run-polling.js";
 import { useDashboardStorage } from "./hooks/use-dashboard-storage.js";
 import { useDashboardPagination } from "./hooks/use-dashboard-pagination.js";
+import { useRunsList } from "./hooks/use-runs-list.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -150,12 +151,8 @@ export function App(): JSX.Element {
     return value && value.trim().length > 0 ? value : defaultApiBaseUrl;
   }, []);
 
-  const [runs, setRuns] = useState<RunSummary[]>([]);
   const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
   const [runsSortOrder, setRunsSortOrder] = useState<"updatedDesc" | "updatedAsc">(initialSelection.runsSortOrder);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastRefreshAt, setLastRefreshAt] = useState<string | null>(null);
   const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(initialSelection.isAutoRunEnabled);
   const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(initialSelection.autoRunIntervalMs ?? 15000);
   const [autoRunTargetMode, setAutoRunTargetMode] = useState<"starter" | "selected">(initialSelection.autoRunTargetMode);
@@ -172,7 +169,6 @@ export function App(): JSX.Element {
   const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
   const [startRunLoading, setStartRunLoading] = useState(false);
   const [startRunError, setStartRunError] = useState<string | null>(null);
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelection.runId);
   const [issuePage, setIssuePage] = useState(0);
   const [issueSearchTerm, setIssueSearchTerm] = useState(initialSelection.issueSearchTerm);
   const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
@@ -188,6 +184,22 @@ export function App(): JSX.Element {
   const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(initialSelection.isSourceSectionOpen);
   const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
   const [copyRunIdStatus, setCopyRunIdStatus] = useState<"idle" | "copied" | "error">("idle");
+
+  const {
+    runs,
+    setRuns,
+    loading,
+    error,
+    setError,
+    lastRefreshAt,
+    setLastRefreshAt,
+    selectedRunId,
+    setSelectedRunId,
+    refreshRuns
+  } = useRunsList({
+    apiBaseUrl,
+    initialSelectedRunId: initialSelection.runId
+  });
   const {
     selectedRun,
     detailLoading,
@@ -617,45 +629,6 @@ export function App(): JSX.Element {
     detailPageSize
   });
 
-  async function loadRuns(): Promise<void> {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`${apiBaseUrl}/api/runs`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const payload = (await response.json()) as RunSummary[];
-      setRuns(payload);
-      setLastRefreshAt(new Date().toISOString());
-
-      const fallbackRun =
-        payload.find((run) => run.status === "running")
-        ?? payload[0];
-
-      if (payload.length === 0) {
-        setSelectedRunId(null);
-        return;
-      }
-
-      setSelectedRunId((currentSelectedRunId) => {
-        if (!currentSelectedRunId) {
-          return fallbackRun.runId;
-        }
-
-        const stillExists = payload.some((run) => run.runId === currentSelectedRunId);
-        return stillExists ? currentSelectedRunId : fallbackRun.runId;
-      });
-    } catch (fetchError) {
-      const message = formatError(fetchError);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function startRunFromUi(targetPathOverride?: string, triggerSource: "manual" | "auto" = "manual"): Promise<boolean> {
     const normalizedTargetPath = (targetPathOverride ?? startRunTargetPath).trim();
     if (normalizedTargetPath.length === 0) {
@@ -691,7 +664,7 @@ export function App(): JSX.Element {
         setAutoRunConsecutiveFailures(0);
         setAutoRunDisabledReason(null);
       }
-      await loadRuns();
+      await refreshRuns();
       return true;
     } catch (startError) {
       const message = formatError(startError);
@@ -767,10 +740,6 @@ export function App(): JSX.Element {
     setAutoRunPauseWhenHidden(true);
     setAutoRunMaxFailures(3);
   }
-
-  useEffect(() => {
-    void loadRuns();
-  }, []);
 
   useEffect(() => {
     if (!selectedRun) {
