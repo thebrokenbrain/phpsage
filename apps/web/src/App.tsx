@@ -36,7 +36,6 @@ import { useAutoRunErrorReset } from "./hooks/use-auto-run-error-reset.js";
 import { ActiveControls } from "./components/active-controls.js";
 import { RunsSummary } from "./components/runs-summary.js";
 import { RunStarter } from "./components/run-starter.js";
-import { SelectionEmpty } from "./components/selection-empty.js";
 import { DetailPanel } from "./components/detail-panel.js";
 import { useVisibleRunFiles } from "./hooks/use-visible-run-files.js";
 import { useFilteredIssueEntries } from "./hooks/use-filtered-issue-entries.js";
@@ -51,6 +50,7 @@ import { HeaderIntervalControls } from "./components/header-interval-controls.js
 import { HeaderActionButtons } from "./components/header-action-buttons.js";
 import { RunsPane } from "./components/runs-pane.js";
 import { CopyLinkError } from "./components/copy-link-error.js";
+import { InspectorPane } from "./components/inspector-pane.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -563,22 +563,15 @@ export function App(): JSX.Element {
           runsCount={runs.length}
         />
 
-        <div className="inspector-pane">
-          <div className="pane-header">
-            <h2>Inspector</h2>
-            <span className="pane-meta">{selectedRunId ? "run selected" : "no selection"}</span>
-          </div>
-
-          {!loading && runs.length > 0 && !selectedRunId ? (
-            <SelectionEmpty
-              latestRunningRunId={latestRunningRunId}
-              onJumpToRunning={(runId) => {
-                setSelectedRunId(runId);
-              }}
-            />
-          ) : null}
-
-          {selectedRunId ? (
+        <InspectorPane
+          selectedRunId={selectedRunId}
+          loading={loading}
+          runsCount={runs.length}
+          latestRunningRunId={latestRunningRunId}
+          onJumpToRunning={(runId) => {
+            setSelectedRunId(runId);
+          }}
+          detailPanel={selectedRunId ? (
             <DetailPanel
               detailLoading={detailLoading}
               detailError={detailError}
@@ -630,7 +623,7 @@ export function App(): JSX.Element {
               aiSuggestFix={aiSuggestFix}
             />
           ) : null}
-        </div>
+        />
       </section>
     </main>
   );
