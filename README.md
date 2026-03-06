@@ -148,7 +148,7 @@ Estado actual:
 - tests de server migrados para `RunService` y `FileRunRepository`
 - tests HTTP de server cubren validación de `POST /api/runs/start` para `targetPath`
 - tests HTTP de server también cubren `GET /api/runs`, `GET /api/runs/:runId`, `POST /api/runs/:runId/log`, `POST /api/runs/:runId/finish`, `GET /api/runs/:runId/source` y `GET /api/runs/:runId/files`
-- endpoint IA de health implementado: `GET /api/ai/health` (estado/configuración activa por entorno)
+- endpoint IA de health implementado: `GET /api/ai/health` (estado/configuración activa por entorno + probes `openai/ollama/qdrant` con latencia/error)
 - endpoint IA de ingest implementado: `POST /api/ai/ingest` (creación de job asíncrono)
 - endpoint IA de estado de ingest implementado: `GET /api/ai/ingest/:jobId`
 - endpoint IA de histórico reciente de ingest implementado: `GET /api/ai/ingest?limit=<n>`

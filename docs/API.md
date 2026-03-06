@@ -33,12 +33,24 @@ This document must be updated in the same iteration where any endpoint is added 
 	"status": "ok",
 	"enabled": false,
 	"activeProvider": null,
-	"activeModel": null
+	"activeModel": null,
+	"timestamp": "2026-03-06T10:00:00.000Z",
+	"providers": [
+		{
+			"provider": "openai",
+			"url": "https://api.openai.com/v1/models",
+			"status": "up",
+			"latencyMs": 120,
+			"error": null
+		}
+	]
 }
 ```
 
 - `enabled=true` when `PHPSAGE_AI_PROVIDER` is set (or when `OPENAI_API_KEY` is present and provider is not explicitly set).
 - `activeModel` is populated from `PHPSAGE_AI_MODEL` when AI is enabled.
+- `status` is `degraded` if the active provider probe is down.
+- provider probes cover `openai`, `ollama`, and `qdrant` with timeout `AI_HEALTH_TIMEOUT_MS` (default `5000`).
 
 - Response `404` for unknown routes:
 

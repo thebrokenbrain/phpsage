@@ -378,17 +378,41 @@ components:
   schemas:
     AiHealthResponse:
       type: object
-      required: [status, enabled, activeProvider, activeModel]
+      required: [status, enabled, activeProvider, activeModel, timestamp, providers]
       properties:
         status:
           type: string
-          enum: [ok]
+          enum: [ok, degraded]
         enabled:
           type: boolean
         activeProvider:
           type: string
           nullable: true
         activeModel:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiProviderHealth'
+    AiProviderHealth:
+      type: object
+      required: [provider, url, status, latencyMs, error]
+      properties:
+        provider:
+          type: string
+          enum: [openai, ollama, qdrant]
+        url:
+          type: string
+        status:
+          type: string
+          enum: [up, down]
+        latencyMs:
+          type: integer
+        error:
           type: string
           nullable: true
     AiExplainRequest:

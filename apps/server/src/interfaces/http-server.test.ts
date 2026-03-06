@@ -74,6 +74,38 @@ async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Pr
   };
 }
 
+async function startHealthProbeServer(statusCode: number = 200): Promise<{ url: string; close: () => Promise<void> }> {
+  const server = createServer((_request: IncomingMessage, response: ServerResponse) => {
+    response.statusCode = statusCode;
+    response.end("ok");
+  });
+
+  await new Promise<void>((resolveStart) => {
+    server.listen(0, "127.0.0.1", () => {
+      resolveStart();
+    });
+  });
+
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+
+  return {
+    url: `http://127.0.0.1:${address.port}`,
+    close: () => {
+      return new Promise<void>((resolveClose, rejectClose) => {
+        server.close((error) => {
+          if (error) {
+            rejectClose(error);
+            return;
+          }
+
+          resolveClose();
+        });
+      });
+    }
+  };
+}
+
 test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId returns it", async () => {
   const httpServer = await startTestHttpServer();
 
@@ -422,9 +454,17 @@ test("GET /api/ai/health returns disabled status when no provider is configured"
   const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
   const previousModel = process.env.PHPSAGE_AI_MODEL;
   const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
+  const previousHealthTimeout = process.env.AI_HEALTH_TIMEOUT_MS;
+  const previousOpenAiBaseUrl = process.env.OPENAI_BASE_URL;
+  const previousOllamaBaseUrl = process.env.OLLAMA_BASE_URL;
+  const previousQdrantUrl = process.env.QDRANT_URL;
   delete process.env.PHPSAGE_AI_PROVIDER;
   delete process.env.PHPSAGE_AI_MODEL;
   delete process.env.OPENAI_API_KEY;
+  process.env.AI_HEALTH_TIMEOUT_MS = "50";
+  process.env.OPENAI_BASE_URL = "http://127.0.0.1:9";
+  process.env.OLLAMA_BASE_URL = "http://127.0.0.1:9";
+  process.env.QDRANT_URL = "http://127.0.0.1:9";
 
   const httpServer = await startTestHttpServer();
 
@@ -436,12 +476,22 @@ test("GET /api/ai/health returns disabled status when no provider is configured"
       enabled: boolean;
       activeProvider: string | null;
       activeModel: string | null;
+      timestamp: string;
+      providers: Array<{
+        provider: string;
+        url: string;
+        status: string;
+        latencyMs: number;
+        error: string | null;
+      }>;
     };
 
     assert.equal(payload.status, "ok");
     assert.equal(payload.enabled, false);
     assert.equal(payload.activeProvider, null);
     assert.equal(payload.activeModel, null);
+    assert.match(payload.timestamp, /T/);
+    assert.equal(payload.providers.length, 3);
   } finally {
     await httpServer.close();
     if (previousProvider === undefined) {
@@ -461,14 +511,46 @@ test("GET /api/ai/health returns disabled status when no provider is configured"
     } else {
       process.env.OPENAI_API_KEY = previousOpenAiApiKey;
     }
+
+    if (previousHealthTimeout === undefined) {
+      delete process.env.AI_HEALTH_TIMEOUT_MS;
+    } else {
+      process.env.AI_HEALTH_TIMEOUT_MS = previousHealthTimeout;
+    }
+
+    if (previousOpenAiBaseUrl === undefined) {
+      delete process.env.OPENAI_BASE_URL;
+    } else {
+      process.env.OPENAI_BASE_URL = previousOpenAiBaseUrl;
+    }
+
+    if (previousOllamaBaseUrl === undefined) {
+      delete process.env.OLLAMA_BASE_URL;
+    } else {
+      process.env.OLLAMA_BASE_URL = previousOllamaBaseUrl;
+    }
+
+    if (previousQdrantUrl === undefined) {
+      delete process.env.QDRANT_URL;
+    } else {
+      process.env.QDRANT_URL = previousQdrantUrl;
+    }
   }
 });
 
 test("GET /api/ai/health returns enabled status with configured provider and model", async () => {
   const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
   const previousModel = process.env.PHPSAGE_AI_MODEL;
+  const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
+  const previousOpenAiHealthUrl = process.env.OPENAI_HEALTH_URL;
+  const previousHealthTimeout = process.env.AI_HEALTH_TIMEOUT_MS;
   process.env.PHPSAGE_AI_PROVIDER = "openai";
   process.env.PHPSAGE_AI_MODEL = "gpt-5-mini";
+  process.env.OPENAI_API_KEY = "test-key";
+  process.env.AI_HEALTH_TIMEOUT_MS = "200";
+
+  const healthProbeServer = await startHealthProbeServer(200);
+  process.env.OPENAI_HEALTH_URL = `${healthProbeServer.url}/v1/models`;
 
   const httpServer = await startTestHttpServer();
 
@@ -480,14 +562,21 @@ test("GET /api/ai/health returns enabled status with configured provider and mod
       enabled: boolean;
       activeProvider: string | null;
       activeModel: string | null;
+      providers: Array<{
+        provider: string;
+        status: string;
+      }>;
     };
 
     assert.equal(payload.status, "ok");
     assert.equal(payload.enabled, true);
     assert.equal(payload.activeProvider, "openai");
     assert.equal(payload.activeModel, "gpt-5-mini");
+    const openaiProbe = payload.providers.find((provider) => provider.provider === "openai");
+    assert.equal(openaiProbe?.status, "up");
   } finally {
     await httpServer.close();
+    await healthProbeServer.close();
     if (previousProvider === undefined) {
       delete process.env.PHPSAGE_AI_PROVIDER;
     } else {
@@ -498,6 +587,24 @@ test("GET /api/ai/health returns enabled status with configured provider and mod
       delete process.env.PHPSAGE_AI_MODEL;
     } else {
       process.env.PHPSAGE_AI_MODEL = previousModel;
+    }
+
+    if (previousOpenAiApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = previousOpenAiApiKey;
+    }
+
+    if (previousOpenAiHealthUrl === undefined) {
+      delete process.env.OPENAI_HEALTH_URL;
+    } else {
+      process.env.OPENAI_HEALTH_URL = previousOpenAiHealthUrl;
+    }
+
+    if (previousHealthTimeout === undefined) {
+      delete process.env.AI_HEALTH_TIMEOUT_MS;
+    } else {
+      process.env.AI_HEALTH_TIMEOUT_MS = previousHealthTimeout;
     }
   }
 });

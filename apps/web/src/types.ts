@@ -43,10 +43,18 @@ export interface SourcePayload {
 }
 
 export interface AiHealthPayload {
-  readonly status: "ok";
+  readonly status: "ok" | "degraded";
   readonly enabled: boolean;
   readonly activeProvider: string | null;
   readonly activeModel: string | null;
+  readonly timestamp: string;
+  readonly providers: Array<{
+    readonly provider: "openai" | "ollama" | "qdrant";
+    readonly url: string;
+    readonly status: "up" | "down";
+    readonly latencyMs: number;
+    readonly error: string | null;
+  }>;
 }
 
 export interface AiIngestJobPayload {

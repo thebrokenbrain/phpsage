@@ -47,10 +47,20 @@ interface TargetPathValidationResult {
 }
 
 interface AiHealthResponse {
-  status: "ok";
+  status: "ok" | "degraded";
   enabled: boolean;
   activeProvider: string | null;
   activeModel: string | null;
+  timestamp: string;
+  providers: AiProviderHealth[];
+}
+
+interface AiProviderHealth {
+  provider: "openai" | "ollama" | "qdrant";
+  url: string;
+  status: "up" | "down";
+  latencyMs: number;
+  error: string | null;
 }
 
 export function createHttpServer(
@@ -78,7 +88,7 @@ export function createHttpServer(
     }
 
     if (method === "GET" && requestUrl.pathname === "/api/ai/health") {
-      writeJson(response, 200, getAiHealth());
+      writeJson(response, 200, await getAiHealth());
       return;
     }
 
@@ -307,7 +317,7 @@ export function createHttpServer(
   });
 }
 
-function getAiHealth(): AiHealthResponse {
+async function getAiHealth(): Promise<AiHealthResponse> {
   const providerFromEnv = process.env.PHPSAGE_AI_PROVIDER?.trim() || process.env.AI_PROVIDER?.trim();
   const openAiApiKey = process.env.OPENAI_API_KEY?.trim();
   const activeProvider = providerFromEnv && providerFromEnv.length > 0
@@ -321,12 +331,104 @@ function getAiHealth(): AiHealthResponse {
     )
     : null;
 
+  const timeoutMs = readPositiveIntegerEnvOrDefault("AI_HEALTH_TIMEOUT_MS", 5000);
+  const providers = await Promise.all([
+    probeHealth({
+      provider: "openai",
+      url: process.env.OPENAI_HEALTH_URL?.trim() || `${(process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com").replace(/\/+$/, "")}/v1/models`,
+      timeoutMs,
+      headers: openAiApiKey ? { Authorization: `Bearer ${openAiApiKey}` } : undefined
+    }),
+    probeHealth({
+      provider: "ollama",
+      url: `${(process.env.OLLAMA_BASE_URL?.trim() || "http://ollama:11434").replace(/\/+$/, "")}/api/tags`,
+      timeoutMs
+    }),
+    probeHealth({
+      provider: "qdrant",
+      url: `${(process.env.QDRANT_URL?.trim() || "http://qdrant:6333").replace(/\/+$/, "")}/healthz`,
+      timeoutMs
+    })
+  ]);
+
+  const isActiveProviderHealthy = activeProvider === null
+    ? true
+    : providers.some((provider) => provider.provider === activeProvider && provider.status === "up");
+
   return {
-    status: "ok",
+    status: isActiveProviderHealthy ? "ok" : "degraded",
     enabled: activeProvider !== null,
     activeProvider,
-    activeModel
+    activeModel,
+    timestamp: new Date().toISOString(),
+    providers
   };
+}
+
+interface AiHealthProbeRequest {
+  provider: AiProviderHealth["provider"];
+  url: string;
+  timeoutMs: number;
+  headers?: Record<string, string>;
+}
+
+async function probeHealth(request: AiHealthProbeRequest): Promise<AiProviderHealth> {
+  const startedAt = Date.now();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, request.timeoutMs);
+
+  try {
+    const response = await fetch(request.url, {
+      method: "GET",
+      headers: request.headers,
+      signal: controller.signal
+    });
+
+    const latencyMs = Date.now() - startedAt;
+    if (response.ok) {
+      return {
+        provider: request.provider,
+        url: request.url,
+        status: "up",
+        latencyMs,
+        error: null
+      };
+    }
+
+    return {
+      provider: request.provider,
+      url: request.url,
+      status: "down",
+      latencyMs,
+      error: `HTTP ${response.status}`
+    };
+  } catch (error) {
+    return {
+      provider: request.provider,
+      url: request.url,
+      status: "down",
+      latencyMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function readPositiveIntegerEnvOrDefault(name: string, fallback: number): number {
+  const rawValue = process.env[name];
+  if (!rawValue || rawValue.trim().length === 0) {
+    return fallback;
+  }
+
+  const parsedValue = Number.parseInt(rawValue.trim(), 10);
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return fallback;
+  }
+
+  return parsedValue;
 }
 
 function getRunIdByAction(pathname: string, action: "log" | "finish" | "source" | "files"): string | null {
