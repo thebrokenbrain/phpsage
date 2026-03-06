@@ -54,6 +54,7 @@ import { DashboardBrand } from "./components/dashboard-brand.js";
 import { HeaderRunFilters } from "./components/header-run-filters.js";
 import { HeaderToggleControls } from "./components/header-toggle-controls.js";
 import { HeaderIntervalControls } from "./components/header-interval-controls.js";
+import { HeaderActionButtons } from "./components/header-action-buttons.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -478,105 +479,37 @@ export function App(): JSX.Element {
             autoRunTargetMode={autoRunTargetMode}
             setAutoRunTargetMode={setAutoRunTargetMode}
           />
-          <button
-            onClick={() => {
-              void (async () => {
-                await startRunFromUi(resolvedAutoRunTargetPath);
-              })();
-            }}
-            disabled={startRunLoading || resolvedAutoRunTargetPath.trim().length === 0}
-          >
-            Run now
-          </button>
-          <button
-            onClick={() => {
-              void copyCurrentDeepLink();
-            }}
-          >
-            {copyLinkStatus === "copied" ? "Link copied" : "Copy link"}
-          </button>
-          <button
-            onClick={() => {
-              resetDashboardControls();
-            }}
-          >
-            Reset controls
-          </button>
-          <button
-            onClick={() => {
-              setAutoRunTriggerCount(0);
-            }}
-            disabled={autoRunTriggerCount === 0}
-          >
-            Reset auto count
-          </button>
-          <button
-            onClick={() => {
-              setAutoRunFailureCount(0);
-              setAutoRunConsecutiveFailures(0);
-              setAutoRunDisabledReason(null);
-              setLastAutoRunError(null);
-            }}
-            disabled={autoRunFailureCount === 0 && autoRunConsecutiveFailures === 0 && !lastAutoRunError}
-          >
-            Reset auto failures
-          </button>
-          <button
-            onClick={() => {
-              setIsAutoRunEnabled(true);
-              setLastAutoRunError(null);
-              setAutoRunDisabledReason(null);
-              setAutoRunConsecutiveFailures(0);
-              setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
-            }}
-            disabled={isAutoRunEnabled}
-          >
-            Re-enable auto-run
-          </button>
-          <button
-            onClick={() => {
-              setLastAutoRunAt(null);
-              setLastAutoRunError(null);
-              setAutoRunDisabledReason(null);
-            }}
-            disabled={!lastAutoRunAt && !lastAutoRunError && !autoRunDisabledReason}
-          >
-            Clear auto status
-          </button>
-          <button
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                window.open("http://localhost:8081", "_blank", "noopener,noreferrer");
-              }
-            }}
-          >
-            API docs
-          </button>
-          <button
-            onClick={() => {
-              if (latestRunningRunId) {
-                setSelectedRunId(latestRunningRunId);
-                setSelectedIssueIndex(0);
-                setSelectedSourceFilePath(null);
-              }
-            }}
-            disabled={!latestRunningRunId}
-          >
-            Jump to running
-          </button>
-          <button
-            onClick={() => {
-              setSelectedRunId(null);
-              setSelectedRun(null);
-              setSelectedSourceFilePath(null);
-            }}
-            disabled={!selectedRunId}
-          >
-            Clear selection
-          </button>
-          <button onClick={() => void refreshRuns()} disabled={loading}>
-            {loading ? "Loading..." : "Refresh"}
-          </button>
+          <HeaderActionButtons
+            startRunLoading={startRunLoading}
+            resolvedAutoRunTargetPath={resolvedAutoRunTargetPath}
+            startRunFromUi={startRunFromUi}
+            copyCurrentDeepLink={copyCurrentDeepLink}
+            copyLinkStatus={copyLinkStatus}
+            resetDashboardControls={resetDashboardControls}
+            autoRunTriggerCount={autoRunTriggerCount}
+            setAutoRunTriggerCount={setAutoRunTriggerCount}
+            autoRunFailureCount={autoRunFailureCount}
+            autoRunConsecutiveFailures={autoRunConsecutiveFailures}
+            lastAutoRunError={lastAutoRunError}
+            setAutoRunFailureCount={setAutoRunFailureCount}
+            setAutoRunConsecutiveFailures={setAutoRunConsecutiveFailures}
+            setAutoRunDisabledReason={setAutoRunDisabledReason}
+            setLastAutoRunError={setLastAutoRunError}
+            isAutoRunEnabled={isAutoRunEnabled}
+            setIsAutoRunEnabled={setIsAutoRunEnabled}
+            setAutoRunCountdownSec={setAutoRunCountdownSec}
+            autoRunEffectiveIntervalMs={autoRunEffectiveIntervalMs}
+            lastAutoRunAt={lastAutoRunAt}
+            setLastAutoRunAt={setLastAutoRunAt}
+            autoRunDisabledReason={autoRunDisabledReason}
+            latestRunningRunId={latestRunningRunId}
+            setSelectedRunId={setSelectedRunId}
+            setSelectedIssueIndex={setSelectedIssueIndex}
+            setSelectedSourceFilePath={setSelectedSourceFilePath}
+            selectedRunId={selectedRunId}
+            refreshRuns={refreshRuns}
+            loading={loading}
+          />
         </div>
       </header>
 
