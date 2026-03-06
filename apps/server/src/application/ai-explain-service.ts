@@ -73,7 +73,41 @@ export class AiExplainService {
       fallbackReason,
       contextItems,
       usage: null,
-      debug: null
+      debug: this.buildFallbackDebugPayload(request, contextItems, fallbackReason)
+    };
+  }
+
+  private buildFallbackDebugPayload(
+    request: AiExplainRequest,
+    contextItems: AiRagContextItem[],
+    fallbackReason: string
+  ): AiLlmDebugPayload {
+    return {
+      strategy: "fallback-explain",
+      endpoint: "local-fallback",
+      prompt: [
+        `Message: ${request.issueMessage}`,
+        `Identifier: ${request.issueIdentifier ?? "unknown"}`,
+        `File: ${request.filePath ?? "unknown"}`,
+        `Line: ${request.line ?? 0}`,
+        request.sourceSnippet ? `Source snippet:\n${request.sourceSnippet}` : "",
+        contextItems.length > 0 ? "Context included from RAG retriever." : "No RAG context available."
+      ].filter(Boolean).join("\n"),
+      requestBody: {
+        issueMessage: request.issueMessage,
+        issueIdentifier: request.issueIdentifier ?? null,
+        filePath: request.filePath ?? null,
+        line: request.line ?? null,
+        sourceSnippet: request.sourceSnippet ?? null,
+        contextItems: contextItems.map((item) => ({
+          sourcePath: item.sourcePath,
+          identifier: item.identifier,
+          score: item.score
+        }))
+      },
+      rawResponse: {
+        fallbackReason
+      }
     };
   }
 

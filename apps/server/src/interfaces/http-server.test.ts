@@ -359,7 +359,9 @@ test("POST /api/ai/explain returns fallback explanation payload", async () => {
       provider: string;
       fallbackReason: string;
       usage: null;
-      debug: null;
+      debug: {
+        strategy: string;
+      };
     };
 
     assert.match(payload.explanation, /Undefined variable: \$foo/);
@@ -367,7 +369,7 @@ test("POST /api/ai/explain returns fallback explanation payload", async () => {
     assert.equal(payload.provider, "openai");
     assert.match(payload.fallbackReason, /not configured/i);
     assert.equal(payload.usage, null);
-    assert.equal(payload.debug, null);
+    assert.equal(payload.debug.strategy, "fallback-explain");
     assert.ok(payload.recommendations.length >= 2);
   } finally {
     await httpServer.close();
@@ -399,7 +401,7 @@ test("POST /api/ai/suggest-fix validates missing issueMessage", async () => {
   }
 });
 
-test("POST /api/ai/suggest-fix returns fallback diff payload", async () => {
+test("POST /api/ai/suggest-fix returns fallback payload without unsafe diff", async () => {
   const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
   process.env.PHPSAGE_AI_PROVIDER = "openai";
 
@@ -422,24 +424,26 @@ test("POST /api/ai/suggest-fix returns fallback diff payload", async () => {
 
     assert.equal(response.status, 200);
     const payload = (await response.json()) as {
-      proposedDiff: string;
+      proposedDiff: string | null;
       rationale: string;
       source: string;
       provider: string;
       fallbackReason: string;
+      rejectedReason: string | null;
       usage: null;
-      debug: null;
+      debug: {
+        strategy: string;
+      };
     };
 
-    assert.match(payload.proposedDiff, /--- a\/src\/Broken.php/);
-    assert.match(payload.proposedDiff, /\+\+\+ b\/src\/Broken.php/);
-    assert.match(payload.proposedDiff, /\+return \$value \+ \$value;/);
-    assert.match(payload.rationale, /Undefined variable: \$undefinedVariable/);
+    assert.equal(payload.proposedDiff, null);
+    assert.equal(payload.rejectedReason, null);
+    assert.match(payload.rationale, /Unable to return a safe patch/i);
     assert.equal(payload.source, "fallback");
     assert.equal(payload.provider, "openai");
     assert.match(payload.fallbackReason, /not configured/i);
     assert.equal(payload.usage, null);
-    assert.equal(payload.debug, null);
+    assert.equal(payload.debug.strategy, "fallback-suggest-fix");
   } finally {
     await httpServer.close();
     if (previousProvider === undefined) {

@@ -45,7 +45,9 @@ test("AiSuggestFixService includes retrieved context items", async () => {
 
   assert.equal(result.contextItems.length, 1);
   assert.equal(result.contextItems[0]?.sourcePath, "variable.undefined.md");
-  assert.match(result.proposedDiff, /\+return \$value \+ \$value;/);
+  assert.equal(result.proposedDiff, null);
+  assert.equal(result.rejectedReason, null);
+  assert.equal(result.debug?.strategy, "fallback-suggest-fix");
 });
 
 test("AiExplainService uses llm output when client is available", async () => {
@@ -128,6 +130,8 @@ test("AiSuggestFixService falls back when patch guard rejects llm diff", async (
 
   assert.equal(result.source, "fallback");
   assert.match(result.fallbackReason ?? "", /Patch rejected by guardrails/i);
+  assert.equal(result.proposedDiff, null);
+  assert.match(result.rejectedReason ?? "", /php -l failed/i);
 });
 
 test("AiExplainService supports ollama-backed llm client", async () => {

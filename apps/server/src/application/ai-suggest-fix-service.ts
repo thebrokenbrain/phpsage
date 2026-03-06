@@ -14,11 +14,12 @@ export interface AiSuggestFixRequest {
 }
 
 export interface AiSuggestFixResponse {
-  readonly proposedDiff: string;
+  readonly proposedDiff: string | null;
   readonly rationale: string;
   readonly source: "fallback" | "llm";
   readonly provider: string;
   readonly fallbackReason: string | null;
+  readonly rejectedReason: string | null;
   readonly contextItems: AiRagContextItem[];
   readonly usage: AiLlmUsage | null;
   readonly debug: AiLlmDebugPayload | null;
@@ -65,33 +66,37 @@ export class AiSuggestFixService {
           source: "llm",
           provider: this.providerName,
           fallbackReason: null,
+          rejectedReason: null,
           contextItems,
           usage: output.usage,
           debug: output.debug
         };
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
-        return this.buildFallbackResponse(request, contextItems, `LLM request failed: ${reason}`);
+        const rejectedReason = this.extractRejectedReason(reason);
+        return this.buildFallbackResponse(request, contextItems, `LLM request failed: ${reason}`, rejectedReason);
       }
     }
 
-    return this.buildFallbackResponse(request, contextItems, "LLM provider is not configured for suggest-fix yet");
+    return this.buildFallbackResponse(request, contextItems, "LLM provider is not configured for suggest-fix yet", null);
   }
 
   private buildFallbackResponse(
     request: AiSuggestFixRequest,
     contextItems: AiRagContextItem[],
-    fallbackReason: string
+    fallbackReason: string,
+    rejectedReason: string | null
   ): AiSuggestFixResponse {
     return {
-      proposedDiff: this.buildFallbackDiff(request),
+      proposedDiff: null,
       rationale: this.buildRationale(request, contextItems),
       source: "fallback",
       provider: this.providerName,
       fallbackReason,
+      rejectedReason,
       contextItems,
       usage: null,
-      debug: null
+      debug: this.buildFallbackDebugPayload(request, contextItems, fallbackReason, rejectedReason)
     };
   }
 
@@ -118,37 +123,55 @@ export class AiSuggestFixService {
     };
   }
 
-  private buildFallbackDiff(request: AiSuggestFixRequest): string {
-    const filePath = this.normalizeDiffPath(request.filePath ?? "unknown.php");
-    const line = request.line && request.line > 0 ? request.line : 1;
-    const originalLine = request.sourceSnippet?.trim() || "// original code not available";
-    const fixedLine = this.fallbackReplacementLine(request.issueIdentifier, originalLine);
-
-    return [
-      `--- a/${filePath}`,
-      `+++ b/${filePath}`,
-      `@@ -${line},1 +${line},1 @@`,
-      `-${originalLine}`,
-      `+${fixedLine}`
-    ].join("\n");
-  }
-
-  private normalizeDiffPath(filePath: string): string {
-    return filePath.replace(/^\/+/, "");
-  }
-
-  private fallbackReplacementLine(identifier: string | undefined, originalLine: string): string {
-    if (identifier === "variable.undefined") {
-      return originalLine.replace("$undefinedVariable", "$value");
-    }
-
-    return `${originalLine} // TODO: adjust code to satisfy static analysis`;
-  }
-
   private buildRationale(request: AiSuggestFixRequest, contextItems: AiRagContextItem[]): string {
     const identifier = request.issueIdentifier ?? "unknown";
     const contextSummary = summarizeContextSources(contextItems);
-    const base = `Suggested patch targets issue '${request.issueMessage}' (${identifier}) and keeps changes minimal by touching only the reported line context.`;
+    const base = `Unable to return a safe patch for issue '${request.issueMessage}' (${identifier}) because the generated diff did not pass validation.`;
     return contextSummary ? `${base} ${contextSummary}` : base;
+  }
+
+  private extractRejectedReason(reason: string): string | null {
+    const marker = "Patch rejected by guardrails:";
+    if (!reason.includes(marker)) {
+      return null;
+    }
+
+    return reason.split(marker)[1]?.trim() || "Patch was rejected by guardrails";
+  }
+
+  private buildFallbackDebugPayload(
+    request: AiSuggestFixRequest,
+    contextItems: AiRagContextItem[],
+    fallbackReason: string,
+    rejectedReason: string | null
+  ): AiLlmDebugPayload {
+    return {
+      strategy: "fallback-suggest-fix",
+      endpoint: "local-fallback",
+      prompt: [
+        `Message: ${request.issueMessage}`,
+        `Identifier: ${request.issueIdentifier ?? "unknown"}`,
+        `File: ${request.filePath ?? "unknown"}`,
+        `Line: ${request.line ?? 0}`,
+        request.sourceSnippet ? `Source snippet:\n${request.sourceSnippet}` : "",
+        contextItems.length > 0 ? "Context included from RAG retriever." : "No RAG context available."
+      ].filter(Boolean).join("\n"),
+      requestBody: {
+        issueMessage: request.issueMessage,
+        issueIdentifier: request.issueIdentifier ?? null,
+        filePath: request.filePath ?? null,
+        line: request.line ?? null,
+        sourceSnippet: request.sourceSnippet ?? null,
+        contextItems: contextItems.map((item) => ({
+          sourcePath: item.sourcePath,
+          identifier: item.identifier,
+          score: item.score
+        }))
+      },
+      rawResponse: {
+        fallbackReason,
+        rejectedReason
+      }
+    };
   }
 }
