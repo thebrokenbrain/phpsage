@@ -48,6 +48,7 @@ import { useVisibleRunFiles } from "./hooks/use-visible-run-files.js";
 import { useFilteredIssueEntries } from "./hooks/use-filtered-issue-entries.js";
 import { useFilteredLogs } from "./hooks/use-filtered-logs.js";
 import { useActiveIssueLineInSource } from "./hooks/use-active-issue-line-in-source.js";
+import { useResolvedSourceFilePath } from "./hooks/use-resolved-source-file-path.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -308,17 +309,12 @@ export function App(): JSX.Element {
     activeIssue
   });
 
-  const resolvedSourceFilePath = useMemo(() => {
-    if (!selectedRunId || !selectedRun) {
-      return null;
-    }
-
-    if (selectedSourceFilePath) {
-      return selectedSourceFilePath;
-    }
-
-    return activeIssue?.file ?? null;
-  }, [activeIssue?.file, selectedRun, selectedRunId, selectedSourceFilePath]);
+  const resolvedSourceFilePath = useResolvedSourceFilePath({
+    selectedRunId,
+    selectedRun,
+    selectedSourceFilePath,
+    activeIssueFile: activeIssue?.file
+  });
 
   const {
     sourcePayload,
