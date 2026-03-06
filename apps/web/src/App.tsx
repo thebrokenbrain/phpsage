@@ -25,6 +25,7 @@ import { useAutoRunVisibilityPause } from "./hooks/use-auto-run-visibility-pause
 import { useAutoRunScheduler } from "./hooks/use-auto-run-scheduler.js";
 import { useRunningRunPolling } from "./hooks/use-running-run-polling.js";
 import { useDashboardStorage } from "./hooks/use-dashboard-storage.js";
+import { useDashboardPagination } from "./hooks/use-dashboard-pagination.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -603,6 +604,19 @@ export function App(): JSX.Element {
     });
   }, [logSearchTerm, logStreamFilter, selectedRun]);
 
+  useDashboardPagination({
+    selectedRun,
+    selectedIssueIndex,
+    issuePage,
+    setSelectedIssueIndex,
+    setIssuePage,
+    filteredIssueCount: filteredIssueEntries.length,
+    filteredLogCount: filteredLogs.length,
+    logPage,
+    setLogPage,
+    detailPageSize
+  });
+
   async function loadRuns(): Promise<void> {
     setLoading(true);
     setError(null);
@@ -775,52 +789,6 @@ export function App(): JSX.Element {
   useEffect(() => {
     setLastAutoRunError(null);
   }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode]);
-
-  useEffect(() => {
-    if (!selectedRun) {
-      setIssuePage(0);
-      return;
-    }
-
-    if (selectedRun.issues.length === 0) {
-      setSelectedIssueIndex(0);
-      setIssuePage(0);
-      return;
-    }
-
-    const clampedIssueIndex = Math.min(Math.max(0, selectedIssueIndex), selectedRun.issues.length - 1);
-    if (clampedIssueIndex !== selectedIssueIndex) {
-      setSelectedIssueIndex(clampedIssueIndex);
-      return;
-    }
-
-    const derivedIssuePage = Math.floor(clampedIssueIndex / detailPageSize);
-    if (derivedIssuePage !== issuePage) {
-      setIssuePage(derivedIssuePage);
-    }
-  }, [issuePage, selectedIssueIndex, selectedRun]);
-
-  useEffect(() => {
-    const maxIssuePage = Math.max(0, Math.ceil(filteredIssueEntries.length / detailPageSize) - 1);
-    if (issuePage > maxIssuePage) {
-      setIssuePage(maxIssuePage);
-    }
-  }, [filteredIssueEntries.length, issuePage]);
-
-  useEffect(() => {
-    if (filteredLogs.length === 0) {
-      if (logPage !== 0) {
-        setLogPage(0);
-      }
-      return;
-    }
-
-    const maxLogPage = Math.max(0, Math.ceil(filteredLogs.length / detailPageSize) - 1);
-    const clampedLogPage = Math.min(Math.max(0, logPage), maxLogPage);
-    if (clampedLogPage !== logPage) {
-      setLogPage(clampedLogPage);
-    }
-  }, [filteredLogs.length, logPage]);
 
   return (
     <main className="app">
