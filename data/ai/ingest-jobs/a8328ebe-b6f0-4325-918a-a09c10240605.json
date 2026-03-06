@@ -1,0 +1,14 @@
+{
+  "jobId": "a8328ebe-b6f0-4325-918a-a09c10240605",
+  "targetPath": "/workspace/docs/phpstan",
+  "status": "completed",
+  "createdAt": "2026-03-06T21:17:33.087Z",
+  "updatedAt": "2026-03-06T21:17:33.311Z",
+  "startedAt": "2026-03-06T21:17:33.089Z",
+  "finishedAt": "2026-03-06T21:17:33.311Z",
+  "error": null,
+  "stats": {
+    "filesIndexed": 1074,
+    "chunksIndexed": 1074
+  }
+}
