@@ -37,12 +37,7 @@ import { ActiveControls } from "./components/active-controls.js";
 import { RunsSummary } from "./components/runs-summary.js";
 import { RunStarter } from "./components/run-starter.js";
 import { SelectionEmpty } from "./components/selection-empty.js";
-import { RunDetailMeta } from "./components/run-detail-meta.js";
-import { FilesDetailBlock } from "./components/files-detail-block.js";
-import { IssuesDetailBlock } from "./components/issues-detail-block.js";
-import { SourceDetailBlock } from "./components/source-detail-block.js";
-import { LogsDetailBlock } from "./components/logs-detail-block.js";
-import { AiAssistDetailBlock } from "./components/ai-assist-detail-block.js";
+import { DetailPanel } from "./components/detail-panel.js";
 import { useVisibleRunFiles } from "./hooks/use-visible-run-files.js";
 import { useFilteredIssueEntries } from "./hooks/use-filtered-issue-entries.js";
 import { useFilteredLogs } from "./hooks/use-filtered-logs.js";
@@ -584,82 +579,56 @@ export function App(): JSX.Element {
           ) : null}
 
           {selectedRunId ? (
-            <section className="detail-panel">
-          <RunDetailMeta
-            detailLoading={detailLoading}
-            detailError={detailError}
-            selectedRun={selectedRun}
-            copyRunIdStatus={copyRunIdStatus}
-            copyRunId={copyRunId}
-          />
-
-          {!detailLoading && !detailError && selectedRun ? (
-            <>
-              <FilesDetailBlock
-                isFilesSectionOpen={isFilesSectionOpen}
-                setIsFilesSectionOpen={setIsFilesSectionOpen}
-                selectedSourceFilePath={selectedSourceFilePath}
-                setSelectedSourceFilePath={setSelectedSourceFilePath}
-                fileSearchTerm={fileSearchTerm}
-                setFileSearchTerm={setFileSearchTerm}
-                filesLoading={filesLoading}
-                filesError={filesError}
-                visibleRunFiles={visibleRunFiles}
-                runFiles={runFiles}
-                selectedRun={selectedRun}
-              />
-
-              <IssuesDetailBlock
-                isIssuesSectionOpen={isIssuesSectionOpen}
-                setIsIssuesSectionOpen={setIsIssuesSectionOpen}
-                issueSearchTerm={issueSearchTerm}
-                setIssueSearchTerm={setIssueSearchTerm}
-                issueIdentifierFilter={issueIdentifierFilter}
-                setIssueIdentifierFilter={setIssueIdentifierFilter}
-                setIssuePage={setIssuePage}
-                filteredIssueEntries={filteredIssueEntries}
-                issuePage={issuePage}
-                detailPageSize={detailPageSize}
-                selectedIssueIndex={selectedIssueIndex}
-                setSelectedIssueIndex={setSelectedIssueIndex}
-                setSelectedSourceFilePath={setSelectedSourceFilePath}
-                selectedRun={selectedRun}
-              />
-
-              <SourceDetailBlock
-                isSourceSectionOpen={isSourceSectionOpen}
-                setIsSourceSectionOpen={setIsSourceSectionOpen}
-                sourceLoading={sourceLoading}
-                sourceError={sourceError}
-                sourcePayload={sourcePayload}
-                activeIssueLineInSource={activeIssueLineInSource}
-              />
-
-              <LogsDetailBlock
-                isLogsSectionOpen={isLogsSectionOpen}
-                setIsLogsSectionOpen={setIsLogsSectionOpen}
-                logSearchTerm={logSearchTerm}
-                setLogSearchTerm={setLogSearchTerm}
-                logStreamFilter={logStreamFilter}
-                setLogStreamFilter={setLogStreamFilter}
-                setLogPage={setLogPage}
-                filteredLogs={filteredLogs}
-                logPage={logPage}
-                detailPageSize={detailPageSize}
-                selectedRun={selectedRun}
-              />
-
-              <AiAssistDetailBlock
-                activeIssue={activeIssue}
-                isLlmAvailable={isLlmAvailable}
-                isAiLoading={isAiLoading}
-                aiError={aiError}
-                aiExplain={aiExplain}
-                aiSuggestFix={aiSuggestFix}
-              />
-            </>
-          ) : null}
-            </section>
+            <DetailPanel
+              detailLoading={detailLoading}
+              detailError={detailError}
+              selectedRun={selectedRun}
+              copyRunIdStatus={copyRunIdStatus}
+              copyRunId={copyRunId}
+              isFilesSectionOpen={isFilesSectionOpen}
+              setIsFilesSectionOpen={setIsFilesSectionOpen}
+              selectedSourceFilePath={selectedSourceFilePath}
+              setSelectedSourceFilePath={setSelectedSourceFilePath}
+              fileSearchTerm={fileSearchTerm}
+              setFileSearchTerm={setFileSearchTerm}
+              filesLoading={filesLoading}
+              filesError={filesError}
+              visibleRunFiles={visibleRunFiles}
+              runFiles={runFiles}
+              isIssuesSectionOpen={isIssuesSectionOpen}
+              setIsIssuesSectionOpen={setIsIssuesSectionOpen}
+              issueSearchTerm={issueSearchTerm}
+              setIssueSearchTerm={setIssueSearchTerm}
+              issueIdentifierFilter={issueIdentifierFilter}
+              setIssueIdentifierFilter={setIssueIdentifierFilter}
+              setIssuePage={setIssuePage}
+              filteredIssueEntries={filteredIssueEntries}
+              issuePage={issuePage}
+              detailPageSize={detailPageSize}
+              selectedIssueIndex={selectedIssueIndex}
+              setSelectedIssueIndex={setSelectedIssueIndex}
+              isSourceSectionOpen={isSourceSectionOpen}
+              setIsSourceSectionOpen={setIsSourceSectionOpen}
+              sourceLoading={sourceLoading}
+              sourceError={sourceError}
+              sourcePayload={sourcePayload}
+              activeIssueLineInSource={activeIssueLineInSource}
+              isLogsSectionOpen={isLogsSectionOpen}
+              setIsLogsSectionOpen={setIsLogsSectionOpen}
+              logSearchTerm={logSearchTerm}
+              setLogSearchTerm={setLogSearchTerm}
+              logStreamFilter={logStreamFilter}
+              setLogStreamFilter={setLogStreamFilter}
+              setLogPage={setLogPage}
+              filteredLogs={filteredLogs}
+              logPage={logPage}
+              activeIssue={activeIssue}
+              isLlmAvailable={isLlmAvailable}
+              isAiLoading={isAiLoading}
+              aiError={aiError}
+              aiExplain={aiExplain}
+              aiSuggestFix={aiSuggestFix}
+            />
           ) : null}
         </div>
       </section>
