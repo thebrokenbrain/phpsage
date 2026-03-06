@@ -51,6 +51,7 @@ import { useActiveIssueLineInSource } from "./hooks/use-active-issue-line-in-sou
 import { useResolvedSourceFilePath } from "./hooks/use-resolved-source-file-path.js";
 import { useActiveSourceSnippet } from "./hooks/use-active-source-snippet.js";
 import { DashboardBrand } from "./components/dashboard-brand.js";
+import { HeaderRunFilters } from "./components/header-run-filters.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -447,43 +448,12 @@ export function App(): JSX.Element {
       <header className="header">
         <DashboardBrand />
         <div className="header-actions">
-          <label>
-            Status
-            <select
-              value={runsStatusFilter}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (value === "running" || value === "finished") {
-                  setRunsStatusFilter(value);
-                  return;
-                }
-
-                setRunsStatusFilter("all");
-              }}
-            >
-              <option value="all">All</option>
-              <option value="running">Running</option>
-              <option value="finished">Finished</option>
-            </select>
-          </label>
-          <label>
-            Sort
-            <select
-              value={runsSortOrder}
-              onChange={(event) => {
-                const value = event.target.value;
-                if (value === "updatedAsc") {
-                  setRunsSortOrder("updatedAsc");
-                  return;
-                }
-
-                setRunsSortOrder("updatedDesc");
-              }}
-            >
-              <option value="updatedDesc">Updated ↓</option>
-              <option value="updatedAsc">Updated ↑</option>
-            </select>
-          </label>
+          <HeaderRunFilters
+            runsStatusFilter={runsStatusFilter}
+            setRunsStatusFilter={setRunsStatusFilter}
+            runsSortOrder={runsSortOrder}
+            setRunsSortOrder={setRunsSortOrder}
+          />
           <label className="toggle-label">
             <input
               type="checkbox"
