@@ -178,6 +178,14 @@ export function App(): JSX.Element {
   });
 
   const {
+    autoRunCountdownSec,
+    setAutoRunCountdownSec
+  } = useAutoRunCountdown({
+    isAutoRunEnabled,
+    effectiveIntervalMs: autoRunEffectiveIntervalMs
+  });
+
+  const {
     startRunLoading,
     startRunError,
     setStartRunError,
@@ -238,14 +246,6 @@ export function App(): JSX.Element {
     setLastAutoRunError
   });
 
-  const {
-    autoRunCountdownSec,
-    setAutoRunCountdownSec
-  } = useAutoRunCountdown({
-    isAutoRunEnabled,
-    effectiveIntervalMs: autoRunEffectiveIntervalMs
-  });
-
   useAutoRunVisibilityPause({
     isAutoRunEnabled,
     autoRunPauseWhenHidden,
@@ -272,8 +272,12 @@ export function App(): JSX.Element {
     livePollingIntervalMs,
     selectedRunId,
     selectedRunStatus: selectedRun?.status ?? null,
-    refreshRunDetail,
-    refreshRunFiles,
+    refreshRunDetail: async () => {
+      await refreshRunDetail();
+    },
+    refreshRunFiles: async () => {
+      await refreshRunFiles();
+    },
     setRuns,
     setLastRefreshAt,
     setError
@@ -307,11 +311,6 @@ export function App(): JSX.Element {
     selectedFilePath: selectedSourceFilePath
   });
 
-  const activeIssueLineInSource = useActiveIssueLineInSource({
-    sourcePayload,
-    activeIssue
-  });
-
   const resolvedSourceFilePath = useResolvedSourceFilePath({
     selectedRunId,
     selectedRun,
@@ -327,6 +326,11 @@ export function App(): JSX.Element {
     apiBase: apiBaseUrl,
     runId: selectedRunId,
     filePath: resolvedSourceFilePath
+  });
+
+  const activeIssueLineInSource = useActiveIssueLineInSource({
+    sourcePayload,
+    activeIssue
   });
 
   useUrlPopstateSync({
