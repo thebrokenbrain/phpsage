@@ -21,6 +21,7 @@ import { useRunDetail } from "./hooks/use-run-detail.js";
 import { useRunFiles } from "./hooks/use-run-files.js";
 import { useAiHealth } from "./hooks/use-ai-health.js";
 import { useAutoRunCountdown } from "./hooks/use-auto-run-countdown.js";
+import { useAutoRunVisibilityPause } from "./hooks/use-auto-run-visibility-pause.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -358,6 +359,14 @@ export function App(): JSX.Element {
   } = useAutoRunCountdown({
     isAutoRunEnabled,
     effectiveIntervalMs: autoRunEffectiveIntervalMs
+  });
+
+  useAutoRunVisibilityPause({
+    isAutoRunEnabled,
+    autoRunPauseWhenHidden,
+    autoRunEffectiveIntervalMs,
+    setAutoRunDisabledReason,
+    setAutoRunCountdownSec
   });
 
   const visibleRunFiles = useMemo(() => {
@@ -842,38 +851,6 @@ export function App(): JSX.Element {
   useEffect(() => {
     setLastAutoRunError(null);
   }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-
-    if (!isAutoRunEnabled || !autoRunPauseWhenHidden) {
-      return;
-    }
-
-    function handleVisibilityChange(): void {
-      if (document.visibilityState === "hidden") {
-        setAutoRunDisabledReason("page hidden (auto paused)");
-        return;
-      }
-
-      setAutoRunDisabledReason((currentValue) => {
-        if (currentValue === "page hidden (auto paused)") {
-          return null;
-        }
-
-        return currentValue;
-      });
-      setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
-    }
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [autoRunEffectiveIntervalMs, autoRunPauseWhenHidden, isAutoRunEnabled]);
 
   useEffect(() => {
     if (!isAutoRunEnabled) {
