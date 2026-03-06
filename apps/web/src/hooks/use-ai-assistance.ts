@@ -152,7 +152,8 @@ async function loadAiAssistance({
   }
 
   const cachedResponse = getCachedValueWithLru<string, AiAssistanceCacheEntry>(aiRequestCacheRef.current, requestKey);
-  if (cachedResponse) {
+  const cachedHasDebugPayload = Boolean(cachedResponse?.explain.debug || cachedResponse?.suggestFix.debug);
+  if (cachedResponse && cachedHasDebugPayload) {
     // Prevent stale cached payloads from being rendered after a rapid context switch.
     if (aiVisibleIssueContextRef.current !== expectedIssueContextKey) {
       return;

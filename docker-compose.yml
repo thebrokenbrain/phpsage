@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: Dockerfile
     env_file:
-      - ${PHPSAGE_ENV_FILE:-.env.example}
+      - ${PHPSAGE_ENV_FILE:-.env}
     depends_on:
       qdrant:
         condition: service_started

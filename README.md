@@ -41,7 +41,7 @@ Stack objetivo de producto (a completar en iteraciones):
 
 - Plantilla disponible en `.env.example`.
 - Para overrides locales, crear `.env` y ajustar variables como `AI_PROVIDER`, `AI_RAG_BACKEND`, `AI_RAG_TOP_K`, `OPENAI_API_KEY`.
-- `docker compose` usa por defecto `.env.example`; para usar otro fichero: `PHPSAGE_ENV_FILE=.env docker compose up --build`.
+- `docker compose` usa por defecto `.env`; para usar otro fichero: `PHPSAGE_ENV_FILE=.env.example docker compose up --build`.
 - `AI_RAG_BACKEND=filesystem|qdrant` selecciona retrieval/indexación en filesystem local o Qdrant.
 - `AI_RAG_AUTO_INGEST_ON_BOOT=true` lanza una ingesta automática al arrancar el server (target: `AI_INGEST_DEFAULT_TARGET`).
 
