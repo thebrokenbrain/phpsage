@@ -51,6 +51,7 @@ import { HeaderActionButtons } from "./components/header-action-buttons.js";
 import { RunsPane } from "./components/runs-pane.js";
 import { CopyLinkError } from "./components/copy-link-error.js";
 import { InspectorPane } from "./components/inspector-pane.js";
+import { WorkspaceGrid } from "./components/workspace-grid.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -549,82 +550,85 @@ export function App(): JSX.Element {
 
       <ActiveControls labels={activeControlLabels} />
 
-      <section className="workspace-grid">
-        <RunsPane
-          visibleRuns={visibleRuns}
-          selectedRunId={selectedRunId}
-          onSelectRun={(runId) => {
-            setSelectedRunId(runId);
-            setSelectedIssueIndex(0);
-            setSelectedSourceFilePath(null);
-          }}
-          error={error}
-          loading={loading}
-          runsCount={runs.length}
-        />
-
-        <InspectorPane
-          selectedRunId={selectedRunId}
-          loading={loading}
-          runsCount={runs.length}
-          latestRunningRunId={latestRunningRunId}
-          onJumpToRunning={(runId) => {
-            setSelectedRunId(runId);
-          }}
-          detailPanel={selectedRunId ? (
-            <DetailPanel
-              detailLoading={detailLoading}
-              detailError={detailError}
-              selectedRun={selectedRun}
-              copyRunIdStatus={copyRunIdStatus}
-              copyRunId={copyRunId}
-              isFilesSectionOpen={isFilesSectionOpen}
-              setIsFilesSectionOpen={setIsFilesSectionOpen}
-              selectedSourceFilePath={selectedSourceFilePath}
-              setSelectedSourceFilePath={setSelectedSourceFilePath}
-              fileSearchTerm={fileSearchTerm}
-              setFileSearchTerm={setFileSearchTerm}
-              filesLoading={filesLoading}
-              filesError={filesError}
-              visibleRunFiles={visibleRunFiles}
-              runFiles={runFiles}
-              isIssuesSectionOpen={isIssuesSectionOpen}
-              setIsIssuesSectionOpen={setIsIssuesSectionOpen}
-              issueSearchTerm={issueSearchTerm}
-              setIssueSearchTerm={setIssueSearchTerm}
-              issueIdentifierFilter={issueIdentifierFilter}
-              setIssueIdentifierFilter={setIssueIdentifierFilter}
-              setIssuePage={setIssuePage}
-              filteredIssueEntries={filteredIssueEntries}
-              issuePage={issuePage}
-              detailPageSize={detailPageSize}
-              selectedIssueIndex={selectedIssueIndex}
-              setSelectedIssueIndex={setSelectedIssueIndex}
-              isSourceSectionOpen={isSourceSectionOpen}
-              setIsSourceSectionOpen={setIsSourceSectionOpen}
-              sourceLoading={sourceLoading}
-              sourceError={sourceError}
-              sourcePayload={sourcePayload}
-              activeIssueLineInSource={activeIssueLineInSource}
-              isLogsSectionOpen={isLogsSectionOpen}
-              setIsLogsSectionOpen={setIsLogsSectionOpen}
-              logSearchTerm={logSearchTerm}
-              setLogSearchTerm={setLogSearchTerm}
-              logStreamFilter={logStreamFilter}
-              setLogStreamFilter={setLogStreamFilter}
-              setLogPage={setLogPage}
-              filteredLogs={filteredLogs}
-              logPage={logPage}
-              activeIssue={activeIssue}
-              isLlmAvailable={isLlmAvailable}
-              isAiLoading={isAiLoading}
-              aiError={aiError}
-              aiExplain={aiExplain}
-              aiSuggestFix={aiSuggestFix}
-            />
-          ) : null}
-        />
-      </section>
+      <WorkspaceGrid
+        runsPane={(
+          <RunsPane
+            visibleRuns={visibleRuns}
+            selectedRunId={selectedRunId}
+            onSelectRun={(runId) => {
+              setSelectedRunId(runId);
+              setSelectedIssueIndex(0);
+              setSelectedSourceFilePath(null);
+            }}
+            error={error}
+            loading={loading}
+            runsCount={runs.length}
+          />
+        )}
+        inspectorPane={(
+          <InspectorPane
+            selectedRunId={selectedRunId}
+            loading={loading}
+            runsCount={runs.length}
+            latestRunningRunId={latestRunningRunId}
+            onJumpToRunning={(runId) => {
+              setSelectedRunId(runId);
+            }}
+            detailPanel={selectedRunId ? (
+              <DetailPanel
+                detailLoading={detailLoading}
+                detailError={detailError}
+                selectedRun={selectedRun}
+                copyRunIdStatus={copyRunIdStatus}
+                copyRunId={copyRunId}
+                isFilesSectionOpen={isFilesSectionOpen}
+                setIsFilesSectionOpen={setIsFilesSectionOpen}
+                selectedSourceFilePath={selectedSourceFilePath}
+                setSelectedSourceFilePath={setSelectedSourceFilePath}
+                fileSearchTerm={fileSearchTerm}
+                setFileSearchTerm={setFileSearchTerm}
+                filesLoading={filesLoading}
+                filesError={filesError}
+                visibleRunFiles={visibleRunFiles}
+                runFiles={runFiles}
+                isIssuesSectionOpen={isIssuesSectionOpen}
+                setIsIssuesSectionOpen={setIsIssuesSectionOpen}
+                issueSearchTerm={issueSearchTerm}
+                setIssueSearchTerm={setIssueSearchTerm}
+                issueIdentifierFilter={issueIdentifierFilter}
+                setIssueIdentifierFilter={setIssueIdentifierFilter}
+                setIssuePage={setIssuePage}
+                filteredIssueEntries={filteredIssueEntries}
+                issuePage={issuePage}
+                detailPageSize={detailPageSize}
+                selectedIssueIndex={selectedIssueIndex}
+                setSelectedIssueIndex={setSelectedIssueIndex}
+                isSourceSectionOpen={isSourceSectionOpen}
+                setIsSourceSectionOpen={setIsSourceSectionOpen}
+                sourceLoading={sourceLoading}
+                sourceError={sourceError}
+                sourcePayload={sourcePayload}
+                activeIssueLineInSource={activeIssueLineInSource}
+                isLogsSectionOpen={isLogsSectionOpen}
+                setIsLogsSectionOpen={setIsLogsSectionOpen}
+                logSearchTerm={logSearchTerm}
+                setLogSearchTerm={setLogSearchTerm}
+                logStreamFilter={logStreamFilter}
+                setLogStreamFilter={setLogStreamFilter}
+                setLogPage={setLogPage}
+                filteredLogs={filteredLogs}
+                logPage={logPage}
+                activeIssue={activeIssue}
+                isLlmAvailable={isLlmAvailable}
+                isAiLoading={isAiLoading}
+                aiError={aiError}
+                aiExplain={aiExplain}
+                aiSuggestFix={aiSuggestFix}
+              />
+            ) : null}
+          />
+        )}
+      />
     </main>
   );
 }
