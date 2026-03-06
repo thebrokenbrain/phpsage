@@ -521,7 +521,6 @@ export function App(): JSX.Element {
             selectedRunId={selectedRunId}
             refreshRuns={refreshRuns}
             loading={loading}
-            ingestTargetPath={startRunTargetPath}
             ingestLoading={ingestLoading}
             startIngestFromUi={startIngestFromUi}
             activeIngestJob={activeIngestJob}

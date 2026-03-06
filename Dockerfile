@@ -11,6 +11,7 @@ COPY tsconfig.base.json ./
 COPY apps ./apps
 COPY packages ./packages
 COPY docs ./docs
+COPY rag ./rag
 COPY examples ./examples
 COPY data ./data
 COPY scripts/phpsage.sh /usr/local/bin/phpsage

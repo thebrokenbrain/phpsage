@@ -89,7 +89,7 @@ export function createHttpServer(
     if (method === "POST" && requestUrl.pathname === "/api/ai/ingest") {
       const body = (await readJsonBody(request)) as IngestBody | null;
       const requestedTargetPath = typeof body?.targetPath === "string" ? body.targetPath.trim() : "";
-      const targetPath = requestedTargetPath || process.env.AI_INGEST_DEFAULT_TARGET || "/workspace/examples/php-sample";
+      const targetPath = requestedTargetPath || process.env.AI_INGEST_DEFAULT_TARGET || "/workspace/rag";
 
       const job = await aiIngestService.start(targetPath);
       writeJson(response, 202, job);

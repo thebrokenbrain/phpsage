@@ -30,7 +30,6 @@ interface HeaderActionButtonsProps {
   selectedRunId: string | null;
   refreshRuns: () => Promise<void>;
   loading: boolean;
-  ingestTargetPath: string;
   ingestLoading: boolean;
   startIngestFromUi: (targetPath?: string) => Promise<void>;
   activeIngestJob: AiIngestJobPayload | null;
@@ -66,7 +65,6 @@ export function HeaderActionButtons({
   selectedRunId,
   refreshRuns,
   loading,
-  ingestTargetPath,
   ingestLoading,
   startIngestFromUi,
   activeIngestJob
@@ -91,9 +89,9 @@ export function HeaderActionButtons({
       </button>
       <button
         onClick={() => {
-          void startIngestFromUi(ingestTargetPath);
+          void startIngestFromUi();
         }}
-        disabled={ingestLoading || ingestTargetPath.trim().length === 0 || activeIngestJob?.status === "running"}
+        disabled={ingestLoading || activeIngestJob?.status === "running"}
       >
         {ingestButtonLabel}
       </button>

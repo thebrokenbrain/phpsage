@@ -116,7 +116,7 @@ This document must be updated in the same iteration where any endpoint is added 
 
 ```json
 {
-	"targetPath": "/workspace/examples/php-sample"
+	"targetPath": "/workspace/rag"
 }
 ```
 
@@ -125,7 +125,7 @@ This document must be updated in the same iteration where any endpoint is added 
 ```json
 {
 	"jobId": "uuid",
-	"targetPath": "/workspace/examples/php-sample",
+	"targetPath": "/workspace/rag",
 	"status": "queued",
 	"createdAt": "2026-01-01T00:00:00.000Z",
 	"updatedAt": "2026-01-01T00:00:00.000Z",
@@ -136,7 +136,7 @@ This document must be updated in the same iteration where any endpoint is added 
 }
 ```
 
-- If `targetPath` is omitted, server uses `AI_INGEST_DEFAULT_TARGET` or `/workspace/examples/php-sample`.
+- If `targetPath` is omitted, server uses `AI_INGEST_DEFAULT_TARGET` or `/workspace/rag`.
 - The ingest processor walks files recursively (excluding `.git`, `node_modules`, `dist`, `coverage`, `data`) and computes stats:
 	- `filesIndexed`: number of indexed files
 	- `chunksIndexed`: chunks estimated as `ceil(lineCount / 120)` per indexed file
