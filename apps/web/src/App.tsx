@@ -47,6 +47,7 @@ import { AiAssistDetailBlock } from "./components/ai-assist-detail-block.js";
 import { useVisibleRunFiles } from "./hooks/use-visible-run-files.js";
 import { useFilteredIssueEntries } from "./hooks/use-filtered-issue-entries.js";
 import { useFilteredLogs } from "./hooks/use-filtered-logs.js";
+import { useActiveIssueLineInSource } from "./hooks/use-active-issue-line-in-source.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -302,17 +303,10 @@ export function App(): JSX.Element {
     selectedFilePath: selectedSourceFilePath
   });
 
-  const activeIssueLineInSource = useMemo(() => {
-    if (!sourcePayload || !activeIssue) {
-      return null;
-    }
-
-    if (activeIssue.file !== sourcePayload.file) {
-      return null;
-    }
-
-    return activeIssue.line;
-  }, [activeIssue, sourcePayload]);
+  const activeIssueLineInSource = useActiveIssueLineInSource({
+    sourcePayload,
+    activeIssue
+  });
 
   const resolvedSourceFilePath = useMemo(() => {
     if (!selectedRunId || !selectedRun) {
