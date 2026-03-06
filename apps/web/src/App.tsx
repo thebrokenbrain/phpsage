@@ -18,6 +18,7 @@ import { useRunViewModel } from "./hooks/use-run-view-model.js";
 import { useRunSource } from "./hooks/use-run-source.js";
 import { useUrlPopstateSync } from "./hooks/use-url-popstate-sync.js";
 import { useDashboardUrlSync } from "./hooks/use-dashboard-url-sync.js";
+import { useRunDetail } from "./hooks/use-run-detail.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -169,9 +170,6 @@ export function App(): JSX.Element {
   const [startRunLoading, setStartRunLoading] = useState(false);
   const [startRunError, setStartRunError] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(initialSelection.runId);
-  const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
   const [issuePage, setIssuePage] = useState(0);
   const [issueSearchTerm, setIssueSearchTerm] = useState(initialSelection.issueSearchTerm);
   const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
@@ -190,6 +188,15 @@ export function App(): JSX.Element {
   const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(initialSelection.isSourceSectionOpen);
   const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
   const [copyRunIdStatus, setCopyRunIdStatus] = useState<"idle" | "copied" | "error">("idle");
+    const {
+      selectedRun,
+      detailLoading,
+      detailError
+    } = useRunDetail({
+      apiBase: apiBaseUrl,
+      runId: selectedRunId
+    });
+
   const [isLlmAvailable, setIsLlmAvailable] = useState<boolean | null>(null);
   const [activeAiProvider, setActiveAiProvider] = useState<string | null>(null);
   const [activeAiModel, setActiveAiModel] = useState<string | null>(null);
@@ -544,7 +551,6 @@ export function App(): JSX.Element {
 
       if (payload.length === 0) {
         setSelectedRunId(null);
-        setSelectedRun(null);
         return;
       }
 
@@ -809,43 +815,18 @@ export function App(): JSX.Element {
   }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode, isAutoRunEnabled]);
 
   useEffect(() => {
-    async function loadRunDetail(runId: string): Promise<void> {
-      setDetailLoading(true);
-      setDetailError(null);
-
-      try {
-        const response = await fetch(`${apiBaseUrl}/api/runs/${runId}`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload = (await response.json()) as RunRecord;
-        setSelectedRun(payload);
-        setSelectedSourceFilePath((currentPath) => {
-          if (!currentPath) {
-            return null;
-          }
-
-          return currentPath.startsWith(`${payload.targetPath}/`) ? currentPath : null;
-        });
-      } catch (fetchError) {
-        const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
-        setDetailError(message);
-        setSelectedRun(null);
-      } finally {
-        setDetailLoading(false);
-      }
-    }
-
-    if (!selectedRunId) {
-      setSelectedRun(null);
-      setDetailLoading(false);
-      setDetailError(null);
+    if (!selectedRun) {
       return;
     }
 
-    void loadRunDetail(selectedRunId);
-  }, [apiBaseUrl, selectedRunId]);
+    setSelectedSourceFilePath((currentPath) => {
+      if (!currentPath) {
+        return null;
+      }
+
+      return currentPath.startsWith(`${selectedRun.targetPath}/`) ? currentPath : null;
+    });
+  }, [selectedRun]);
 
   useEffect(() => {
     async function pollRunningRun(runId: string): Promise<void> {
