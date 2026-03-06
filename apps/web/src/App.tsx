@@ -19,6 +19,7 @@ import { useRunSource } from "./hooks/use-run-source.js";
 import { useUrlPopstateSync } from "./hooks/use-url-popstate-sync.js";
 import { useDashboardUrlSync } from "./hooks/use-dashboard-url-sync.js";
 import { useRunDetail } from "./hooks/use-run-detail.js";
+import { useRunFiles } from "./hooks/use-run-files.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -180,22 +181,30 @@ export function App(): JSX.Element {
   const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">(initialSelection.logStreamFilter);
   const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
   const [isFilesSectionOpen, setIsFilesSectionOpen] = useState(initialSelection.isFilesSectionOpen);
-  const [runFiles, setRunFiles] = useState<RunFileItem[]>([]);
   const [fileSearchTerm, setFileSearchTerm] = useState(initialSelection.fileSearchTerm);
-  const [filesLoading, setFilesLoading] = useState(false);
-  const [filesError, setFilesError] = useState<string | null>(null);
   const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(initialSelection.file);
   const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(initialSelection.isSourceSectionOpen);
   const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
   const [copyRunIdStatus, setCopyRunIdStatus] = useState<"idle" | "copied" | "error">("idle");
-    const {
-      selectedRun,
-      detailLoading,
-      detailError
-    } = useRunDetail({
-      apiBase: apiBaseUrl,
-      runId: selectedRunId
-    });
+  const {
+    selectedRun,
+    detailLoading,
+    detailError,
+    refreshRunDetail
+  } = useRunDetail({
+    apiBase: apiBaseUrl,
+    runId: selectedRunId
+  });
+
+  const {
+    runFiles,
+    filesLoading,
+    filesError,
+    refreshRunFiles
+  } = useRunFiles({
+    apiBase: apiBaseUrl,
+    runId: selectedRunId
+  });
 
   const [isLlmAvailable, setIsLlmAvailable] = useState<boolean | null>(null);
   const [activeAiProvider, setActiveAiProvider] = useState<string | null>(null);
@@ -831,44 +840,21 @@ export function App(): JSX.Element {
   useEffect(() => {
     async function pollRunningRun(runId: string): Promise<void> {
       try {
-        const [runsResponse, detailResponse, filesResponse] = await Promise.all([
-          fetch(`${apiBaseUrl}/api/runs`),
-          fetch(`${apiBaseUrl}/api/runs/${runId}`),
-          fetch(`${apiBaseUrl}/api/runs/${runId}/files`)
-        ]);
+        const runsResponse = await fetch(`${apiBaseUrl}/api/runs`);
 
         if (!runsResponse.ok) {
           throw new Error(`HTTP ${runsResponse.status}`);
         }
 
-        if (!detailResponse.ok) {
-          throw new Error(`HTTP ${detailResponse.status}`);
-        }
-
-        if (!filesResponse.ok) {
-          throw new Error(`HTTP ${filesResponse.status}`);
-        }
-
         const runsPayload = (await runsResponse.json()) as RunSummary[];
-        const detailPayload = (await detailResponse.json()) as RunRecord;
-        const filesPayload = (await filesResponse.json()) as RunFilesPayload;
+
+        await Promise.all([refreshRunDetail(), refreshRunFiles()]);
 
         setRuns(runsPayload);
-        setSelectedRun(detailPayload);
-        setRunFiles(filesPayload.files);
         setLastRefreshAt(new Date().toISOString());
-        setFilesError(null);
-        setDetailError(null);
-        setSelectedSourceFilePath((currentPath) => {
-          if (!currentPath) {
-            return null;
-          }
-
-          return currentPath.startsWith(`${detailPayload.targetPath}/`) ? currentPath : null;
-        });
       } catch (pollError) {
         const message = formatError(pollError);
-        setDetailError(message);
+        setError(message);
       }
     }
 
@@ -883,7 +869,7 @@ export function App(): JSX.Element {
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [apiBaseUrl, isLivePollingEnabled, livePollingIntervalMs, selectedRun, selectedRunId]);
+  }, [apiBaseUrl, isLivePollingEnabled, livePollingIntervalMs, refreshRunDetail, refreshRunFiles, selectedRun, selectedRunId]);
 
   useEffect(() => {
     setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
@@ -1024,38 +1010,6 @@ export function App(): JSX.Element {
       setLogPage(clampedLogPage);
     }
   }, [filteredLogs.length, logPage]);
-
-  useEffect(() => {
-    async function loadRunFiles(runId: string): Promise<void> {
-      setFilesLoading(true);
-      setFilesError(null);
-
-      try {
-        const response = await fetch(`${apiBaseUrl}/api/runs/${runId}/files`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload = (await response.json()) as RunFilesPayload;
-        setRunFiles(payload.files);
-      } catch (fetchError) {
-        const message = formatError(fetchError);
-        setFilesError(message);
-        setRunFiles([]);
-      } finally {
-        setFilesLoading(false);
-      }
-    }
-
-    if (!selectedRunId) {
-      setRunFiles([]);
-      setFilesError(null);
-      setFilesLoading(false);
-      return;
-    }
-
-    void loadRunFiles(selectedRunId);
-  }, [apiBaseUrl, selectedRunId]);
 
   return (
     <main className="app">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { RunRecord } from "../types.js";
 import { formatError } from "../utils/app-helpers.js";
 
@@ -11,6 +11,7 @@ interface UseRunDetailResult {
   selectedRun: RunRecord | null;
   detailLoading: boolean;
   detailError: string | null;
+  refreshRunDetail: () => Promise<RunRecord | null>;
 }
 
 export function buildRunDetailEndpoint(apiBase: string, runId: string): string {
@@ -22,6 +23,35 @@ export function useRunDetail({ apiBase, runId }: UseRunDetailOptions): UseRunDet
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
+  const refreshRunDetail = useCallback(async (): Promise<RunRecord | null> => {
+    if (!runId) {
+      setSelectedRun(null);
+      setDetailLoading(false);
+      setDetailError(null);
+      return null;
+    }
+
+    setDetailLoading(true);
+    setDetailError(null);
+
+    try {
+      const response = await fetch(buildRunDetailEndpoint(apiBase, runId));
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = (await response.json()) as RunRecord;
+      setSelectedRun(payload);
+      return payload;
+    } catch (fetchError) {
+      setDetailError(formatError(fetchError));
+      setSelectedRun(null);
+      return null;
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [apiBase, runId]);
+
   useEffect(() => {
     if (!runId) {
       setSelectedRun(null);
@@ -30,47 +60,13 @@ export function useRunDetail({ apiBase, runId }: UseRunDetailOptions): UseRunDet
       return;
     }
 
-    const abortController = new AbortController();
-    setDetailLoading(true);
-    setDetailError(null);
-
-    void (async () => {
-      try {
-        const response = await fetch(buildRunDetailEndpoint(apiBase, runId), {
-          signal: abortController.signal
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload = (await response.json()) as RunRecord;
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        setSelectedRun(payload);
-      } catch (fetchError) {
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        setDetailError(formatError(fetchError));
-        setSelectedRun(null);
-      } finally {
-        if (!abortController.signal.aborted) {
-          setDetailLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [apiBase, runId]);
+    void refreshRunDetail();
+  }, [refreshRunDetail, runId]);
 
   return {
     selectedRun,
     detailLoading,
-    detailError
+    detailError,
+    refreshRunDetail
   };
 }
