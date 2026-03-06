@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   AiHealthPayload,
   RunFileItem,
@@ -16,6 +16,7 @@ import { useAiAssistance } from "./hooks/use-ai-assistance.js";
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 const defaultRunningPollIntervalMs = 2000;
+const aiHealthFailureThreshold = 2;
 const starterTargetStorageKey = "phpsage.runStarter.targetPath";
 const autoRunSettingsStorageKey = "phpsage.dashboard.autoRun.settings";
 const starterTargetPresets = ["/workspace/examples/php-sample", "/workspace/examples/php-sample-ok"];
@@ -131,6 +132,7 @@ function readInitialQuerySelection(): {
 }
 
 export function App(): JSX.Element {
+  const aiHealthFailureCountRef = useRef(0);
   const initialSelection = useMemo(() => readInitialQuerySelection(), []);
   const apiBaseUrl = useMemo(() => {
     const value = import.meta.env.VITE_API_BASE_URL as string | undefined;
@@ -597,6 +599,7 @@ export function App(): JSX.Element {
           return;
         }
 
+        aiHealthFailureCountRef.current = 0;
         setIsLlmAvailable(payload.enabled);
         setActiveAiProvider(payload.activeProvider);
         setActiveAiModel(payload.activeModel);
@@ -605,9 +608,12 @@ export function App(): JSX.Element {
           return;
         }
 
-        setIsLlmAvailable(false);
-        setActiveAiProvider(null);
-        setActiveAiModel(null);
+        aiHealthFailureCountRef.current += 1;
+        if (aiHealthFailureCountRef.current >= aiHealthFailureThreshold) {
+          setIsLlmAvailable(false);
+          setActiveAiProvider(null);
+          setActiveAiModel(null);
+        }
       }
     }
 
