@@ -61,6 +61,9 @@ Servicios de soporte IA disponibles en compose:
 ```bash
 docker compose run --rm phpsage-cli npm run build
 ./scripts/smoke-no-ai.sh
+./scripts/smoke-ollama.sh
+./scripts/smoke-openai.sh
+./scripts/reindex-rag.sh --wait
 docker compose up --build -d phpsage-server
 docker compose up --build -d phpsage-web
 docker compose up --build -d api-docs
