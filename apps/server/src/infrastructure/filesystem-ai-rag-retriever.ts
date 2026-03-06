@@ -98,8 +98,11 @@ function scoreDocument(request: AiRagRetrieveRequest, document: RagDocument): nu
   let score = 0;
 
   const issueIdentifier = request.issueIdentifier?.trim().toLowerCase();
-  if (issueIdentifier && document.identifier?.toLowerCase() === issueIdentifier) {
-    score += 100;
+  const normalizedIdentifier = document.identifier?.toLowerCase();
+  if (issueIdentifier && normalizedIdentifier === issueIdentifier) {
+    score += 1000;
+  } else if (issueIdentifier && normalizedIdentifier?.startsWith(issueIdentifier.split(".")[0] ?? "")) {
+    score += 120;
   }
 
   const queryTokens = tokenize([

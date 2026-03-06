@@ -45,3 +45,23 @@ test("returns empty when no document token matches query", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("keeps exact identifier as first context item when generic matches exist", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "phpsage-rag-retriever-"));
+
+  try {
+    await writeFile(join(directory, "variable.undefined.md"), "Undefined variable guidance", "utf-8");
+    await writeFile(join(directory, "arrayValues.empty.md"), "variable and values guidance", "utf-8");
+
+    const retriever = new FilesystemAiRagRetriever(directory, 2);
+    const items = await retriever.retrieve({
+      issueMessage: "Undefined variable $foo",
+      issueIdentifier: "variable.undefined"
+    });
+
+    assert.ok(items.length >= 1);
+    assert.equal(items[0]?.identifier, "variable.undefined");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
