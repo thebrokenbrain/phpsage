@@ -145,9 +145,11 @@ export function App(): JSX.Element {
   const {
     activeIngestJob,
     recentIngestJobs,
+    ingestStatusFilter,
     ingestListLoading,
     ingestLoading,
     ingestError,
+    setIngestStatusFilter,
     startIngestFromUi,
     refreshRecentIngestJobs
   } = useAiIngest({
@@ -554,7 +556,9 @@ export function App(): JSX.Element {
 
       <IngestJobsSummary
         recentIngestJobs={recentIngestJobs}
+        ingestStatusFilter={ingestStatusFilter}
         ingestListLoading={ingestListLoading}
+        onIngestStatusFilterChange={setIngestStatusFilter}
         refreshRecentIngestJobs={() => refreshRecentIngestJobs()}
       />
 

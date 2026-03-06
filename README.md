@@ -164,6 +164,7 @@ Estado actual:
 - `AI_RAG_TOP_K` permite ajustar cuántos contextos recuperar por petición IA (default `3`)
 - panel `AI Assist` permite expandir/colapsar contenido de contexto recuperado para inspección rápida
 - dashboard incluye panel `Recent Ingest Jobs` con refresco manual y snapshot de estados/estadísticas
+- panel `Recent Ingest Jobs` permite filtrar por estado (`all|queued|running|completed|failed`)
 - smoke no-IA reproducible (`./scripts/smoke-no-ai.sh`) validando dos rutas E2E: muestra con errores (`exitCode=1`) y muestra limpia (`exitCode=0`)
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`

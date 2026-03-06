@@ -147,6 +147,27 @@ body {
   gap: 10px;
 }
 
+.ingest-summary-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ingest-summary-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.ingest-summary-controls select {
+  border: 1px solid #cbd5e0;
+  border-radius: 0.5rem;
+  padding: 0.2rem 0.45rem;
+  background: #ffffff;
+}
+
 .ingest-summary-header h3 {
   margin: 0;
   font-size: 0.82rem;

@@ -91,6 +91,7 @@ A minimal Dashboard is implemented with:
 - dashboard shows LLM status (`ON/OFF`) from `GET /api/ai/health` and active provider/model when available
 - `AI Assist` includes a toggle to expand or collapse retrieved context content blocks for the active issue
 - dashboard shows `Recent Ingest Jobs` panel with manual refresh and latest status/stats snapshots
+- `Recent Ingest Jobs` panel includes a status filter (`all|queued|running|completed|failed`) to focus troubleshooting views
 - run detail includes `AI Assist` panel bound to active issue context
 - `AI Assist` loads explain and suggest-fix payloads together and renders recommendations + proposed diff
 - manual refresh action
