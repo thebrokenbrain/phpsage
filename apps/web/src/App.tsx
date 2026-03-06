@@ -37,6 +37,7 @@ import { ActiveControls } from "./components/active-controls.js";
 import { RunsSummary } from "./components/runs-summary.js";
 import { RunStarter } from "./components/run-starter.js";
 import { RunsTable } from "./components/runs-table.js";
+import { SelectionEmpty } from "./components/selection-empty.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -817,19 +818,12 @@ export function App(): JSX.Element {
           </div>
 
           {!loading && runs.length > 0 && !selectedRunId ? (
-            <section className="selection-empty">
-              <p>Select a run from the table to inspect details.</p>
-              <button
-                onClick={() => {
-                  if (latestRunningRunId) {
-                    setSelectedRunId(latestRunningRunId);
-                  }
-                }}
-                disabled={!latestRunningRunId}
-              >
-                Jump to running
-              </button>
-            </section>
+            <SelectionEmpty
+              latestRunningRunId={latestRunningRunId}
+              onJumpToRunning={(runId) => {
+                setSelectedRunId(runId);
+              }}
+            />
           ) : null}
 
           {selectedRunId ? (
