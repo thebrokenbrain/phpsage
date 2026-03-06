@@ -24,6 +24,7 @@ coverage/
 
 # Runtime data
 data/runs/*.json
+data/ai/ingest-jobs/*.json
 
 # Temporary files
 tmp/
