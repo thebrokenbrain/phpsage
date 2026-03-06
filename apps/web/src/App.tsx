@@ -12,6 +12,7 @@ import type {
   SourcePayload,
   StartRunPayload
 } from "./types.js";
+import { formatError } from "./utils/app-helpers.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -451,7 +452,7 @@ export function App(): JSX.Element {
         return stillExists ? currentSelectedRunId : fallbackRun.runId;
       });
     } catch (fetchError) {
-      const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      const message = formatError(fetchError);
       setError(message);
     } finally {
       setLoading(false);
@@ -496,7 +497,7 @@ export function App(): JSX.Element {
       await loadRuns();
       return true;
     } catch (startError) {
-      const message = startError instanceof Error ? startError.message : String(startError);
+      const message = formatError(startError);
       setStartRunError(message);
       if (triggerSource === "auto") {
         setLastAutoRunError(message);
@@ -683,7 +684,7 @@ export function App(): JSX.Element {
           return;
         }
 
-        const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        const message = formatError(fetchError);
         setAiError(message);
       } finally {
         if (!abortController.signal.aborted) {
@@ -1046,7 +1047,7 @@ export function App(): JSX.Element {
           return currentPath.startsWith(`${detailPayload.targetPath}/`) ? currentPath : null;
         });
       } catch (pollError) {
-        const message = pollError instanceof Error ? pollError.message : String(pollError);
+        const message = formatError(pollError);
         setDetailError(message);
       }
     }
@@ -1218,7 +1219,7 @@ export function App(): JSX.Element {
         const payload = (await response.json()) as RunFilesPayload;
         setRunFiles(payload.files);
       } catch (fetchError) {
-        const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        const message = formatError(fetchError);
         setFilesError(message);
         setRunFiles([]);
       } finally {
@@ -1251,7 +1252,7 @@ export function App(): JSX.Element {
         const payload = (await response.json()) as SourcePayload;
         setSourcePayload(payload);
       } catch (fetchError) {
-        const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+        const message = formatError(fetchError);
         setSourceError(message);
         setSourcePayload(null);
       } finally {
