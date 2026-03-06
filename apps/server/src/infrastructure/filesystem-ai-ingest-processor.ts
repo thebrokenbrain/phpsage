@@ -4,13 +4,20 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiIngestProcessor } from "../ports/ai-ingest-processor.js";
 import type { AiIngestStats } from "../ports/ai-ingest-job-repository.js";
+import type { QdrantAiRagStore } from "./qdrant-ai-rag-store.js";
 
 const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "dist", "coverage", "data"]);
 const MAX_FILE_SIZE_BYTES = 512_000;
 const LINES_PER_CHUNK = 120;
 
 export class FilesystemAiIngestProcessor implements AiIngestProcessor {
+  public constructor(private readonly ragStore?: QdrantAiRagStore) {}
+
   public async ingest(targetPath: string): Promise<AiIngestStats> {
+    if (this.ragStore) {
+      return this.ragStore.ingestDirectory(targetPath);
+    }
+
     return this.walk(targetPath);
   }
 

@@ -12,6 +12,12 @@ Initial HTTP API scaffold is implemented.
 
 This document must be updated in the same iteration where any endpoint is added or modified.
 
+## AI environment notes
+
+- AI provider can be configured with `AI_PROVIDER` (legacy-compatible) or `PHPSAGE_AI_PROVIDER`.
+- RAG backend can be configured with `AI_RAG_BACKEND=filesystem|qdrant`.
+- When `AI_RAG_BACKEND=qdrant`, ingestion/retrieval uses `QDRANT_URL` and `QDRANT_COLLECTION`.
+
 ## Endpoints
 
 ### Health

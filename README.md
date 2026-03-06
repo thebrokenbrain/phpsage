@@ -37,11 +37,23 @@ Stack objetivo de producto (a completar en iteraciones):
 - Docker Desktop (o daemon Docker compatible)
 - `docker compose`
 
+### Configuracion de entorno (IA/RAG)
+
+- Plantilla disponible en `.env.example`.
+- Para overrides locales, crear `.env` y ajustar variables como `AI_PROVIDER`, `AI_RAG_BACKEND`, `AI_RAG_TOP_K`, `OPENAI_API_KEY`.
+- `docker compose` usa por defecto `.env.example`; para usar otro fichero: `PHPSAGE_ENV_FILE=.env docker compose up --build`.
+- `AI_RAG_BACKEND=filesystem|qdrant` selecciona retrieval/indexación en filesystem local o Qdrant.
+
 ### Instalación y arranque (flujo recomendado)
 
 ```bash
 docker compose up --build -d phpsage-server
 ```
+
+Servicios de soporte IA disponibles en compose:
+
+- `qdrant` (`:6333`)
+- `ollama` (`:11434`)
 
 ### Comandos disponibles actualmente
 

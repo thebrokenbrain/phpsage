@@ -276,12 +276,18 @@ export function createHttpServer(
 }
 
 function getAiHealth(): AiHealthResponse {
-  const providerFromEnv = process.env.PHPSAGE_AI_PROVIDER?.trim();
+  const providerFromEnv = process.env.PHPSAGE_AI_PROVIDER?.trim() || process.env.AI_PROVIDER?.trim();
   const openAiApiKey = process.env.OPENAI_API_KEY?.trim();
   const activeProvider = providerFromEnv && providerFromEnv.length > 0
     ? providerFromEnv
     : (openAiApiKey && openAiApiKey.length > 0 ? "openai" : null);
-  const activeModel = activeProvider ? (process.env.PHPSAGE_AI_MODEL?.trim() || null) : null;
+  const activeModel = activeProvider
+    ? (
+      process.env.PHPSAGE_AI_MODEL?.trim()
+      || (activeProvider === "openai" ? process.env.OPENAI_MODEL?.trim() : process.env.OLLAMA_MODEL?.trim())
+      || null
+    )
+    : null;
 
   return {
     status: "ok",
