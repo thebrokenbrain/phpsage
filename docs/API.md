@@ -140,6 +140,7 @@ This document must be updated in the same iteration where any endpoint is added 
 - The ingest processor walks files recursively (excluding `.git`, `node_modules`, `dist`, `coverage`, `data`) and computes stats:
 	- `filesIndexed`: number of indexed files
 	- `chunksIndexed`: chunks estimated as `ceil(lineCount / 120)` per indexed file
+- Explain/suggest retrieval uses top-k context documents controlled by `AI_RAG_TOP_K` (default `3`).
 
 - `GET /api/ai/ingest/:jobId`
 - Response `200`: current ingest job state

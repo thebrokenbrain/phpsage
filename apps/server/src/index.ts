@@ -15,6 +15,7 @@ const port = Number(process.env.PORT ?? 8080);
 const runsDirectoryPath = resolve(process.cwd(), "data/runs");
 const aiIngestJobsDirectoryPath = resolve(process.cwd(), "data/ai/ingest-jobs");
 const aiRagDirectoryPath = resolve(process.cwd(), process.env.AI_RAG_DIRECTORY?.trim() || "rag");
+const aiRagTopK = readPositiveIntegerEnvOrDefault("AI_RAG_TOP_K", 3);
 
 const runRepository = new FileRunRepository(runsDirectoryPath);
 const runService = new RunService(runRepository);
@@ -23,9 +24,9 @@ const aiIngestService = new AiIngestService(
   new FileAiIngestJobRepository(aiIngestJobsDirectoryPath),
   new FilesystemAiIngestProcessor()
 );
-const aiRagRetriever = new FilesystemAiRagRetriever(aiRagDirectoryPath, 3);
-const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback", aiRagRetriever);
-const aiSuggestFixService = new AiSuggestFixService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback", aiRagRetriever);
+const aiRagRetriever = new FilesystemAiRagRetriever(aiRagDirectoryPath, aiRagTopK);
+const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback", aiRagRetriever, aiRagTopK);
+const aiSuggestFixService = new AiSuggestFixService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback", aiRagRetriever, aiRagTopK);
 const server = createHttpServer(runService, runSourceReader, aiIngestService, aiExplainService, aiSuggestFixService);
 
 server.listen(port, () => {
@@ -38,4 +39,18 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
       process.exit(0);
     });
   });
+}
+
+function readPositiveIntegerEnvOrDefault(name: string, fallback: number): number {
+  const rawValue = process.env[name];
+  if (!rawValue || rawValue.trim().length === 0) {
+    return fallback;
+  }
+
+  const parsedValue = Number.parseInt(rawValue.trim(), 10);
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return fallback;
+  }
+
+  return parsedValue;
 }

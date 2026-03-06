@@ -49,3 +49,16 @@ export function formatRetrievedContext(contextItems: AiRagContextItem[]): string
     })
     .join("\n\n");
 }
+
+export function summarizeContextSources(contextItems: AiRagContextItem[], maxItems = 2): string | null {
+  if (contextItems.length === 0) {
+    return null;
+  }
+
+  const summarized = contextItems
+    .slice(0, Math.max(1, maxItems))
+    .map((item) => item.sourcePath)
+    .join(", ");
+
+  return `Relevant references: ${summarized}.`;
+}

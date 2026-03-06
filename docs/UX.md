@@ -89,6 +89,7 @@ A minimal Dashboard is implemented with:
 - header includes `Start ingest` action using server default ingest target (`/workspace/rag` unless overridden by `AI_INGEST_DEFAULT_TARGET`)
 - dashboard shows latest AI ingest job status (`queued`/`running`/`completed`/`failed`) with job id, target path and progressive updates via polling
 - dashboard shows LLM status (`ON/OFF`) from `GET /api/ai/health` and active provider/model when available
+- `AI Assist` includes a toggle to expand or collapse retrieved context content blocks for the active issue
 - run detail includes `AI Assist` panel bound to active issue context
 - `AI Assist` loads explain and suggest-fix payloads together and renders recommendations + proposed diff
 - manual refresh action

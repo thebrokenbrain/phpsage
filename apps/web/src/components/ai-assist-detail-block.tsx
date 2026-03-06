@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { AiExplainPayload, AiSuggestFixPayload, RunIssue } from "../types.js";
 
 interface AiAssistDetailBlockProps {
@@ -17,6 +18,8 @@ export function AiAssistDetailBlock({
   aiExplain,
   aiSuggestFix
 }: AiAssistDetailBlockProps): JSX.Element {
+  const [isContextExpanded, setIsContextExpanded] = useState(false);
+
   return (
     <section className="detail-block">
       <div className="detail-block-header">
@@ -37,11 +40,17 @@ export function AiAssistDetailBlock({
           {aiExplain.fallbackReason ? <p className="ai-meta">Explain fallback: {aiExplain.fallbackReason}</p> : null}
           {aiExplain.contextItems && aiExplain.contextItems.length > 0 ? (
             <div>
-              <p className="ai-meta">Retrieved context:</p>
+              <div className="ai-context-header">
+                <p className="ai-meta">Retrieved context:</p>
+                <button onClick={() => setIsContextExpanded((current) => !current)}>
+                  {isContextExpanded ? "Hide context content" : "Show context content"}
+                </button>
+              </div>
               <ul className="detail-list">
                 {aiExplain.contextItems.map((item, index) => (
                   <li key={`${item.sourcePath}-${index}`}>
                     <strong>{item.identifier ?? "unknown"}</strong> from <code>{item.sourcePath}</code> (score {item.score.toFixed(3)})
+                    {isContextExpanded ? <pre className="ai-context-content">{item.content}</pre> : null}
                   </li>
                 ))}
               </ul>

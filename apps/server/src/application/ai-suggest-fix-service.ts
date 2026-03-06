@@ -1,7 +1,7 @@
 // This file provides suggest-fix use case with deterministic fallback output.
 
 import type { AiRagContextItem, AiRagRetriever } from "../ports/ai-rag-retriever.js";
-import { retrieveContextItemsSafely } from "./ai-rag-context.js";
+import { retrieveContextItemsSafely, summarizeContextSources } from "./ai-rag-context.js";
 
 export interface AiSuggestFixRequest {
   readonly issueMessage: string;
@@ -25,15 +25,16 @@ export interface AiSuggestFixResponse {
 export class AiSuggestFixService {
   public constructor(
     private readonly providerName: string = "fallback",
-    private readonly ragRetriever?: AiRagRetriever
+    private readonly ragRetriever?: AiRagRetriever,
+    private readonly ragTopK: number = 3
   ) {}
 
   public async suggestFix(request: AiSuggestFixRequest): Promise<AiSuggestFixResponse> {
-    const contextItems = await retrieveContextItemsSafely(this.ragRetriever, request);
+    const contextItems = await retrieveContextItemsSafely(this.ragRetriever, request, this.ragTopK);
 
     return {
       proposedDiff: this.buildFallbackDiff(request),
-      rationale: this.buildRationale(request),
+      rationale: this.buildRationale(request, contextItems),
       source: "fallback",
       provider: this.providerName,
       fallbackReason: "LLM provider is not configured for suggest-fix yet",
@@ -70,8 +71,10 @@ export class AiSuggestFixService {
     return `${originalLine} // TODO: adjust code to satisfy static analysis`;
   }
 
-  private buildRationale(request: AiSuggestFixRequest): string {
+  private buildRationale(request: AiSuggestFixRequest, contextItems: AiRagContextItem[]): string {
     const identifier = request.issueIdentifier ?? "unknown";
-    return `Suggested patch targets issue '${request.issueMessage}' (${identifier}) and keeps changes minimal by touching only the reported line context.`;
+    const contextSummary = summarizeContextSources(contextItems);
+    const base = `Suggested patch targets issue '${request.issueMessage}' (${identifier}) and keeps changes minimal by touching only the reported line context.`;
+    return contextSummary ? `${base} ${contextSummary}` : base;
   }
 }

@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { formatRetrievedContext, retrieveContextItemsSafely, toErrorMessage } from "./ai-rag-context.js";
+import { formatRetrievedContext, retrieveContextItemsSafely, summarizeContextSources, toErrorMessage } from "./ai-rag-context.js";
 import type { AiRagRetriever } from "../ports/ai-rag-retriever.js";
 
 test("retrieveContextItemsSafely returns empty list when retriever is missing", async () => {
@@ -58,4 +58,23 @@ test("retrieveContextItemsSafely swallows retriever errors", async () => {
 test("toErrorMessage handles both Error and unknown values", () => {
   assert.equal(toErrorMessage(new Error("boom")), "boom");
   assert.equal(toErrorMessage({ code: 500 }), "[object Object]");
+});
+
+test("summarizeContextSources returns concise source list", () => {
+  const summary = summarizeContextSources([
+    {
+      sourcePath: "variable.undefined.md",
+      identifier: "variable.undefined",
+      content: "...",
+      score: 0.9
+    },
+    {
+      sourcePath: "function.notFound.md",
+      identifier: "function.notFound",
+      content: "...",
+      score: 0.8
+    }
+  ]);
+
+  assert.equal(summary, "Relevant references: variable.undefined.md, function.notFound.md.");
 });

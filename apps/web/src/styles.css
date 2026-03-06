@@ -510,6 +510,27 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.ai-context-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-context-content {
+  margin-top: 6px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 6px;
+  padding: 8px;
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow: auto;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .source-line {
   display: flex;
   gap: 8px;
