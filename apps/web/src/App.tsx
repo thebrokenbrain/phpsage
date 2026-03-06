@@ -55,6 +55,7 @@ import { HeaderToggleControls } from "./components/header-toggle-controls.js";
 import { HeaderIntervalControls } from "./components/header-interval-controls.js";
 import { HeaderActionButtons } from "./components/header-action-buttons.js";
 import { RunsPane } from "./components/runs-pane.js";
+import { CopyLinkError } from "./components/copy-link-error.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -513,7 +514,7 @@ export function App(): JSX.Element {
         </div>
       </header>
 
-      {copyLinkStatus === "error" ? <p className="error">Could not copy link.</p> : null}
+      <CopyLinkError copyLinkStatus={copyLinkStatus} />
 
       <RunStarter
         startRunTargetPath={startRunTargetPath}
