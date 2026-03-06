@@ -154,6 +154,7 @@ Estado actual:
 - endpoint IA de histórico reciente de ingest implementado: `GET /api/ai/ingest?limit=<n>`
 - endpoint IA de histórico de ingest permite filtro por estado: `GET /api/ai/ingest?status=<queued|running|completed|failed>`
 - comando CLI de ingest implementado: `phpsage rag ingest [--target-path <path>] [--wait]`
+- comando CLI permite consultar histórico: `phpsage rag ingest --list [--status <...>] [--limit <n>]`
 - ingest IA procesa recursivamente el filesystem objetivo y calcula `filesIndexed`/`chunksIndexed`
 - jobs de ingest persisten en `data/ai/ingest-jobs/<jobId>.json`
 - corpus de conocimiento para ingest incluido en `rag/` (copiado desde `phpsage-legacy/docs/rag`)

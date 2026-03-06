@@ -19,6 +19,7 @@ interface MockServerState {
   logCount: number;
   ingestCreateCount: number;
   ingestGetCount: number;
+  ingestListCount: number;
 }
 
 interface MockServer {
@@ -65,7 +66,8 @@ async function startMockServer(): Promise<MockServer> {
     finishPayloads: [],
     logCount: 0,
     ingestCreateCount: 0,
-    ingestGetCount: 0
+    ingestGetCount: 0,
+    ingestListCount: 0
   };
 
   const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
@@ -108,6 +110,43 @@ async function startMockServer(): Promise<MockServer> {
           stats: null
         })
       );
+      return;
+    }
+
+    if (request.method === "GET" && request.url.startsWith("/api/ai/ingest?") ) {
+      state.ingestListCount += 1;
+      const url = new URL(request.url, "http://localhost");
+      const statusFilter = url.searchParams.get("status");
+
+      const jobs = [
+        {
+          jobId: "job-3",
+          targetPath: "/workspace/docs/rag",
+          status: "failed",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          startedAt: new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+          error: "bad target",
+          stats: null
+        },
+        {
+          jobId: "job-2",
+          targetPath: "/workspace/examples/php-sample",
+          status: "completed",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          startedAt: new Date().toISOString(),
+          finishedAt: new Date().toISOString(),
+          error: null,
+          stats: { filesIndexed: 2, chunksIndexed: 4 }
+        }
+      ];
+
+      const filteredJobs = statusFilter ? jobs.filter((job) => job.status === statusFilter) : jobs;
+
+      response.setHeader("content-type", "application/json");
+      response.end(JSON.stringify(filteredJobs));
       return;
     }
 
@@ -370,6 +409,75 @@ test("rag ingest --wait polls until completion", async () => {
     assert.match(result.stdout, /Ingest stats filesIndexed=3 chunksIndexed=10/);
     assert.equal(server.state.ingestCreateCount, 1);
     assert.ok(server.state.ingestGetCount >= 2);
+  } finally {
+    await server.close();
+  }
+});
+
+test("rag ingest --list prints recent jobs", async () => {
+  const server = await startMockServer();
+
+  try {
+    const result = await runCli([
+      "rag",
+      "ingest",
+      "--server-url",
+      server.url,
+      "--list",
+      "--limit",
+      "2"
+    ]);
+
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /job-3/);
+    assert.match(result.stdout, /failed/);
+    assert.equal(server.state.ingestListCount, 1);
+    assert.equal(server.state.ingestCreateCount, 0);
+  } finally {
+    await server.close();
+  }
+});
+
+test("rag ingest --list supports status filter", async () => {
+  const server = await startMockServer();
+
+  try {
+    const result = await runCli([
+      "rag",
+      "ingest",
+      "--server-url",
+      server.url,
+      "--list",
+      "--status",
+      "completed"
+    ]);
+
+    assert.equal(result.code, 0);
+    assert.match(result.stdout, /completed/);
+    assert.doesNotMatch(result.stdout, /failed/);
+    assert.equal(server.state.ingestListCount, 1);
+  } finally {
+    await server.close();
+  }
+});
+
+test("rag ingest --list rejects invalid status", async () => {
+  const server = await startMockServer();
+
+  try {
+    const result = await runCli([
+      "rag",
+      "ingest",
+      "--server-url",
+      server.url,
+      "--list",
+      "--status",
+      "invalid"
+    ]);
+
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /--status must be one of/i);
+    assert.equal(server.state.ingestListCount, 0);
   } finally {
     await server.close();
   }

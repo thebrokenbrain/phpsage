@@ -60,6 +60,9 @@ interface RagIngestCommandOptions {
 	readonly targetPath?: string;
 	readonly waitForCompletion: boolean;
 	readonly pollIntervalMs: number;
+	readonly listOnly: boolean;
+	readonly status?: "queued" | "running" | "completed" | "failed";
+	readonly limit: number;
 }
 
 type CliCommand =
@@ -152,6 +155,27 @@ async function main(): Promise<void> {
 }
 
 async function runRagIngest(options: RagIngestCommandOptions): Promise<void> {
+	if (options.listOnly) {
+		const statusQuery = options.status ? `&status=${options.status}` : "";
+		const jobs = await getJson<AiIngestJobResponse[]>(
+			`${options.serverUrl}/api/ai/ingest?limit=${options.limit}${statusQuery}`
+		);
+
+		if (jobs.length === 0) {
+			process.stdout.write("No ingest jobs found.\n");
+			return;
+		}
+
+		for (const job of jobs) {
+			const stats = job.stats
+				? ` files=${job.stats.filesIndexed} chunks=${job.stats.chunksIndexed}`
+				: "";
+			process.stdout.write(`${job.updatedAt} ${job.status} ${job.jobId} ${job.targetPath}${stats}\n`);
+		}
+
+		return;
+	}
+
 	const payload = options.targetPath ? { targetPath: options.targetPath } : {};
 	const job = await postJson<AiIngestJobResponse>(`${options.serverUrl}/api/ai/ingest`, payload);
 
@@ -804,11 +828,13 @@ function parseRagIngestArguments(args: string[]): RagIngestCommandOptions | null
 		return null;
 	}
 
-	validateFlags(args, ["--port", "--docker", "--server-url", "--target-path", "--wait", "--poll-interval-ms"], [
+	validateFlags(args, ["--port", "--docker", "--server-url", "--target-path", "--wait", "--poll-interval-ms", "--list", "--status", "--limit"], [
 		"--port",
 		"--server-url",
 		"--target-path",
-		"--poll-interval-ms"
+		"--poll-interval-ms",
+		"--status",
+		"--limit"
 	]);
 
 	const dockerMode = args.includes("--docker");
@@ -817,6 +843,9 @@ function parseRagIngestArguments(args: string[]): RagIngestCommandOptions | null
 	const targetPath = getFlagValue(args, "--target-path");
 	const waitForCompletion = args.includes("--wait");
 	const pollIntervalMs = parsePositiveIntegerFlag(args, "--poll-interval-ms", 1000);
+	const listOnly = args.includes("--list");
+	const status = parseIngestStatusFlag(args);
+	const limit = parsePositiveIntegerFlag(args, "--limit", 10);
 	const serverUrlFromEnv = process.env.PHPSAGE_SERVER_URL;
 
 	const defaultPort = portFromFlag ?? "8080";
@@ -824,12 +853,40 @@ function parseRagIngestArguments(args: string[]): RagIngestCommandOptions | null
 		? `http://phpsage-server:${defaultPort}`
 		: `http://localhost:${defaultPort}`;
 
+	if (listOnly && waitForCompletion) {
+		throw new Error("--list cannot be combined with --wait");
+	}
+
+	if (listOnly && targetPath) {
+		throw new Error("--list cannot be combined with --target-path");
+	}
+
 	return {
 		serverUrl: serverUrlFromFlag ?? serverUrlFromEnv ?? defaultServerUrl,
 		targetPath,
 		waitForCompletion,
-		pollIntervalMs
+		pollIntervalMs,
+		listOnly,
+		status,
+		limit
 	};
+}
+
+function parseIngestStatusFlag(args: string[]): RagIngestCommandOptions["status"] {
+	const rawValue = getFlagValue(args, "--status");
+	if (!rawValue) {
+		return undefined;
+	}
+
+	switch (rawValue) {
+		case "queued":
+		case "running":
+		case "completed":
+		case "failed":
+			return rawValue;
+		default:
+			throw new Error("--status must be one of queued|running|completed|failed");
+	}
 }
 
 function parsePositiveIntegerFlag(args: string[], flag: string, defaultValue: number): number {
@@ -943,7 +1000,7 @@ function printUsage(): void {
 			+ "  phpsage --help | -h\n"
 			+ "  phpsage --version | -v\n"
 			+ "  phpsage app [--port <port>] [--no-open] [--docker] [--server-url <url>]\n"
-			+ "  phpsage rag ingest [--target-path <path>] [--wait] [--poll-interval-ms <ms>] [--port <port>] [--docker] [--server-url <url>]\n"
+			+ "  phpsage rag ingest [--target-path <path>] [--wait] [--poll-interval-ms <ms>] [--list] [--status <queued|running|completed|failed>] [--limit <n>] [--port <port>] [--docker] [--server-url <url>]\n"
 			+ "  phpsage phpstan analyse <path> [--port <port>] [--no-open] [--cwd <dir>] [--phpstan-bin <bin>] [--memory-limit <limit>] [--timeout-ms <ms>] [--watch] [--watch-interval <ms>] [--watch-debounce <ms>] [--watch-no-initial] [--watch-quiet] [--watch-ignore <dir1,dir2>] [--watch-ext <php,inc>] [--watch-files <phpstan.neon,composer.json>] [--watch-max-cycles <n>] [--json-summary] [--docker] [--server-url <url>]\n"
 	);
 }
