@@ -266,6 +266,21 @@
   line-height: 1.55;
 }
 
+.ai-block ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ai-block li {
+  margin: 0 0 6px;
+}
+
+.ai-block li:last-child {
+  margin-bottom: 0;
+}
+
 .ai-debug-toggle-row {
   margin: 6px 0 10px;
 }
@@ -387,6 +402,255 @@
 
 .identifier-row {
   margin-bottom: 8px;
+}
+
+.insights-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.insights-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.insights-kpi-card {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #f8fbff 0%, #eef6ff 100%);
+  padding: 10px;
+}
+
+.insights-kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.insights-kpi-value {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.insights-kpi-value-small {
+  font-size: 15px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.insights-kpi-subvalue {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.insights-visuals {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.insights-chart-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.insights-chart-card-compact {
+  display: flex;
+  flex-direction: column;
+}
+
+.insights-chart-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+}
+
+.insights-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insights-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.insights-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.insights-bar-name {
+  font-size: 13px;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insights-bar-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.insights-bar-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.insights-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb 0%, #0ea5e9 100%);
+}
+
+.insights-donut-wrap {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  margin: 2px auto 12px;
+}
+
+.insights-donut {
+  width: 130px;
+  height: 130px;
+  transform: rotate(-90deg);
+}
+
+.insights-donut-track,
+.insights-donut-segment {
+  fill: none;
+  stroke-width: 14;
+}
+
+.insights-donut-track {
+  stroke: #e2e8f0;
+}
+
+.insights-donut-segment {
+  stroke-linecap: butt;
+}
+
+.insights-donut-segment-0 {
+  stroke: #2563eb;
+}
+
+.insights-donut-segment-1 {
+  stroke: #06b6d4;
+}
+
+.insights-donut-segment-2 {
+  stroke: #10b981;
+}
+
+.insights-donut-segment-3 {
+  stroke: #f59e0b;
+}
+
+.insights-donut-segment-4 {
+  stroke: #ef4444;
+}
+
+.insights-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.insights-donut-total {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.insights-donut-label {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.insights-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.insights-legend-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.insights-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.insights-legend-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insights-legend-count {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.insights-links {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+@media (max-width: 1080px) {
+  .insights-visuals {
+    grid-template-columns: 1fr;
+  }
+
+  .insights-chart-card-compact {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .insights-donut-wrap {
+    margin: 2px 0;
+  }
+
+  .insights-legend {
+    flex: 1;
+  }
 }
 
 .diff-block {
