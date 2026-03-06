@@ -23,6 +23,7 @@ import { useAiHealth } from "./hooks/use-ai-health.js";
 import { useAutoRunCountdown } from "./hooks/use-auto-run-countdown.js";
 import { useAutoRunVisibilityPause } from "./hooks/use-auto-run-visibility-pause.js";
 import { useAutoRunScheduler } from "./hooks/use-auto-run-scheduler.js";
+import { useRunningRunPolling } from "./hooks/use-running-run-polling.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -380,6 +381,19 @@ export function App(): JSX.Element {
     setLastAutoRunAt,
     setAutoRunTriggerCount,
     startRunFromUi
+  });
+
+  useRunningRunPolling({
+    apiBaseUrl,
+    isLivePollingEnabled,
+    livePollingIntervalMs,
+    selectedRunId,
+    selectedRunStatus: selectedRun?.status ?? null,
+    refreshRunDetail,
+    refreshRunFiles,
+    setRuns,
+    setLastRefreshAt,
+    setError
   });
 
   const visibleRunFiles = useMemo(() => {
@@ -826,40 +840,6 @@ export function App(): JSX.Element {
       return currentPath.startsWith(`${selectedRun.targetPath}/`) ? currentPath : null;
     });
   }, [selectedRun]);
-
-  useEffect(() => {
-    async function pollRunningRun(runId: string): Promise<void> {
-      try {
-        const runsResponse = await fetch(`${apiBaseUrl}/api/runs`);
-
-        if (!runsResponse.ok) {
-          throw new Error(`HTTP ${runsResponse.status}`);
-        }
-
-        const runsPayload = (await runsResponse.json()) as RunSummary[];
-
-        await Promise.all([refreshRunDetail(), refreshRunFiles()]);
-
-        setRuns(runsPayload);
-        setLastRefreshAt(new Date().toISOString());
-      } catch (pollError) {
-        const message = formatError(pollError);
-        setError(message);
-      }
-    }
-
-    if (!isLivePollingEnabled || !selectedRunId || !selectedRun || selectedRun.status !== "running") {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      void pollRunningRun(selectedRunId);
-    }, livePollingIntervalMs);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [apiBaseUrl, isLivePollingEnabled, livePollingIntervalMs, refreshRunDetail, refreshRunFiles, selectedRun, selectedRunId]);
 
   useEffect(() => {
     setLastAutoRunError(null);
