@@ -49,6 +49,7 @@ import { useFilteredIssueEntries } from "./hooks/use-filtered-issue-entries.js";
 import { useFilteredLogs } from "./hooks/use-filtered-logs.js";
 import { useActiveIssueLineInSource } from "./hooks/use-active-issue-line-in-source.js";
 import { useResolvedSourceFilePath } from "./hooks/use-resolved-source-file-path.js";
+import { useActiveSourceSnippet } from "./hooks/use-active-source-snippet.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -391,14 +392,10 @@ export function App(): JSX.Element {
     setSelectedFilePath: setSelectedSourceFilePath
   });
 
-  const activeSourceSnippet = useMemo(() => {
-    if (!sourcePayload || !activeIssueLineInSource) {
-      return undefined;
-    }
-
-    const sourceLines = sourcePayload.content.split("\n");
-    return sourceLines[activeIssueLineInSource - 1]?.trim() || undefined;
-  }, [activeIssueLineInSource, sourcePayload]);
+  const activeSourceSnippet = useActiveSourceSnippet({
+    sourcePayload,
+    activeIssueLineInSource
+  });
 
   const {
     aiExplain,
