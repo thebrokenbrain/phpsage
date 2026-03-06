@@ -14,6 +14,7 @@ import { formatError } from "./utils/app-helpers.js";
 import { useAiAssistance } from "./hooks/use-ai-assistance.js";
 import { useKeyboardIssueNavigation } from "./hooks/use-keyboard-issue-navigation.js";
 import { useIssueNavigation } from "./hooks/use-issue-navigation.js";
+import { useRunViewModel } from "./hooks/use-run-view-model.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -340,36 +341,27 @@ export function App(): JSX.Element {
     return runFiles.filter((fileEntry) => fileEntry.path.toLowerCase().includes(normalizedTerm));
   }, [fileSearchTerm, runFiles]);
 
+  const {
+    issues,
+    safeIssueIndex,
+    activeIssue
+  } = useRunViewModel({
+    selectedRun,
+    selectedIssueIndex,
+    selectedFilePath: selectedSourceFilePath
+  });
+
   const activeIssueLineInSource = useMemo(() => {
-    if (!selectedRun || !sourcePayload || selectedRun.issues.length === 0) {
+    if (!sourcePayload || !activeIssue) {
       return null;
     }
 
-    const safeIssueIndex = Math.min(selectedIssueIndex, selectedRun.issues.length - 1);
-    const issue = selectedRun.issues[safeIssueIndex];
-    if (!issue || issue.file !== sourcePayload.file) {
+    if (activeIssue.file !== sourcePayload.file) {
       return null;
     }
 
-    return issue.line;
-  }, [selectedIssueIndex, selectedRun, sourcePayload]);
-
-  const activeIssue = useMemo(() => {
-    if (!selectedRun || selectedRun.issues.length === 0) {
-      return null;
-    }
-
-    const safeIssueIndex = Math.min(Math.max(0, selectedIssueIndex), selectedRun.issues.length - 1);
-    return selectedRun.issues[safeIssueIndex] ?? null;
-  }, [selectedIssueIndex, selectedRun]);
-
-  const safeIssueIndex = useMemo(() => {
-    if (!selectedRun || selectedRun.issues.length === 0) {
-      return 0;
-    }
-
-    return Math.min(Math.max(0, selectedIssueIndex), selectedRun.issues.length - 1);
-  }, [selectedIssueIndex, selectedRun]);
+    return activeIssue.line;
+  }, [activeIssue, sourcePayload]);
 
   const { selectIssueByIndex } = useIssueNavigation({
     issues: selectedRun?.issues ?? [],
@@ -401,7 +393,7 @@ export function App(): JSX.Element {
 
   useKeyboardIssueNavigation({
     viewMode: "dashboard",
-    issuesLength: selectedRun?.issues.length ?? 0,
+    issuesLength: issues.length,
     safeIssueIndex,
     onSelectIssueByIndex: selectIssueByIndex
   });
