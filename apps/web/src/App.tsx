@@ -36,6 +36,7 @@ import { useAutoRunErrorReset } from "./hooks/use-auto-run-error-reset.js";
 import { ActiveControls } from "./components/active-controls.js";
 import { RunsSummary } from "./components/runs-summary.js";
 import { RunStarter } from "./components/run-starter.js";
+import { RunsTable } from "./components/runs-table.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -793,48 +794,15 @@ export function App(): JSX.Element {
           {!loading && runs.length === 0 ? <p className="empty">No runs yet.</p> : null}
 
           {visibleRuns.length > 0 ? (
-            <div className="runs-table-wrap">
-              <table className="runs-table">
-                <thead>
-                  <tr>
-                    <th>Run</th>
-                    <th>Status</th>
-                    <th>Exit</th>
-                    <th>Issues</th>
-                    <th>Target</th>
-                    <th>Updated</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRuns.map((run) => (
-                    <tr
-                      key={run.runId}
-                      className={run.runId === selectedRunId ? "selected" : ""}
-                      onClick={() => {
-                        setSelectedRunId(run.runId);
-                        setSelectedIssueIndex(0);
-                        setSelectedSourceFilePath(null);
-                      }}
-                    >
-                      <td className="mono">{run.runId.slice(0, 8)}</td>
-                      <td>
-                        <span className={`status-pill ${run.status === "running" ? "status-running" : "status-finished"}`}>
-                          {run.status}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="exit-pill">{run.exitCode ?? "-"}</span>
-                      </td>
-                      <td>
-                        <span className={`issues-pill ${run.issueCount > 0 ? "issues-pill-has" : ""}`}>{run.issueCount}</span>
-                      </td>
-                      <td className="mono">{run.targetPath}</td>
-                      <td>{new Date(run.updatedAt).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RunsTable
+              visibleRuns={visibleRuns}
+              selectedRunId={selectedRunId}
+              onSelectRun={(runId) => {
+                setSelectedRunId(runId);
+                setSelectedIssueIndex(0);
+                setSelectedSourceFilePath(null);
+              }}
+            />
           ) : null}
 
           {!loading && runs.length > 0 && visibleRuns.length === 0 ? (
