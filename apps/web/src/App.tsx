@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
-  AiExplainPayload,
   AiHealthPayload,
-  AiSuggestFixPayload,
   RunFileItem,
   RunFilesPayload,
   RunIssue,
@@ -13,6 +11,7 @@ import type {
   StartRunPayload
 } from "./types.js";
 import { formatError } from "./utils/app-helpers.js";
+import { useAiAssistance } from "./hooks/use-ai-assistance.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -189,10 +188,6 @@ export function App(): JSX.Element {
   const [isLlmAvailable, setIsLlmAvailable] = useState<boolean | null>(null);
   const [activeAiProvider, setActiveAiProvider] = useState<string | null>(null);
   const [activeAiModel, setActiveAiModel] = useState<string | null>(null);
-  const [aiExplain, setAiExplain] = useState<AiExplainPayload | null>(null);
-  const [aiSuggestFix, setAiSuggestFix] = useState<AiSuggestFixPayload | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
 
   const filteredRuns = useMemo(() => {
     if (runsStatusFilter === "all") {
@@ -372,6 +367,18 @@ export function App(): JSX.Element {
     const sourceLines = sourcePayload.content.split("\n");
     return sourceLines[activeIssueLineInSource - 1]?.trim() || undefined;
   }, [activeIssueLineInSource, sourcePayload]);
+
+  const {
+    aiExplain,
+    aiSuggestFix,
+    isAiLoading,
+    aiError
+  } = useAiAssistance({
+    apiBase: apiBaseUrl,
+    isLlmAvailable,
+    aiContextIssue: activeIssue,
+    activeSourceSnippet
+  });
 
   const filteredIssueEntries = useMemo(() => {
     if (!selectedRun) {
@@ -614,89 +621,6 @@ export function App(): JSX.Element {
       window.clearInterval(intervalId);
     };
   }, [apiBaseUrl]);
-
-  useEffect(() => {
-    if (!activeIssue) {
-      setAiExplain(null);
-      setAiSuggestFix(null);
-      setAiError(null);
-      setIsAiLoading(false);
-      return;
-    }
-
-    if (isLlmAvailable !== true) {
-      setAiExplain(null);
-      setAiSuggestFix(null);
-      setAiError(isLlmAvailable === false ? "LLM is currently unavailable" : null);
-      setIsAiLoading(false);
-      return;
-    }
-
-    const abortController = new AbortController();
-    setAiExplain(null);
-    setAiSuggestFix(null);
-    setAiError(null);
-    setIsAiLoading(true);
-
-    const payload = {
-      issueMessage: activeIssue.message,
-      issueIdentifier: activeIssue.identifier,
-      filePath: activeIssue.file,
-      line: activeIssue.line,
-      sourceSnippet: activeSourceSnippet
-    };
-
-    void (async () => {
-      try {
-        const [explainResponse, suggestFixResponse] = await Promise.all([
-          fetch(`${apiBaseUrl}/api/ai/explain`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload),
-            signal: abortController.signal
-          }),
-          fetch(`${apiBaseUrl}/api/ai/suggest-fix`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload),
-            signal: abortController.signal
-          })
-        ]);
-
-        if (!explainResponse.ok || !suggestFixResponse.ok) {
-          throw new Error("Cannot load AI assistance");
-        }
-
-        const explainPayload = (await explainResponse.json()) as AiExplainPayload;
-        const suggestFixPayload = (await suggestFixResponse.json()) as AiSuggestFixPayload;
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        setAiExplain(explainPayload);
-        setAiSuggestFix(suggestFixPayload);
-      } catch (fetchError) {
-        if (abortController.signal.aborted) {
-          return;
-        }
-
-        const message = formatError(fetchError);
-        setAiError(message);
-      } finally {
-        if (!abortController.signal.aborted) {
-          setIsAiLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      abortController.abort();
-    };
-  }, [activeIssue, activeSourceSnippet, apiBaseUrl, isLlmAvailable]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
