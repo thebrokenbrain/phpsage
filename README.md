@@ -56,6 +56,12 @@ Servicios de soporte IA disponibles en compose:
 - `qdrant` (`:6333`)
 - `ollama` (`:11434`)
 
+Comportamiento de modelo Ollama en Compose:
+
+- `docker compose up` descarga automaticamente `OLLAMA_MODEL` (por defecto `llama3.2`) dentro del servicio `ollama`.
+- `phpsage-server` espera a que `ollama` este healthy con el modelo ya disponible antes de arrancar.
+- El primer arranque puede tardar varios minutos por la descarga del modelo; siguientes arranques reutilizan `ollama-data`.
+
 ### Comandos disponibles actualmente
 
 ```bash

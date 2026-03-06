@@ -18,7 +18,7 @@ services:
       qdrant:
         condition: service_started
       ollama:
-        condition: service_started
+        condition: service_healthy
     working_dir: /workspace
     command: ["sh", "-lc", "npm run build && node apps/server/dist/index.js"]
     healthcheck:
@@ -67,6 +67,15 @@ services:
 
   ollama:
     image: ollama/ollama:latest
+    entrypoint: ["sh", "-lc"]
+    command:
+      - "ollama serve & until ollama pull \"${OLLAMA_MODEL:-llama3.2}\"; do echo 'waiting for ollama pull'; sleep 2; done; wait"
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q \"${OLLAMA_MODEL:-llama3.2}\""]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
     ports:
       - "11434:11434"
     volumes:
