@@ -7,8 +7,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHttpServer } from "./http-server.js";
 import { AiExplainService } from "../application/ai-explain-service.js";
+import { AiIngestService } from "../application/ai-ingest-service.js";
 import { AiSuggestFixService } from "../application/ai-suggest-fix-service.js";
 import { RunService } from "../application/run-service.js";
+import { InMemoryAiIngestJobRepository } from "../infrastructure/in-memory-ai-ingest-job-repository.js";
+import { NoopAiIngestProcessor } from "../infrastructure/noop-ai-ingest-processor.js";
 import type { RunRecord, RunSummary } from "../domain/run.js";
 import type { RunRepository } from "../ports/run-repository.js";
 import { RunSourceReader } from "../infrastructure/run-source-reader.js";
@@ -40,9 +43,10 @@ class InMemoryRunRepository implements RunRepository {
 async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Promise<void> }> {
   const runService = new RunService(new InMemoryRunRepository());
   const runSourceReader = new RunSourceReader();
+  const aiIngestService = new AiIngestService(new InMemoryAiIngestJobRepository(), new NoopAiIngestProcessor());
   const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
   const aiSuggestFixService = new AiSuggestFixService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
-  const server = createHttpServer(runService, runSourceReader, aiExplainService, aiSuggestFixService);
+  const server = createHttpServer(runService, runSourceReader, aiIngestService, aiExplainService, aiSuggestFixService);
 
   await new Promise<void>((resolveStart) => {
     server.listen(0, "127.0.0.1", () => {
@@ -69,6 +73,97 @@ async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Pr
     }
   };
 }
+
+test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId returns it", async () => {
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const createResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ targetPath: "/workspace/examples/php-sample" })
+    });
+
+    assert.equal(createResponse.status, 202);
+    const createdPayload = (await createResponse.json()) as {
+      jobId: string;
+      targetPath: string;
+      status: string;
+      createdAt: string;
+      updatedAt: string;
+      startedAt: string | null;
+      finishedAt: string | null;
+      error: string | null;
+      stats: { filesIndexed: number; chunksIndexed: number } | null;
+    };
+
+    assert.ok(createdPayload.jobId.length > 0);
+    assert.equal(createdPayload.targetPath, "/workspace/examples/php-sample");
+    assert.match(createdPayload.status, /queued|running|completed/);
+    assert.equal(createdPayload.error, null);
+
+    const readResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest/${createdPayload.jobId}`);
+    assert.equal(readResponse.status, 200);
+    const readPayload = (await readResponse.json()) as {
+      jobId: string;
+      targetPath: string;
+      status: string;
+      stats: { filesIndexed: number; chunksIndexed: number } | null;
+    };
+
+    assert.equal(readPayload.jobId, createdPayload.jobId);
+    assert.equal(readPayload.targetPath, "/workspace/examples/php-sample");
+    assert.match(readPayload.status, /queued|running|completed/);
+    if (readPayload.status === "completed") {
+      assert.deepEqual(readPayload.stats, { filesIndexed: 0, chunksIndexed: 0 });
+    }
+  } finally {
+    await httpServer.close();
+  }
+});
+
+test("POST /api/ai/ingest uses default target when body targetPath is missing", async () => {
+  const previousDefaultTarget = process.env.AI_INGEST_DEFAULT_TARGET;
+  process.env.AI_INGEST_DEFAULT_TARGET = "/workspace/docs/rag";
+
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({})
+    });
+
+    assert.equal(response.status, 202);
+    const payload = (await response.json()) as { targetPath: string };
+    assert.equal(payload.targetPath, "/workspace/docs/rag");
+  } finally {
+    await httpServer.close();
+    if (previousDefaultTarget === undefined) {
+      delete process.env.AI_INGEST_DEFAULT_TARGET;
+    } else {
+      process.env.AI_INGEST_DEFAULT_TARGET = previousDefaultTarget;
+    }
+  }
+});
+
+test("GET /api/ai/ingest/:jobId returns 404 when job does not exist", async () => {
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/ingest/missing-job`);
+    assert.equal(response.status, 404);
+    const payload = (await response.json()) as { error: string };
+    assert.match(payload.error, /Ingest job not found/i);
+  } finally {
+    await httpServer.close();
+  }
+});
 
 test("POST /api/ai/explain validates missing issueMessage", async () => {
   const httpServer = await startTestHttpServer();

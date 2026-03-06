@@ -1,0 +1,79 @@
+// This file tests ingest job lifecycle transitions for the AI ingest use case.
+
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
+import { AiIngestService } from "./ai-ingest-service.js";
+import type { AiIngestProcessor } from "../ports/ai-ingest-processor.js";
+import type { AiIngestJob, AiIngestJobRepository, AiIngestStats } from "../ports/ai-ingest-job-repository.js";
+
+class InMemoryAiIngestJobRepository implements AiIngestJobRepository {
+  private readonly jobs = new Map<string, AiIngestJob>();
+
+  public async save(job: AiIngestJob): Promise<void> {
+    this.jobs.set(job.jobId, job);
+  }
+
+  public async findById(jobId: string): Promise<AiIngestJob | null> {
+    return this.jobs.get(jobId) ?? null;
+  }
+}
+
+class SuccessProcessor implements AiIngestProcessor {
+  public async ingest(_targetPath: string): Promise<AiIngestStats> {
+    await delay(5);
+    return {
+      filesIndexed: 2,
+      chunksIndexed: 7
+    };
+  }
+}
+
+class FailingProcessor implements AiIngestProcessor {
+  public async ingest(_targetPath: string): Promise<AiIngestStats> {
+    await delay(5);
+    throw new Error("ingest failed");
+  }
+}
+
+async function waitForStatus(
+  service: AiIngestService,
+  jobId: string,
+  expectedStatus: "completed" | "failed"
+): Promise<AiIngestJob> {
+  for (let index = 0; index < 30; index += 1) {
+    const current = await service.getById(jobId);
+    if (current && current.status === expectedStatus) {
+      return current;
+    }
+
+    await delay(5);
+  }
+
+  throw new Error(`job ${jobId} did not reach status ${expectedStatus}`);
+}
+
+test("AiIngestService marks job as completed and stores stats", async () => {
+  const service = new AiIngestService(new InMemoryAiIngestJobRepository(), new SuccessProcessor());
+
+  const job = await service.start("/workspace/examples/php-sample");
+  assert.equal(job.status, "queued");
+
+  const completed = await waitForStatus(service, job.jobId, "completed");
+  assert.equal(completed.targetPath, "/workspace/examples/php-sample");
+  assert.equal(completed.error, null);
+  assert.ok(completed.startedAt);
+  assert.ok(completed.finishedAt);
+  assert.deepEqual(completed.stats, { filesIndexed: 2, chunksIndexed: 7 });
+});
+
+test("AiIngestService marks job as failed when processor throws", async () => {
+  const service = new AiIngestService(new InMemoryAiIngestJobRepository(), new FailingProcessor());
+
+  const job = await service.start("/workspace/examples/php-sample");
+  const failed = await waitForStatus(service, job.jobId, "failed");
+
+  assert.equal(failed.stats, null);
+  assert.match(failed.error ?? "", /ingest failed/);
+  assert.ok(failed.finishedAt);
+});

@@ -27,6 +27,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AiHealthResponse'
+  /api/ai/ingest:
+    post:
+      summary: Start asynchronous ingest job
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiIngestStartRequest'
+      responses:
+        '202':
+          description: Ingest job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiIngestJob'
+  /api/ai/ingest/{jobId}:
+    get:
+      summary: Get ingest job status by id
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ingest job found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiIngestJob'
+        '404':
+          description: Ingest job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/ai/explain:
     post:
       summary: Explain PHPStan issue
@@ -346,6 +384,51 @@ components:
           type: 'null'
         debug:
           type: 'null'
+    AiIngestStartRequest:
+      type: object
+      properties:
+        targetPath:
+          type: string
+    AiIngestStats:
+      type: object
+      required: [filesIndexed, chunksIndexed]
+      properties:
+        filesIndexed:
+          type: integer
+        chunksIndexed:
+          type: integer
+    AiIngestJob:
+      type: object
+      required: [jobId, targetPath, status, createdAt, updatedAt, startedAt, finishedAt, error, stats]
+      properties:
+        jobId:
+          type: string
+        targetPath:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        stats:
+          allOf:
+            - $ref: '#/components/schemas/AiIngestStats'
+          nullable: true
     AiSuggestFixRequest:
       type: object
       required: [issueMessage]

@@ -111,6 +111,37 @@ This document must be updated in the same iteration where any endpoint is added 
 
 ### AI (phase C in progress)
 
+- `POST /api/ai/ingest`
+- Body (optional):
+
+```json
+{
+	"targetPath": "/workspace/examples/php-sample"
+}
+```
+
+- Response `202`: ingest job enqueued
+
+```json
+{
+	"jobId": "uuid",
+	"targetPath": "/workspace/examples/php-sample",
+	"status": "queued",
+	"createdAt": "2026-01-01T00:00:00.000Z",
+	"updatedAt": "2026-01-01T00:00:00.000Z",
+	"startedAt": null,
+	"finishedAt": null,
+	"error": null,
+	"stats": null
+}
+```
+
+- If `targetPath` is omitted, server uses `AI_INGEST_DEFAULT_TARGET` or `/workspace/examples/php-sample`.
+
+- `GET /api/ai/ingest/:jobId`
+- Response `200`: current ingest job state
+- Response `404`: `{ "error": "Ingest job not found" }`
+
 - `POST /api/ai/explain`
 - Body:
 

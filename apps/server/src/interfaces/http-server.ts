@@ -6,6 +6,7 @@ import { isAbsolute, relative, resolve } from "node:path";
 import { URL } from "node:url";
 import { parsePhpstanJsonOutput } from "@phpsage/shared";
 import type { AiExplainService } from "../application/ai-explain-service.js";
+import type { AiIngestService } from "../application/ai-ingest-service.js";
 import type { AiSuggestFixService } from "../application/ai-suggest-fix-service.js";
 import { RunService } from "../application/run-service.js";
 import type { RunIssue } from "../domain/run.js";
@@ -34,6 +35,10 @@ interface ExplainBody {
   sourceSnippet?: string;
 }
 
+interface IngestBody {
+  targetPath?: string;
+}
+
 interface TargetPathValidationResult {
   targetPath: string | null;
   error: string | null;
@@ -49,6 +54,7 @@ interface AiHealthResponse {
 export function createHttpServer(
   runService: RunService,
   runSourceReader: RunSourceReader,
+  aiIngestService: AiIngestService,
   aiExplainService: AiExplainService,
   aiSuggestFixService: AiSuggestFixService
 ) {
@@ -77,6 +83,28 @@ export function createHttpServer(
     if (method === "GET" && requestUrl.pathname === "/api/runs") {
       const runs = await runService.list();
       writeJson(response, 200, runs);
+      return;
+    }
+
+    if (method === "POST" && requestUrl.pathname === "/api/ai/ingest") {
+      const body = (await readJsonBody(request)) as IngestBody | null;
+      const requestedTargetPath = typeof body?.targetPath === "string" ? body.targetPath.trim() : "";
+      const targetPath = requestedTargetPath || process.env.AI_INGEST_DEFAULT_TARGET || "/workspace/examples/php-sample";
+
+      const job = await aiIngestService.start(targetPath);
+      writeJson(response, 202, job);
+      return;
+    }
+
+    const ingestJobId = getAiIngestJobId(requestUrl.pathname);
+    if (method === "GET" && ingestJobId) {
+      const job = await aiIngestService.getById(ingestJobId);
+      if (!job) {
+        writeJson(response, 404, { error: "Ingest job not found" });
+        return;
+      }
+
+      writeJson(response, 200, job);
       return;
     }
 
@@ -265,6 +293,11 @@ function getAiHealth(): AiHealthResponse {
 
 function getRunIdByAction(pathname: string, action: "log" | "finish" | "source" | "files"): string | null {
   const match = pathname.match(new RegExp(`^/api/runs/([^/]+)/${action}$`));
+  return match?.[1] ?? null;
+}
+
+function getAiIngestJobId(pathname: string): string | null {
+  const match = pathname.match(/^\/api\/ai\/ingest\/([^/]+)$/);
   return match?.[1] ?? null;
 }
 
