@@ -35,6 +35,7 @@ import { useSelectedSourceFileGuard } from "./hooks/use-selected-source-file-gua
 import { useAutoRunErrorReset } from "./hooks/use-auto-run-error-reset.js";
 import { ActiveControls } from "./components/active-controls.js";
 import { RunsSummary } from "./components/runs-summary.js";
+import { RunStarter } from "./components/run-starter.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -742,67 +743,15 @@ export function App(): JSX.Element {
 
       {copyLinkStatus === "error" ? <p className="error">Could not copy link.</p> : null}
 
-      <section className="run-starter">
-        <label>
-          Target path
-          <input
-            type="text"
-            value={startRunTargetPath}
-            onChange={(event) => {
-              setStartRunTargetPath(event.target.value);
-              setStartRunError(null);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                void startRunFromUi();
-              }
-            }}
-          />
-        </label>
-        <div className="run-starter-presets">
-          {starterTargetPresets.map((targetPreset) => (
-            <button
-              key={targetPreset}
-              onClick={() => {
-                setStartRunTargetPath(targetPreset);
-                setStartRunError(null);
-              }}
-            >
-              {targetPreset.split("/").pop()}
-            </button>
-          ))}
-        </div>
-        <div className="run-starter-actions">
-          <button
-            onClick={() => {
-              setStartRunTargetPath("/workspace/examples/php-sample");
-              setStartRunError(null);
-            }}
-          >
-            Reset target
-          </button>
-          <button
-            onClick={() => {
-              if (selectedRun) {
-                setStartRunTargetPath(selectedRun.targetPath);
-                setStartRunError(null);
-              }
-            }}
-            disabled={!selectedRun}
-          >
-            Use selected target
-          </button>
-          <button
-            onClick={() => {
-              void startRunFromUi();
-            }}
-            disabled={startRunLoading || startRunTargetPath.trim().length === 0}
-          >
-            {startRunLoading ? "Starting..." : "Start run"}
-          </button>
-        </div>
-      </section>
+      <RunStarter
+        startRunTargetPath={startRunTargetPath}
+        setStartRunTargetPath={setStartRunTargetPath}
+        setStartRunError={setStartRunError}
+        startRunFromUi={() => startRunFromUi()}
+        starterTargetPresets={starterTargetPresets}
+        selectedRun={selectedRun}
+        startRunLoading={startRunLoading}
+      />
 
       {startRunError ? <p className="error">Could not start run: {startRunError}</p> : null}
 
