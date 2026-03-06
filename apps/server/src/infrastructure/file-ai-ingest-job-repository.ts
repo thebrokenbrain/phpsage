@@ -1,6 +1,6 @@
 // This file persists AI ingest jobs as JSON files on disk.
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiIngestJob, AiIngestJobRepository } from "../ports/ai-ingest-job-repository.js";
 
@@ -19,6 +19,23 @@ export class FileAiIngestJobRepository implements AiIngestJobRepository {
     } catch {
       return null;
     }
+  }
+
+  public async listRecent(limit: number): Promise<AiIngestJob[]> {
+    await mkdir(this.jobsDirectoryPath, { recursive: true });
+    const entries = await readdir(this.jobsDirectoryPath);
+    const jobFiles = entries.filter((entry) => entry.endsWith(".json"));
+
+    const jobs = await Promise.all(
+      jobFiles.map(async (fileName) => {
+        const content = await readFile(join(this.jobsDirectoryPath, fileName), "utf-8");
+        return JSON.parse(content) as AiIngestJob;
+      })
+    );
+
+    return jobs
+      .sort((left, right) => (left.createdAt < right.createdAt ? 1 : -1))
+      .slice(0, Math.max(1, limit));
   }
 
   private getJobFilePath(jobId: string): string {

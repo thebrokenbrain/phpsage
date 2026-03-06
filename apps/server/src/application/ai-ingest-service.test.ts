@@ -17,6 +17,12 @@ class InMemoryAiIngestJobRepository implements AiIngestJobRepository {
   public async findById(jobId: string): Promise<AiIngestJob | null> {
     return this.jobs.get(jobId) ?? null;
   }
+
+  public async listRecent(limit: number): Promise<AiIngestJob[]> {
+    return Array.from(this.jobs.values())
+      .sort((left, right) => (left.createdAt < right.createdAt ? 1 : -1))
+      .slice(0, Math.max(1, limit));
+  }
 }
 
 class SuccessProcessor implements AiIngestProcessor {
@@ -89,4 +95,19 @@ test("AiIngestService exposes latest started job", async () => {
   const latest = await service.getLatest();
   assert.ok(latest);
   assert.equal(latest?.jobId, second.jobId);
+});
+
+test("AiIngestService lists recent jobs by recency", async () => {
+  const service = new AiIngestService(new InMemoryAiIngestJobRepository(), new SuccessProcessor());
+
+  await service.start("/workspace/first");
+  await delay(2);
+  await service.start("/workspace/second");
+  await delay(2);
+  await service.start("/workspace/third");
+
+  const recent = await service.listRecent(2);
+  assert.equal(recent.length, 2);
+  assert.equal(recent[0]?.targetPath, "/workspace/third");
+  assert.equal(recent[1]?.targetPath, "/workspace/second");
 });

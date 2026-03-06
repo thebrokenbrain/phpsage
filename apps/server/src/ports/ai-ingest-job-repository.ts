@@ -22,4 +22,5 @@ export interface AiIngestJob {
 export interface AiIngestJobRepository {
   save(job: AiIngestJob): Promise<void>;
   findById(jobId: string): Promise<AiIngestJob | null>;
+  listRecent(limit: number): Promise<AiIngestJob[]>;
 }

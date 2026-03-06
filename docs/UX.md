@@ -90,6 +90,7 @@ A minimal Dashboard is implemented with:
 - dashboard shows latest AI ingest job status (`queued`/`running`/`completed`/`failed`) with job id, target path and progressive updates via polling
 - dashboard shows LLM status (`ON/OFF`) from `GET /api/ai/health` and active provider/model when available
 - `AI Assist` includes a toggle to expand or collapse retrieved context content blocks for the active issue
+- dashboard shows `Recent Ingest Jobs` panel with manual refresh and latest status/stats snapshots
 - run detail includes `AI Assist` panel bound to active issue context
 - `AI Assist` loads explain and suggest-fix payloads together and renders recommendations + proposed diff
 - manual refresh action

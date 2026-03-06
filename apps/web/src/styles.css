@@ -132,6 +132,41 @@ body {
   font-size: 0.82rem;
 }
 
+.ingest-summary {
+  margin: 8px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-1);
+  padding: 10px;
+}
+
+.ingest-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ingest-summary-header h3 {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ingest-summary-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.ingest-summary-list li {
+  margin: 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .runs-summary span {
   border: 1px solid var(--border);
   background: var(--surface-1);

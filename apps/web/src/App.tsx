@@ -53,6 +53,7 @@ import { RunsPane } from "./components/runs-pane.js";
 import { CopyLinkError } from "./components/copy-link-error.js";
 import { InspectorPane } from "./components/inspector-pane.js";
 import { WorkspaceGrid } from "./components/workspace-grid.js";
+import { IngestJobsSummary } from "./components/ingest-jobs-summary.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -143,9 +144,12 @@ export function App(): JSX.Element {
 
   const {
     activeIngestJob,
+    recentIngestJobs,
+    ingestListLoading,
     ingestLoading,
     ingestError,
-    startIngestFromUi
+    startIngestFromUi,
+    refreshRecentIngestJobs
   } = useAiIngest({
     apiBase: apiBaseUrl,
     pollIntervalMs: 1200
@@ -547,6 +551,12 @@ export function App(): JSX.Element {
           Ingest job <code>{activeIngestJob.jobId}</code> for <code>{activeIngestJob.targetPath}</code>: <strong>{activeIngestJob.status}</strong>
         </p>
       ) : null}
+
+      <IngestJobsSummary
+        recentIngestJobs={recentIngestJobs}
+        ingestListLoading={ingestListLoading}
+        refreshRecentIngestJobs={() => refreshRecentIngestJobs()}
+      />
 
       <RunsSummary
         total={runsSummary.total}

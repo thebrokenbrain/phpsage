@@ -28,6 +28,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/AiHealthResponse'
   /api/ai/ingest:
+    get:
+      summary: List recent ingest jobs
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Recent ingest jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AiIngestJob'
     post:
       summary: Start asynchronous ingest job
       requestBody:

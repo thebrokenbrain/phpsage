@@ -12,4 +12,10 @@ export class InMemoryAiIngestJobRepository implements AiIngestJobRepository {
   public async findById(jobId: string): Promise<AiIngestJob | null> {
     return this.jobs.get(jobId) ?? null;
   }
+
+  public async listRecent(limit: number): Promise<AiIngestJob[]> {
+    return Array.from(this.jobs.values())
+      .sort((left, right) => (left.createdAt < right.createdAt ? 1 : -1))
+      .slice(0, Math.max(1, limit));
+  }
 }

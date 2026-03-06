@@ -37,11 +37,16 @@ export class AiIngestService {
   }
 
   public async getLatest(): Promise<AiIngestJob | null> {
-    if (!this.latestJobId) {
-      return null;
+    if (this.latestJobId) {
+      return this.jobRepository.findById(this.latestJobId);
     }
 
-    return this.jobRepository.findById(this.latestJobId);
+    const recentJobs = await this.jobRepository.listRecent(1);
+    return recentJobs[0] ?? null;
+  }
+
+  public async listRecent(limit: number): Promise<AiIngestJob[]> {
+    return this.jobRepository.listRecent(limit);
   }
 
   private async execute(jobId: string): Promise<void> {

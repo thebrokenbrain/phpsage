@@ -10,15 +10,41 @@ interface UseAiIngestOptions {
 
 interface UseAiIngestResult {
   activeIngestJob: AiIngestJobPayload | null;
+  recentIngestJobs: AiIngestJobPayload[];
+  ingestListLoading: boolean;
   ingestLoading: boolean;
   ingestError: string | null;
   startIngestFromUi: (targetPath?: string) => Promise<void>;
+  refreshRecentIngestJobs: (limit?: number) => Promise<void>;
 }
 
 export function useAiIngest({ apiBase, pollIntervalMs }: UseAiIngestOptions): UseAiIngestResult {
   const [activeIngestJob, setActiveIngestJob] = useState<AiIngestJobPayload | null>(null);
+  const [recentIngestJobs, setRecentIngestJobs] = useState<AiIngestJobPayload[]>([]);
+  const [ingestListLoading, setIngestListLoading] = useState(false);
   const [ingestLoading, setIngestLoading] = useState(false);
   const [ingestError, setIngestError] = useState<string | null>(null);
+
+  const refreshRecentIngestJobs = useCallback(async (limit = 8): Promise<void> => {
+    setIngestListLoading(true);
+
+    try {
+      const response = await fetch(`${apiBase}/api/ai/ingest?limit=${limit}`, {
+        method: "GET"
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const jobs = (await response.json()) as AiIngestJobPayload[];
+      setRecentIngestJobs(jobs);
+    } catch (error) {
+      setIngestError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIngestListLoading(false);
+    }
+  }, [apiBase]);
 
   const fetchJobById = useCallback(async (jobId: string): Promise<AiIngestJobPayload> => {
     const response = await fetch(`${apiBase}/api/ai/ingest/${jobId}`, {
@@ -52,12 +78,13 @@ export function useAiIngest({ apiBase, pollIntervalMs }: UseAiIngestOptions): Us
 
       const createdJob = (await response.json()) as AiIngestJobPayload;
       setActiveIngestJob(createdJob);
+      void refreshRecentIngestJobs();
     } catch (error) {
       setIngestError(error instanceof Error ? error.message : String(error));
     } finally {
       setIngestLoading(false);
     }
-  }, [apiBase]);
+  }, [apiBase, refreshRecentIngestJobs]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -79,6 +106,7 @@ export function useAiIngest({ apiBase, pollIntervalMs }: UseAiIngestOptions): Us
         const latest = (await response.json()) as AiIngestJobPayload;
         if (!isCancelled) {
           setActiveIngestJob(latest);
+          void refreshRecentIngestJobs();
         }
       } catch (error) {
         if (!isCancelled) {
@@ -90,7 +118,7 @@ export function useAiIngest({ apiBase, pollIntervalMs }: UseAiIngestOptions): Us
     return () => {
       isCancelled = true;
     };
-  }, [apiBase]);
+  }, [apiBase, refreshRecentIngestJobs]);
 
   useEffect(() => {
     if (!activeIngestJob) {
@@ -108,6 +136,7 @@ export function useAiIngest({ apiBase, pollIntervalMs }: UseAiIngestOptions): Us
           const refreshed = await fetchJobById(activeIngestJob.jobId);
           if (!isCancelled) {
             setActiveIngestJob(refreshed);
+            void refreshRecentIngestJobs();
           }
         } catch (error) {
           if (!isCancelled) {
@@ -121,12 +150,19 @@ export function useAiIngest({ apiBase, pollIntervalMs }: UseAiIngestOptions): Us
       isCancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [activeIngestJob, fetchJobById, pollIntervalMs]);
+  }, [activeIngestJob, fetchJobById, pollIntervalMs, refreshRecentIngestJobs]);
+
+  useEffect(() => {
+    void refreshRecentIngestJobs();
+  }, [refreshRecentIngestJobs]);
 
   return {
     activeIngestJob,
+    recentIngestJobs,
+    ingestListLoading,
     ingestLoading,
     ingestError,
-    startIngestFromUi
+    startIngestFromUi,
+    refreshRecentIngestJobs
   };
 }

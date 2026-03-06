@@ -96,6 +96,15 @@ export function createHttpServer(
       return;
     }
 
+    if (method === "GET" && requestUrl.pathname === "/api/ai/ingest") {
+      const limitParam = requestUrl.searchParams.get("limit");
+      const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : 10;
+      const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10;
+      const jobs = await aiIngestService.listRecent(limit);
+      writeJson(response, 200, jobs);
+      return;
+    }
+
     if (method === "GET" && requestUrl.pathname === "/api/ai/ingest/latest") {
       const latestJob = await aiIngestService.getLatest();
       if (!latestJob) {

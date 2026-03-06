@@ -151,6 +151,7 @@ Estado actual:
 - endpoint IA de health implementado: `GET /api/ai/health` (estado/configuración activa por entorno)
 - endpoint IA de ingest implementado: `POST /api/ai/ingest` (creación de job asíncrono)
 - endpoint IA de estado de ingest implementado: `GET /api/ai/ingest/:jobId`
+- endpoint IA de histórico reciente de ingest implementado: `GET /api/ai/ingest?limit=<n>`
 - comando CLI de ingest implementado: `phpsage rag ingest [--target-path <path>] [--wait]`
 - ingest IA procesa recursivamente el filesystem objetivo y calcula `filesIndexed`/`chunksIndexed`
 - jobs de ingest persisten en `data/ai/ingest-jobs/<jobId>.json`
@@ -161,6 +162,7 @@ Estado actual:
 - explain/suggest-fix enriquecen respuesta con `contextItems` recuperados desde corpus `rag/`
 - `AI_RAG_TOP_K` permite ajustar cuántos contextos recuperar por petición IA (default `3`)
 - panel `AI Assist` permite expandir/colapsar contenido de contexto recuperado para inspección rápida
+- dashboard incluye panel `Recent Ingest Jobs` con refresco manual y snapshot de estados/estadísticas
 - smoke no-IA reproducible (`./scripts/smoke-no-ai.sh`) validando dos rutas E2E: muestra con errores (`exitCode=1`) y muestra limpia (`exitCode=0`)
 - contrato OpenAPI disponible en `docs/openapi.yaml` y visualizable con `api-docs` en `http://localhost:8081`
 - web mínima implementada en `http://localhost:5173` con listado de runs desde `GET /api/runs`

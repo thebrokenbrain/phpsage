@@ -191,6 +191,38 @@ test("GET /api/ai/ingest/latest returns most recent ingest job", async () => {
   }
 });
 
+test("GET /api/ai/ingest returns recent ingest jobs with limit", async () => {
+  const httpServer = await startTestHttpServer();
+
+  try {
+    await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetPath: "/workspace/one" })
+    });
+    await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetPath: "/workspace/two" })
+    });
+    await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetPath: "/workspace/three" })
+    });
+
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/ingest?limit=2`);
+    assert.equal(response.status, 200);
+
+    const payload = (await response.json()) as Array<{ targetPath: string }>;
+    assert.equal(payload.length, 2);
+    assert.equal(payload[0]?.targetPath, "/workspace/three");
+    assert.equal(payload[1]?.targetPath, "/workspace/two");
+  } finally {
+    await httpServer.close();
+  }
+});
+
 test("POST /api/ai/explain validates missing issueMessage", async () => {
   const httpServer = await startTestHttpServer();
 
