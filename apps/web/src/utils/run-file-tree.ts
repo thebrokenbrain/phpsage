@@ -1,5 +1,5 @@
 // This module provides path normalization and file tree helpers used by run explorer/navigation.
-import type { RunFileItem } from "../types.js";
+import type { RunFileEntry } from "../types.js";
 
 export interface RunFileTreeRow {
   readonly key: string;
@@ -68,7 +68,7 @@ export function isPathDescendantOf(path: string, basePath: string): boolean {
   return normalizedPath.startsWith(`${normalizedBasePath}/`);
 }
 
-export function buildFileTreeRows(files: RunFileItem[]): RunFileTreeRow[] {
+export function buildFileTreeRows(files: RunFileEntry[]): RunFileTreeRow[] {
   const directorySet = new Set<string>();
   const rows: RunFileTreeRow[] = [];
 

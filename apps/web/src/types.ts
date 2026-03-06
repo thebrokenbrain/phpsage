@@ -15,125 +15,80 @@ export interface RunIssue {
   readonly identifier?: string;
 }
 
-export interface RunLogEntry {
-  readonly timestamp: string;
-  readonly stream: "stdout" | "stderr";
-  readonly message: string;
-}
-
-export interface RunRecord extends RunSummary {
-  readonly logs: RunLogEntry[];
+export interface RunRecord {
+  readonly runId: string;
+  readonly targetPath: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly status: "running" | "finished";
+  readonly logs: Array<{
+    readonly timestamp: string;
+    readonly stream: "stdout" | "stderr";
+    readonly message: string;
+  }>;
   readonly issues: RunIssue[];
+  readonly exitCode: number | null;
 }
 
-export interface RunFileItem {
+export interface RunFileEntry {
   readonly path: string;
   readonly issueCount: number;
   readonly hasIssues: boolean;
 }
 
-export interface RunFilesPayload {
+export interface RunFilesResponse {
   readonly targetPath: string;
-  readonly files: RunFileItem[];
+  readonly files: RunFileEntry[];
 }
 
-export interface SourcePayload {
-  readonly file: string;
-  readonly content: string;
-}
-
-export interface AiHealthPayload {
+export interface AiHealthResponse {
   readonly status: "ok" | "degraded";
-  readonly enabled: boolean;
-  readonly activeProvider: string | null;
-  readonly activeModel: string | null;
   readonly timestamp: string;
+  readonly activeProvider: string;
+  readonly activeModel: string;
   readonly providers: Array<{
-    readonly provider: "openai" | "ollama" | "qdrant";
+    readonly provider: string;
     readonly url: string;
     readonly status: "up" | "down";
     readonly latencyMs: number;
-    readonly error: string | null;
+    readonly error?: string;
   }>;
 }
 
-export interface AiIngestJobPayload {
-  readonly jobId: string;
-  readonly targetPath: string;
-  readonly status: "queued" | "running" | "completed" | "failed";
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly startedAt: string | null;
-  readonly finishedAt: string | null;
-  readonly error: string | null;
-  readonly stats: {
-    readonly filesIndexed: number;
-    readonly chunksIndexed: number;
-  } | null;
+export interface AiUsage {
+  readonly model: string;
+  readonly inputTokens: number | null;
+  readonly outputTokens: number | null;
+  readonly totalTokens: number | null;
 }
 
-export interface AiExplainPayload {
+export interface AiLlmDebugPayload {
+  readonly strategy: string;
+  readonly endpoint: string;
+  readonly prompt: string;
+  readonly requestBody: Record<string, unknown>;
+  readonly rawResponse: unknown;
+}
+
+export interface AiExplainResponse {
   readonly explanation: string;
   readonly recommendations: string[];
-  readonly source: "fallback" | "llm";
+  readonly source: "llm" | "fallback";
   readonly provider: string;
   readonly fallbackReason: string | null;
-  readonly contextItems?: Array<{
-    readonly sourcePath: string;
-    readonly identifier: string | null;
-    readonly content: string;
-    readonly score: number;
-  }>;
-  readonly usage: {
-    readonly model: string;
-    readonly inputTokens: number | null;
-    readonly outputTokens: number | null;
-    readonly totalTokens: number | null;
-  } | null;
-  readonly debug: {
-    readonly strategy: string;
-    readonly endpoint: string;
-    readonly prompt: string;
-    readonly requestBody: Record<string, unknown>;
-    readonly rawResponse: unknown;
-  } | null;
+  readonly usage: AiUsage | null;
+  readonly debug: AiLlmDebugPayload | null;
 }
 
-export interface AiSuggestFixPayload {
-  readonly proposedDiff: string;
+export interface AiSuggestFixResponse {
+  readonly proposedDiff: string | null;
   readonly rationale: string;
-  readonly source: "fallback" | "llm";
+  readonly source: "llm" | "fallback";
   readonly provider: string;
   readonly fallbackReason: string | null;
-  readonly contextItems?: Array<{
-    readonly sourcePath: string;
-    readonly identifier: string | null;
-    readonly content: string;
-    readonly score: number;
-  }>;
-  readonly usage: {
-    readonly model: string;
-    readonly inputTokens: number | null;
-    readonly outputTokens: number | null;
-    readonly totalTokens: number | null;
-  } | null;
-  readonly debug: {
-    readonly strategy: string;
-    readonly endpoint: string;
-    readonly prompt: string;
-    readonly requestBody: Record<string, unknown>;
-    readonly rawResponse: unknown;
-  } | null;
-}
-
-export interface StartRunPayload {
-  readonly runId: string;
-  readonly targetPath: string;
-  readonly status: "running" | "finished";
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly exitCode: number | null;
-  readonly issueCount: number;
+  readonly rejectedReason: string | null;
+  readonly usage: AiUsage | null;
+  readonly debug: AiLlmDebugPayload | null;
 }
 
 export type ViewMode = "dashboard" | "insights" | "issue";

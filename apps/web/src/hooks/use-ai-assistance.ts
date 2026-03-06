@@ -1,6 +1,6 @@
 // This hook encapsulates AI assistance loading, caching, deduplication, and cancellation.
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
-import type { AiExplainPayload, AiSuggestFixPayload, RunIssue } from "../types.js";
+import type { AiExplainResponse, AiSuggestFixResponse, RunIssue } from "../types.js";
 import { buildAiRequestKey, getCachedValueWithLru, setCachedValueWithLru } from "../ai-request-context.js";
 import { formatError, getIssueContextKey } from "../utils/app-helpers.js";
 
@@ -12,15 +12,15 @@ interface UseAiAssistanceOptions {
 }
 
 interface UseAiAssistanceResult {
-  aiExplain: AiExplainPayload | null;
-  aiSuggestFix: AiSuggestFixPayload | null;
+  aiExplain: AiExplainResponse | null;
+  aiSuggestFix: AiSuggestFixResponse | null;
   isAiLoading: boolean;
   aiError: string | null;
 }
 
 type AiAssistanceCacheEntry = {
-  explain: AiExplainPayload;
-  suggestFix: AiSuggestFixPayload;
+  explain: AiExplainResponse;
+  suggestFix: AiSuggestFixResponse;
 };
 
 export function useAiAssistance({
@@ -29,8 +29,8 @@ export function useAiAssistance({
   aiContextIssue,
   activeSourceSnippet
 }: UseAiAssistanceOptions): UseAiAssistanceResult {
-  const [aiExplain, setAiExplain] = useState<AiExplainPayload | null>(null);
-  const [aiSuggestFix, setAiSuggestFix] = useState<AiSuggestFixPayload | null>(null);
+  const [aiExplain, setAiExplain] = useState<AiExplainResponse | null>(null);
+  const [aiSuggestFix, setAiSuggestFix] = useState<AiSuggestFixResponse | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -133,8 +133,8 @@ async function loadAiAssistance({
   apiBase: string;
   issue: RunIssue;
   sourceSnippet?: string;
-  setAiExplain: (value: AiExplainPayload | null) => void;
-  setAiSuggestFix: (value: AiSuggestFixPayload | null) => void;
+  setAiExplain: (value: AiExplainResponse | null) => void;
+  setAiSuggestFix: (value: AiSuggestFixResponse | null) => void;
   setAiError: (value: string | null) => void;
   setIsAiLoading: (value: boolean) => void;
   aiRequestCacheRef: MutableRefObject<Map<string, AiAssistanceCacheEntry>>;
@@ -205,8 +205,8 @@ async function loadAiAssistance({
       throw new Error("Cannot load AI assistance");
     }
 
-    const explainData = (await explainResponse.json()) as AiExplainPayload;
-    const suggestFixData = (await suggestFixResponse.json()) as AiSuggestFixPayload;
+    const explainData = (await explainResponse.json()) as AiExplainResponse;
+    const suggestFixData = (await suggestFixResponse.json()) as AiSuggestFixResponse;
 
     if (abortController.signal.aborted) {
       return;

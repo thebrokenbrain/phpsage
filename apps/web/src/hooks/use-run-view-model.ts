@@ -1,17 +1,14 @@
 // This hook centralizes derived run/issue view state used by the App composition root.
 import { useMemo } from "react";
-import type { RunIssue, RunRecord } from "../types.js";
+import type { FileIssueViewItem } from "../components/code-window.js";
+import type { RunIssue, RunRecord, ViewMode } from "../types.js";
 import { toAbsoluteRunPath, toRelativeRunPath } from "../utils/run-file-tree.js";
-
-export interface FileIssueViewItem {
-  readonly issue: RunIssue;
-  readonly issueIndex: number;
-}
 
 interface UseRunViewModelOptions {
   selectedRun: RunRecord | null;
   selectedIssueIndex: number;
   selectedFilePath: string | null;
+  viewMode: ViewMode;
 }
 
 interface UseRunViewModelResult {
@@ -21,6 +18,9 @@ interface UseRunViewModelResult {
   hasIssues: boolean;
   resolvedRunId: string | null;
   activeIssueRelativePath: string | null;
+  activeIssueForViewer: RunIssue | null;
+  activeIssueIndexForViewer: number | null;
+  aiContextIssue: RunIssue | null;
   fileIssuesForViewer: FileIssueViewItem[];
   absoluteSourceFilePath: string | null;
   identifiers: Array<[string, number]>;
@@ -64,7 +64,8 @@ export function buildFileIssuesForViewer(
 export function useRunViewModel({
   selectedRun,
   selectedIssueIndex,
-  selectedFilePath
+  selectedFilePath,
+  viewMode
 }: UseRunViewModelOptions): UseRunViewModelResult {
   const issues = selectedRun?.issues ?? [];
   const safeIssueIndex = getSafeIssueIndex(issues.length, selectedIssueIndex);
@@ -79,6 +80,13 @@ export function useRunViewModel({
 
     return toRelativeRunPath(selectedRun.targetPath, activeIssue.file);
   }, [activeIssue, selectedRun?.targetPath]);
+
+  const isActiveIssueInSelectedFile =
+    !!activeIssue && !!selectedFilePath && !!activeIssueRelativePath && activeIssueRelativePath === selectedFilePath;
+
+  const activeIssueForViewer = isActiveIssueInSelectedFile ? activeIssue : null;
+  const activeIssueIndexForViewer = isActiveIssueInSelectedFile ? safeIssueIndex : null;
+  const aiContextIssue = viewMode === "dashboard" ? activeIssueForViewer : activeIssue;
 
   const fileIssuesForViewer = useMemo(() => {
     return buildFileIssuesForViewer(issues, selectedRun?.targetPath, selectedFilePath);
@@ -101,6 +109,9 @@ export function useRunViewModel({
     hasIssues,
     resolvedRunId,
     activeIssueRelativePath,
+    activeIssueForViewer,
+    activeIssueIndexForViewer,
+    aiContextIssue,
     fileIssuesForViewer,
     absoluteSourceFilePath,
     identifiers

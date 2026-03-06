@@ -1,0 +1,60 @@
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: auto 6px 1fr;
+  }
+
+  .sidepanel {
+    min-width: 250px;
+  }
+}
+
+@media (max-width: 920px) {
+  .app {
+    grid-template-rows: 56px 1fr;
+  }
+
+  .footerbar {
+    display: none;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidepanel {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    max-height: 42vh;
+    width: auto !important;
+    min-width: 0;
+  }
+
+  .sidepanel-resizer {
+    display: none;
+  }
+
+  .header-metrics {
+    display: none;
+  }
+
+  .product-logo {
+    height: 46px;
+  }
+
+  .main-toolbar {
+    height: auto;
+    padding: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .run-target-group {
+    width: 100%;
+  }
+
+  .run-target-input {
+    width: 100%;
+    max-width: none;
+  }
+}

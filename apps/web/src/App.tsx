@@ -1,672 +1,262 @@
-import { useEffect, useMemo, useState } from "react";
-import type {
-  RunFileItem,
-  RunFilesPayload,
-  RunIssue,
-  RunLogEntry,
-  RunRecord,
-  RunSummary,
-  SourcePayload
-} from "./types.js";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ViewMode } from "./types.js";
+import { FooterBar } from "./components/footer-bar.js";
+import { MainPanel } from "./components/main-panel.js";
+import { Sidepanel } from "./components/sidepanel.js";
+import { Topbar } from "./components/topbar.js";
 import { useAiAssistance } from "./hooks/use-ai-assistance.js";
+import { useFileTreeState } from "./hooks/use-file-tree-state.js";
+import { useAutoSelectIssueInFile, useIssueNavigation } from "./hooks/use-issue-navigation.js";
 import { useKeyboardIssueNavigation } from "./hooks/use-keyboard-issue-navigation.js";
-import { useIssueNavigation } from "./hooks/use-issue-navigation.js";
 import { useRunViewModel } from "./hooks/use-run-view-model.js";
+import { useRunsRuntime } from "./hooks/use-runs-runtime.js";
 import { useRunSource } from "./hooks/use-run-source.js";
-import { useUrlPopstateSync } from "./hooks/use-url-popstate-sync.js";
-import { useDashboardUrlSync } from "./hooks/use-dashboard-url-sync.js";
-import { useRunDetail } from "./hooks/use-run-detail.js";
-import { useRunFiles } from "./hooks/use-run-files.js";
-import { useAiHealth } from "./hooks/use-ai-health.js";
-import { useAiIngest } from "./hooks/use-ai-ingest.js";
-import { useAutoRunCountdown } from "./hooks/use-auto-run-countdown.js";
-import { useAutoRunVisibilityPause } from "./hooks/use-auto-run-visibility-pause.js";
-import { useAutoRunScheduler } from "./hooks/use-auto-run-scheduler.js";
-import { useRunningRunPolling } from "./hooks/use-running-run-polling.js";
-import { useDashboardStorage } from "./hooks/use-dashboard-storage.js";
-import { useDashboardPagination } from "./hooks/use-dashboard-pagination.js";
-import { useRunsList } from "./hooks/use-runs-list.js";
-import { useCopyActions } from "./hooks/use-copy-actions.js";
-import { useRunsFiltersViewModel } from "./hooks/use-runs-filters-view-model.js";
-import { useAutoRunDerived } from "./hooks/use-auto-run-derived.js";
-import { useStartRun } from "./hooks/use-start-run.js";
-import { useResetDashboardControls } from "./hooks/use-reset-dashboard-controls.js";
-import { readInitialQuerySelection } from "./hooks/use-initial-query-selection.js";
-import { useSelectedSourceFileGuard } from "./hooks/use-selected-source-file-guard.js";
-import { useAutoRunErrorReset } from "./hooks/use-auto-run-error-reset.js";
-import { ActiveControls } from "./components/active-controls.js";
-import { RunsSummary } from "./components/runs-summary.js";
-import { RunStarter } from "./components/run-starter.js";
-import { DetailPanel } from "./components/detail-panel.js";
-import { useVisibleRunFiles } from "./hooks/use-visible-run-files.js";
-import { useFilteredIssueEntries } from "./hooks/use-filtered-issue-entries.js";
-import { useFilteredLogs } from "./hooks/use-filtered-logs.js";
-import { useActiveIssueLineInSource } from "./hooks/use-active-issue-line-in-source.js";
-import { useResolvedSourceFilePath } from "./hooks/use-resolved-source-file-path.js";
-import { useActiveSourceSnippet } from "./hooks/use-active-source-snippet.js";
-import { DashboardBrand } from "./components/dashboard-brand.js";
-import { HeaderRunFilters } from "./components/header-run-filters.js";
-import { HeaderToggleControls } from "./components/header-toggle-controls.js";
-import { HeaderIntervalControls } from "./components/header-interval-controls.js";
-import { HeaderActionButtons } from "./components/header-action-buttons.js";
-import { RunsPane } from "./components/runs-pane.js";
-import { CopyLinkError } from "./components/copy-link-error.js";
-import { InspectorPane } from "./components/inspector-pane.js";
-import { WorkspaceGrid } from "./components/workspace-grid.js";
-import { IngestJobsSummary } from "./components/ingest-jobs-summary.js";
+import { useSidepanelResize } from "./hooks/use-sidepanel-resize.js";
+import { useUrlUiSync } from "./hooks/use-url-ui-sync.js";
+import { loadSidepanelWidth } from "./utils/sidepanel-width.js";
+import { getIssueKey } from "./utils/app-helpers.js";
+import { parseUiStateFromUrl } from "./utils/url-ui-state.js";
 
-const defaultApiBaseUrl = "http://localhost:8080";
-const detailPageSize = 10;
-const defaultRunningPollIntervalMs = 2000;
-const aiHealthFailureThreshold = 2;
-const starterTargetPresets = ["/workspace/examples/php-sample", "/workspace/examples/php-sample-ok"];
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 
-export function App(): JSX.Element {
-  const initialSelection = useMemo(() => readInitialQuerySelection(), []);
-  const apiBaseUrl = useMemo(() => {
-    const value = import.meta.env.VITE_API_BASE_URL as string | undefined;
-    return value && value.trim().length > 0 ? value : defaultApiBaseUrl;
+const SIDEPANEL_DEFAULT_WIDTH = 420;
+const SIDEPANEL_MIN_WIDTH = 280;
+const SIDEPANEL_MAX_WIDTH = 720;
+const RUN_TARGET_DEFAULT_PATH = "/workspace/examples/php-sample";
+const AI_HEALTH_FAILURE_THRESHOLD = 2;
+
+export function App() {
+  const initialUrlState = parseUiStateFromUrl();
+  const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialUrlState.issueIndex);
+  const [collapsedDirectories, setCollapsedDirectories] = useState<Set<string>>(new Set());
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>(initialUrlState.viewMode);
+  const [sidepanelWidth, setSidepanelWidth] = useState<number>(() => loadSidepanelWidth(SIDEPANEL_DEFAULT_WIDTH, SIDEPANEL_MIN_WIDTH, SIDEPANEL_MAX_WIDTH));
+  const [isResizingSidepanel, setIsResizingSidepanel] = useState(false);
+  const selectedIssueKeyRef = useRef<string | null>(null);
+  const layoutRef = useRef<HTMLDivElement | null>(null);
+  const handleRunSelectionCleared = useCallback(() => {
+    setSelectedFilePath(null);
   }, []);
 
-  const [runsStatusFilter, setRunsStatusFilter] = useState<"all" | "running" | "finished">(initialSelection.runsStatusFilter);
-  const [runsSortOrder, setRunsSortOrder] = useState<"updatedDesc" | "updatedAsc">(initialSelection.runsSortOrder);
-  const [isAutoRunEnabled, setIsAutoRunEnabled] = useState(initialSelection.isAutoRunEnabled);
-  const [autoRunIntervalMs, setAutoRunIntervalMs] = useState(initialSelection.autoRunIntervalMs ?? 15000);
-  const [autoRunTargetMode, setAutoRunTargetMode] = useState<"starter" | "selected">(initialSelection.autoRunTargetMode);
-  const [autoRunPauseWhenHidden, setAutoRunPauseWhenHidden] = useState(initialSelection.autoRunPauseWhenHidden);
-  const [autoRunMaxFailures, setAutoRunMaxFailures] = useState(initialSelection.autoRunMaxFailures ?? 3);
-  const [autoRunConsecutiveFailures, setAutoRunConsecutiveFailures] = useState(0);
-  const [lastAutoRunAt, setLastAutoRunAt] = useState<string | null>(null);
-  const [lastAutoRunError, setLastAutoRunError] = useState<string | null>(null);
-  const [autoRunTriggerCount, setAutoRunTriggerCount] = useState(0);
-  const [autoRunFailureCount, setAutoRunFailureCount] = useState(0);
-  const [autoRunDisabledReason, setAutoRunDisabledReason] = useState<string | null>(null);
-  const [isLivePollingEnabled, setIsLivePollingEnabled] = useState(initialSelection.isLivePollingEnabled);
-  const [livePollingIntervalMs, setLivePollingIntervalMs] = useState(initialSelection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
-  const [startRunTargetPath, setStartRunTargetPath] = useState(initialSelection.startTargetPath ?? "/workspace/examples/php-sample");
-  const [issuePage, setIssuePage] = useState(0);
-  const [issueSearchTerm, setIssueSearchTerm] = useState(initialSelection.issueSearchTerm);
-  const [issueIdentifierFilter, setIssueIdentifierFilter] = useState<"all" | "with" | "without">(initialSelection.issueIdentifierFilter);
-  const [isIssuesSectionOpen, setIsIssuesSectionOpen] = useState(initialSelection.isIssuesSectionOpen);
-  const [isLogsSectionOpen, setIsLogsSectionOpen] = useState(initialSelection.isLogsSectionOpen);
-  const [logPage, setLogPage] = useState(initialSelection.logPage ?? 0);
-  const [logSearchTerm, setLogSearchTerm] = useState(initialSelection.logSearchTerm);
-  const [logStreamFilter, setLogStreamFilter] = useState<"all" | "stdout" | "stderr">(initialSelection.logStreamFilter);
-  const [selectedIssueIndex, setSelectedIssueIndex] = useState(initialSelection.issueIndex ?? 0);
-  const [isFilesSectionOpen, setIsFilesSectionOpen] = useState(initialSelection.isFilesSectionOpen);
-  const [fileSearchTerm, setFileSearchTerm] = useState(initialSelection.fileSearchTerm);
-  const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(initialSelection.file);
-  const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(initialSelection.isSourceSectionOpen);
   const {
     runs,
-    setRuns,
+    selectedRunId,
+    setSelectedRunId,
+    selectedRun,
+    runFiles,
+    isRunDetailLoading,
     loading,
     error,
-    setError,
-    lastRefreshAt,
-    setLastRefreshAt,
-    selectedRunId,
-    setSelectedRunId,
-    refreshRuns
-  } = useRunsList({
-    apiBaseUrl,
-    initialSelectedRunId: initialSelection.runId
-  });
-
-  const {
-    selectedRun,
-    detailLoading,
-    detailError,
-    refreshRunDetail
-  } = useRunDetail({
-    apiBase: apiBaseUrl,
-    runId: selectedRunId
-  });
-
-  const {
-    runFiles,
-    filesLoading,
-    filesError,
-    refreshRunFiles
-  } = useRunFiles({
-    apiBase: apiBaseUrl,
-    runId: selectedRunId
-  });
-
-  const {
     isLlmAvailable,
     activeAiProvider,
-    activeAiModel
-  } = useAiHealth({
-    apiBase: apiBaseUrl,
-    failureThreshold: aiHealthFailureThreshold
+    activeAiModel,
+    handleStartRun
+  } = useRunsRuntime({
+    apiBase: API_BASE,
+    initialRunId: initialUrlState.runId,
+    runTargetDefaultPath: RUN_TARGET_DEFAULT_PATH,
+    aiHealthFailureThreshold: AI_HEALTH_FAILURE_THRESHOLD,
+    selectedIssueKeyRef,
+    setSelectedIssueIndex,
+    onRunSelectionCleared: handleRunSelectionCleared
   });
 
-  const {
-    activeIngestJob,
-    recentIngestJobs,
-    ingestStatusFilter,
-    ingestListLoading,
-    ingestLoading,
-    ingestError,
-    setIngestStatusFilter,
-    startIngestFromUi,
-    refreshRecentIngestJobs
-  } = useAiIngest({
-    apiBase: apiBaseUrl,
-    pollIntervalMs: 1200
-  });
-
-  const {
-    visibleRuns,
-    runsSummary,
-    activeControlLabels,
-    latestRunningRunId
-  } = useRunsFiltersViewModel({
-    runs,
-    runsStatusFilter,
-    runsSortOrder,
-    fileSearchTerm,
-    issueSearchTerm,
-    issueIdentifierFilter,
-    logSearchTerm,
-    logStreamFilter,
-    isLivePollingEnabled,
-    livePollingIntervalMs,
-    defaultRunningPollIntervalMs,
-    isAutoRunEnabled,
-    autoRunIntervalMs,
-    autoRunTargetMode,
-    autoRunPauseWhenHidden,
-    autoRunMaxFailures,
-    autoRunConsecutiveFailures
-  });
-
-  const {
-    resolvedAutoRunTargetPath,
-    isAutoRunUsingStarterFallback,
-    autoRunEffectiveIntervalMs
-  } = useAutoRunDerived({
-    autoRunTargetMode,
-    selectedRun,
-    startRunTargetPath,
-    autoRunConsecutiveFailures,
-    autoRunIntervalMs
-  });
-
-  const {
-    autoRunCountdownSec,
-    setAutoRunCountdownSec
-  } = useAutoRunCountdown({
-    isAutoRunEnabled,
-    effectiveIntervalMs: autoRunEffectiveIntervalMs
-  });
-
-  const {
-    startRunLoading,
-    startRunError,
-    setStartRunError,
-    startRunFromUi
-  } = useStartRun({
-    apiBaseUrl,
-    startRunTargetPath,
-    autoRunEffectiveIntervalMs,
-    autoRunMaxFailures,
-    setSelectedRunId,
-    refreshRuns,
-    setAutoRunCountdownSec,
-    setLastAutoRunError,
-    setAutoRunFailureCount,
-    setAutoRunConsecutiveFailures,
-    setAutoRunDisabledReason,
-    setIsAutoRunEnabled
-  });
-
-  const {
-    copyLinkStatus,
-    copyRunIdStatus,
-    copyCurrentDeepLink,
-    copyRunId
-  } = useCopyActions({
-    selectedRunId: selectedRun?.runId ?? null
-  });
-
-  const { resetDashboardControls } = useResetDashboardControls({
-    setRunsStatusFilter,
-    setRunsSortOrder,
-    setIssueSearchTerm,
-    setIssueIdentifierFilter,
-    setLogSearchTerm,
-    setLogStreamFilter,
-    setFileSearchTerm,
-    setIsLivePollingEnabled,
-    setLivePollingIntervalMs,
-    defaultRunningPollIntervalMs,
-    setIsFilesSectionOpen,
-    setIsIssuesSectionOpen,
-    setIsSourceSectionOpen,
-    setIsLogsSectionOpen,
-    setAutoRunPauseWhenHidden,
-    setAutoRunMaxFailures
-  });
-
-  useSelectedSourceFileGuard({
-    selectedRun,
-    setSelectedSourceFilePath
-  });
-
-  useAutoRunErrorReset({
-    autoRunIntervalMs,
-    autoRunMaxFailures,
-    autoRunPauseWhenHidden,
-    autoRunTargetMode,
-    setLastAutoRunError
-  });
-
-  useAutoRunVisibilityPause({
-    isAutoRunEnabled,
-    autoRunPauseWhenHidden,
-    autoRunEffectiveIntervalMs,
-    setAutoRunDisabledReason,
-    setAutoRunCountdownSec
-  });
-
-  useAutoRunScheduler({
-    isAutoRunEnabled,
-    autoRunPauseWhenHidden,
-    autoRunEffectiveIntervalMs,
-    resolvedAutoRunTargetPath,
-    runs,
-    startRunLoading,
-    setLastAutoRunAt,
-    setAutoRunTriggerCount,
-    startRunFromUi
-  });
-
-  useRunningRunPolling({
-    apiBaseUrl,
-    isLivePollingEnabled,
-    livePollingIntervalMs,
-    selectedRunId,
-    selectedRunStatus: selectedRun?.status ?? null,
-    refreshRunDetail: async () => {
-      await refreshRunDetail();
-    },
-    refreshRunFiles: async () => {
-      await refreshRunFiles();
-    },
-    setRuns,
-    setLastRefreshAt,
-    setError
-  });
-
-  useDashboardStorage({
-    initialStartTargetPath: initialSelection.startTargetPath,
-    setStartRunTargetPath,
-    isAutoRunEnabled,
-    setIsAutoRunEnabled,
-    autoRunIntervalMs,
-    setAutoRunIntervalMs,
-    autoRunTargetMode,
-    setAutoRunTargetMode,
-    autoRunPauseWhenHidden,
-    setAutoRunPauseWhenHidden,
-    autoRunMaxFailures,
-    setAutoRunMaxFailures,
-    startRunTargetPath
-  });
-
-  const visibleRunFiles = useVisibleRunFiles({ fileSearchTerm, runFiles });
-
+  const hasRuns = runs.length > 0;
+  const hasSelectedRun = selectedRun !== null;
   const {
     issues,
     safeIssueIndex,
-    activeIssue
+    activeIssue,
+    hasIssues,
+    resolvedRunId,
+    activeIssueRelativePath,
+    activeIssueForViewer,
+    activeIssueIndexForViewer,
+    aiContextIssue,
+    fileIssuesForViewer,
+    absoluteSourceFilePath,
+    identifiers
   } = useRunViewModel({
     selectedRun,
     selectedIssueIndex,
-    selectedFilePath: selectedSourceFilePath
+    selectedFilePath,
+    viewMode
   });
 
-  const resolvedSourceFilePath = useResolvedSourceFilePath({
-    selectedRunId,
-    selectedRun,
-    selectedSourceFilePath,
-    activeIssueFile: activeIssue?.file
-  });
+  useEffect(() => {
+    if (!activeIssue) {
+      selectedIssueKeyRef.current = null;
+      return;
+    }
+
+    const nextIssueKey = getIssueKey(activeIssue);
+    selectedIssueKeyRef.current = nextIssueKey;
+  }, [activeIssue?.file, activeIssue?.line, activeIssue?.message]);
 
   const {
-    sourcePayload,
-    sourceLoading,
-    sourceError
+    activeSourceContent,
+    activeSourceError
   } = useRunSource({
-    apiBase: apiBaseUrl,
-    runId: selectedRunId,
-    filePath: resolvedSourceFilePath
+    apiBase: API_BASE,
+    resolvedRunId,
+    absoluteFilePath: absoluteSourceFilePath
   });
-
-  const activeIssueLineInSource = useActiveIssueLineInSource({
-    sourcePayload,
-    activeIssue
-  });
-
-  useUrlPopstateSync({
-    readSelectionFromUrl: readInitialQuerySelection,
-    applySelection: (selection) => {
-      setSelectedRunId(selection.runId);
-      setSelectedSourceFilePath(selection.file);
-      setSelectedIssueIndex(selection.issueIndex ?? 0);
-      setLogPage(selection.logPage ?? 0);
-      setRunsStatusFilter(selection.runsStatusFilter);
-      setRunsSortOrder(selection.runsSortOrder);
-      setFileSearchTerm(selection.fileSearchTerm);
-      setIssueSearchTerm(selection.issueSearchTerm);
-      setIssueIdentifierFilter(selection.issueIdentifierFilter);
-      setLogSearchTerm(selection.logSearchTerm);
-      setLogStreamFilter(selection.logStreamFilter);
-      setIsFilesSectionOpen(selection.isFilesSectionOpen);
-      setIsIssuesSectionOpen(selection.isIssuesSectionOpen);
-      setIsSourceSectionOpen(selection.isSourceSectionOpen);
-      setIsLogsSectionOpen(selection.isLogsSectionOpen);
-      setIsAutoRunEnabled(selection.isAutoRunEnabled);
-      setAutoRunIntervalMs(selection.autoRunIntervalMs ?? 15000);
-      setAutoRunTargetMode(selection.autoRunTargetMode);
-      setAutoRunPauseWhenHidden(selection.autoRunPauseWhenHidden);
-      setAutoRunMaxFailures(selection.autoRunMaxFailures ?? 3);
-      setStartRunTargetPath(selection.startTargetPath ?? "/workspace/examples/php-sample");
-      setIsLivePollingEnabled(selection.isLivePollingEnabled);
-      setLivePollingIntervalMs(selection.livePollingIntervalMs ?? defaultRunningPollIntervalMs);
+  const activeSourceSnippet = useMemo(() => {
+    if (!activeIssueForViewer || !activeSourceContent) {
+      return undefined;
     }
-  });
 
-  useDashboardUrlSync({
-    selectedRunId,
-    runsStatusFilter,
-    runsSortOrder,
-    fileSearchTerm,
-    issueSearchTerm,
-    issueIdentifierFilter,
-    logSearchTerm,
-    logStreamFilter,
-    isFilesSectionOpen,
-    isIssuesSectionOpen,
-    isSourceSectionOpen,
-    isLogsSectionOpen,
-    isAutoRunEnabled,
-    autoRunIntervalMs,
-    autoRunTargetMode,
-    autoRunPauseWhenHidden,
-    autoRunMaxFailures,
-    startRunTargetPath,
-    isLivePollingEnabled,
-    livePollingIntervalMs,
-    selectedSourceFilePath,
-    selectedIssueIndex,
-    logPage,
-    hasIssuesForSelectedRun: Boolean(selectedRun && selectedRun.issues.length > 0),
-    hasLogsForSelectedRun: Boolean(selectedRun && selectedRun.logs.length > 0),
-    defaultRunningPollIntervalMs
-  });
-
-  const { selectIssueByIndex } = useIssueNavigation({
-    issues: selectedRun?.issues ?? [],
-    selectedRunTargetPath: selectedRun?.targetPath ?? null,
-    setSelectedIssueIndex,
-    setSelectedFilePath: setSelectedSourceFilePath
-  });
-
-  const activeSourceSnippet = useActiveSourceSnippet({
-    sourcePayload,
-    activeIssueLineInSource
-  });
-
+    return activeSourceContent.split(/\r?\n/)[activeIssueForViewer.line - 1]?.trim() || undefined;
+  }, [activeIssueForViewer, activeSourceContent]);
   const {
     aiExplain,
     aiSuggestFix,
     isAiLoading,
     aiError
   } = useAiAssistance({
-    apiBase: apiBaseUrl,
+    apiBase: API_BASE,
     isLlmAvailable,
-    aiContextIssue: activeIssue,
+    aiContextIssue,
     activeSourceSnippet
   });
 
+  useUrlUiSync({
+    selectedRunId,
+    safeIssueIndex,
+    viewMode,
+    hasIssues,
+    onSetSelectedRunId: setSelectedRunId,
+    onSetSelectedIssueIndex: setSelectedIssueIndex,
+    onSetViewMode: setViewMode
+  });
+
+  useSidepanelResize({
+    layoutRef,
+    isResizing: isResizingSidepanel,
+    sidepanelWidth,
+    minWidth: SIDEPANEL_MIN_WIDTH,
+    maxWidth: SIDEPANEL_MAX_WIDTH,
+    onSetWidth: setSidepanelWidth,
+    onStopResizing: () => setIsResizingSidepanel(false)
+  });
+
+  const {
+    visibleFileTreeRows,
+    currentFilePosition,
+    handleToggleDirectory
+  } = useFileTreeState({
+    selectedRun,
+    selectedRunId,
+    runFiles,
+    selectedFilePath,
+    activeIssueRelativePath,
+    collapsedDirectories,
+    onSetSelectedFilePath: setSelectedFilePath,
+    onSetCollapsedDirectories: setCollapsedDirectories
+  });
+
+  const {
+    selectIssueByIndex,
+    handleSelectFile,
+    handleSelectIssueInFile
+  } = useIssueNavigation({
+    issues,
+    selectedRunTargetPath: selectedRun?.targetPath ?? null,
+    selectedIssueKeyRef,
+    setSelectedIssueIndex,
+    setSelectedFilePath
+  });
+
+  useAutoSelectIssueInFile({
+    selectedFilePath,
+    fileIssuesForViewer,
+    hasActiveIssueForViewer: Boolean(activeIssueForViewer),
+    onSelectIssueByIndex: selectIssueByIndex
+  });
+
   useKeyboardIssueNavigation({
-    viewMode: "dashboard",
+    viewMode,
     issuesLength: issues.length,
     safeIssueIndex,
     onSelectIssueByIndex: selectIssueByIndex
   });
 
-  const filteredIssueEntries = useFilteredIssueEntries({
-    selectedRun,
-    issueSearchTerm,
-    issueIdentifierFilter
-  });
-
-  const filteredLogs = useFilteredLogs({
-    selectedRun,
-    logSearchTerm,
-    logStreamFilter
-  });
-
-  useDashboardPagination({
-    selectedRun,
-    selectedIssueIndex,
-    issuePage,
-    setSelectedIssueIndex,
-    setIssuePage,
-    filteredIssueCount: filteredIssueEntries.length,
-    filteredLogCount: filteredLogs.length,
-    logPage,
-    setLogPage,
-    detailPageSize
-  });
-
   return (
-    <main className="app">
-      <header className="header">
-        <DashboardBrand />
-        <div className="header-actions">
-          <HeaderRunFilters
-            runsStatusFilter={runsStatusFilter}
-            setRunsStatusFilter={setRunsStatusFilter}
-            runsSortOrder={runsSortOrder}
-            setRunsSortOrder={setRunsSortOrder}
-          />
-          <HeaderToggleControls
-            isLivePollingEnabled={isLivePollingEnabled}
-            setIsLivePollingEnabled={setIsLivePollingEnabled}
-            isAutoRunEnabled={isAutoRunEnabled}
-            setIsAutoRunEnabled={setIsAutoRunEnabled}
-            setLastAutoRunError={setLastAutoRunError}
-            setAutoRunDisabledReason={setAutoRunDisabledReason}
-            setAutoRunCountdownSec={setAutoRunCountdownSec}
-            autoRunEffectiveIntervalMs={autoRunEffectiveIntervalMs}
-            autoRunPauseWhenHidden={autoRunPauseWhenHidden}
-            setAutoRunPauseWhenHidden={setAutoRunPauseWhenHidden}
-          />
-          <HeaderIntervalControls
-            livePollingIntervalMs={livePollingIntervalMs}
-            setLivePollingIntervalMs={setLivePollingIntervalMs}
-            autoRunIntervalMs={autoRunIntervalMs}
-            setAutoRunIntervalMs={setAutoRunIntervalMs}
-            autoRunMaxFailures={autoRunMaxFailures}
-            setAutoRunMaxFailures={setAutoRunMaxFailures}
-            autoRunTargetMode={autoRunTargetMode}
-            setAutoRunTargetMode={setAutoRunTargetMode}
-          />
-          <HeaderActionButtons
-            startRunLoading={startRunLoading}
-            resolvedAutoRunTargetPath={resolvedAutoRunTargetPath}
-            startRunFromUi={startRunFromUi}
-            copyCurrentDeepLink={copyCurrentDeepLink}
-            copyLinkStatus={copyLinkStatus}
-            resetDashboardControls={resetDashboardControls}
-            autoRunTriggerCount={autoRunTriggerCount}
-            setAutoRunTriggerCount={setAutoRunTriggerCount}
-            autoRunFailureCount={autoRunFailureCount}
-            autoRunConsecutiveFailures={autoRunConsecutiveFailures}
-            lastAutoRunError={lastAutoRunError}
-            setAutoRunFailureCount={setAutoRunFailureCount}
-            setAutoRunConsecutiveFailures={setAutoRunConsecutiveFailures}
-            setAutoRunDisabledReason={setAutoRunDisabledReason}
-            setLastAutoRunError={setLastAutoRunError}
-            isAutoRunEnabled={isAutoRunEnabled}
-            setIsAutoRunEnabled={setIsAutoRunEnabled}
-            setAutoRunCountdownSec={setAutoRunCountdownSec}
-            autoRunEffectiveIntervalMs={autoRunEffectiveIntervalMs}
-            lastAutoRunAt={lastAutoRunAt}
-            setLastAutoRunAt={setLastAutoRunAt}
-            autoRunDisabledReason={autoRunDisabledReason}
-            latestRunningRunId={latestRunningRunId}
-            setSelectedRunId={setSelectedRunId}
-            setSelectedIssueIndex={setSelectedIssueIndex}
-            setSelectedSourceFilePath={setSelectedSourceFilePath}
-            selectedRunId={selectedRunId}
-            refreshRuns={refreshRuns}
-            loading={loading}
-            ingestLoading={ingestLoading}
-            startIngestFromUi={startIngestFromUi}
-            activeIngestJob={activeIngestJob}
-          />
-        </div>
-      </header>
-
-      <CopyLinkError copyLinkStatus={copyLinkStatus} />
-
-      <RunStarter
-        startRunTargetPath={startRunTargetPath}
-        setStartRunTargetPath={setStartRunTargetPath}
-        setStartRunError={setStartRunError}
-        startRunFromUi={() => startRunFromUi()}
-        starterTargetPresets={starterTargetPresets}
-        selectedRun={selectedRun}
-        startRunLoading={startRunLoading}
-      />
-
-      {startRunError ? <p className="error">Could not start run: {startRunError}</p> : null}
-      {ingestError ? <p className="error">Could not start or refresh ingest: {ingestError}</p> : null}
-      {activeIngestJob ? (
-        <p className="info">
-          Ingest job <code>{activeIngestJob.jobId}</code> for <code>{activeIngestJob.targetPath}</code>: <strong>{activeIngestJob.status}</strong>
-        </p>
-      ) : null}
-
-      <IngestJobsSummary
-        recentIngestJobs={recentIngestJobs}
-        ingestStatusFilter={ingestStatusFilter}
-        ingestListLoading={ingestListLoading}
-        onIngestStatusFilterChange={setIngestStatusFilter}
-        refreshRecentIngestJobs={() => refreshRecentIngestJobs()}
-      />
-
-      <RunsSummary
-        total={runsSummary.total}
-        running={runsSummary.running}
-        finished={runsSummary.finished}
-        lastRefreshAt={lastRefreshAt}
-        isAutoRunEnabled={isAutoRunEnabled}
-        autoRunTargetMode={autoRunTargetMode}
-        isAutoRunUsingStarterFallback={isAutoRunUsingStarterFallback}
-        autoRunCountdownSec={autoRunCountdownSec}
-        autoRunEffectiveIntervalMs={autoRunEffectiveIntervalMs}
-        resolvedAutoRunTargetPath={resolvedAutoRunTargetPath}
-        autoRunPauseWhenHidden={autoRunPauseWhenHidden}
-        isDocumentHidden={typeof document !== "undefined" && document.visibilityState === "hidden"}
-        lastAutoRunAt={lastAutoRunAt}
-        lastAutoRunError={lastAutoRunError}
+    <div className="app">
+      <Topbar
+        issuesCount={issues.length}
         isLlmAvailable={isLlmAvailable}
         activeAiProvider={activeAiProvider}
         activeAiModel={activeAiModel}
-        autoRunTriggerCount={autoRunTriggerCount}
-        autoRunFailureCount={autoRunFailureCount}
-        autoRunConsecutiveFailures={autoRunConsecutiveFailures}
-        autoRunDisabledReason={autoRunDisabledReason}
+        isRunDetailLoading={isRunDetailLoading}
+        viewMode={viewMode}
+        loading={loading}
+        onChangeViewMode={setViewMode}
+        onRun={() => {
+          void handleStartRun();
+        }}
       />
 
-      <ActiveControls labels={activeControlLabels} />
+      <div className={`layout ${isResizingSidepanel ? "is-resizing" : ""}`} ref={layoutRef}>
+        <Sidepanel
+          width={sidepanelWidth}
+          projectPath={selectedRun?.targetPath ?? ""}
+          runs={runs}
+          selectedRunId={selectedRunId}
+          visibleFileTreeRows={visibleFileTreeRows}
+          collapsedDirectories={collapsedDirectories}
+          selectedFilePath={selectedFilePath}
+          onSelectRun={(runId) => setSelectedRunId(runId)}
+          onToggleDirectory={handleToggleDirectory}
+          onSelectFile={handleSelectFile}
+        />
 
-      <WorkspaceGrid
-        runsPane={(
-          <RunsPane
-            visibleRuns={visibleRuns}
-            selectedRunId={selectedRunId}
-            onSelectRun={(runId) => {
-              setSelectedRunId(runId);
-              setSelectedIssueIndex(0);
-              setSelectedSourceFilePath(null);
-            }}
-            error={error}
-            loading={loading}
-            runsCount={runs.length}
-          />
-        )}
-        inspectorPane={(
-          <InspectorPane
-            selectedRunId={selectedRunId}
-            loading={loading}
-            runsCount={runs.length}
-            latestRunningRunId={latestRunningRunId}
-            onJumpToRunning={(runId) => {
-              setSelectedRunId(runId);
-            }}
-            detailPanel={selectedRunId ? (
-              <DetailPanel
-                detailLoading={detailLoading}
-                detailError={detailError}
-                selectedRun={selectedRun}
-                copyRunIdStatus={copyRunIdStatus}
-                copyRunId={copyRunId}
-                isFilesSectionOpen={isFilesSectionOpen}
-                setIsFilesSectionOpen={setIsFilesSectionOpen}
-                selectedSourceFilePath={selectedSourceFilePath}
-                setSelectedSourceFilePath={setSelectedSourceFilePath}
-                fileSearchTerm={fileSearchTerm}
-                setFileSearchTerm={setFileSearchTerm}
-                filesLoading={filesLoading}
-                filesError={filesError}
-                visibleRunFiles={visibleRunFiles}
-                runFiles={runFiles}
-                isIssuesSectionOpen={isIssuesSectionOpen}
-                setIsIssuesSectionOpen={setIsIssuesSectionOpen}
-                issueSearchTerm={issueSearchTerm}
-                setIssueSearchTerm={setIssueSearchTerm}
-                issueIdentifierFilter={issueIdentifierFilter}
-                setIssueIdentifierFilter={setIssueIdentifierFilter}
-                setIssuePage={setIssuePage}
-                filteredIssueEntries={filteredIssueEntries}
-                issuePage={issuePage}
-                detailPageSize={detailPageSize}
-                selectedIssueIndex={selectedIssueIndex}
-                setSelectedIssueIndex={setSelectedIssueIndex}
-                isSourceSectionOpen={isSourceSectionOpen}
-                setIsSourceSectionOpen={setIsSourceSectionOpen}
-                sourceLoading={sourceLoading}
-                sourceError={sourceError}
-                sourcePayload={sourcePayload}
-                activeIssueLineInSource={activeIssueLineInSource}
-                isLogsSectionOpen={isLogsSectionOpen}
-                setIsLogsSectionOpen={setIsLogsSectionOpen}
-                logSearchTerm={logSearchTerm}
-                setLogSearchTerm={setLogSearchTerm}
-                logStreamFilter={logStreamFilter}
-                setLogStreamFilter={setLogStreamFilter}
-                setLogPage={setLogPage}
-                filteredLogs={filteredLogs}
-                logPage={logPage}
-                activeIssue={activeIssue}
-                isLlmAvailable={isLlmAvailable}
-                isAiLoading={isAiLoading}
-                aiError={aiError}
-                aiExplain={aiExplain}
-                aiSuggestFix={aiSuggestFix}
-              />
-            ) : null}
-          />
-        )}
+        <div
+          className="sidepanel-resizer"
+          role="separator"
+          aria-label="Resize runs panel"
+          aria-orientation="vertical"
+          onMouseDown={() => setIsResizingSidepanel(true)}
+        />
+
+        <MainPanel
+          hasSelectedRun={hasSelectedRun}
+          hasRuns={hasRuns}
+          hasIssues={hasIssues}
+          viewMode={viewMode}
+          safeIssueIndex={safeIssueIndex}
+          issuesLength={issues.length}
+          selectedFilePath={selectedFilePath}
+          selectedRun={selectedRun}
+          runFilesLength={runFiles.length}
+          currentFilePosition={currentFilePosition}
+          error={error}
+          activeSourceError={activeSourceError}
+          activeIssue={activeIssue}
+          activeIssueForViewer={activeIssueForViewer}
+          activeIssueIndexForViewer={activeIssueIndexForViewer}
+          fileIssuesForViewer={fileIssuesForViewer}
+          activeSourceContent={activeSourceContent}
+          identifiers={identifiers}
+          aiExplain={aiExplain}
+          aiSuggestFix={aiSuggestFix}
+          isAiLoading={isAiLoading}
+          aiError={aiError}
+          onPrevIssue={() => selectIssueByIndex(safeIssueIndex - 1)}
+          onNextIssue={() => selectIssueByIndex(safeIssueIndex + 1)}
+          onSelectIssueInFile={handleSelectIssueInFile}
+        />
+      </div>
+
+      <FooterBar
+        targetPath={selectedRun?.targetPath ?? "-"}
+        runId={selectedRun?.runId?.slice(0, 8) ?? "-"}
+        status={selectedRun?.status === "finished" ? "Analysis Complete" : selectedRun?.status ?? "idle"}
+        issuesCount={issues.length}
+        runsCount={runs.length}
       />
-    </main>
+    </div>
   );
 }
+
