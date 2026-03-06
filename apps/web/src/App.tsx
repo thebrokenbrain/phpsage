@@ -39,6 +39,7 @@ import { RunStarter } from "./components/run-starter.js";
 import { RunsTable } from "./components/runs-table.js";
 import { SelectionEmpty } from "./components/selection-empty.js";
 import { RunDetailMeta } from "./components/run-detail-meta.js";
+import { FilesDetailBlock } from "./components/files-detail-block.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -839,71 +840,19 @@ export function App(): JSX.Element {
 
           {!detailLoading && !detailError && selectedRun ? (
             <>
-              <section className="detail-block">
-                <div className="detail-block-header">
-                  <h3>Files</h3>
-                  <button
-                    onClick={() => {
-                      setIsFilesSectionOpen((isOpen) => !isOpen);
-                    }}
-                  >
-                    {isFilesSectionOpen ? "Hide" : "Show"}
-                  </button>
-                  <div className="detail-actions">
-                    {selectedSourceFilePath ? (
-                      <button
-                        onClick={() => {
-                          setSelectedSourceFilePath(null);
-                        }}
-                      >
-                        Use issue context
-                      </button>
-                    ) : null}
-                    <input
-                      type="search"
-                      placeholder="Filter files"
-                      value={fileSearchTerm}
-                      onChange={(event) => {
-                        setFileSearchTerm(event.target.value);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {isFilesSectionOpen ? (
-                  <>
-
-                {filesLoading ? <p className="empty">Loading files...</p> : null}
-                {filesError ? <p className="error">Could not load files: {filesError}</p> : null}
-
-                {!filesLoading && !filesError && visibleRunFiles.length > 0 ? (
-                  <ul className="detail-list">
-                    {visibleRunFiles.slice(0, 30).map((fileEntry) => (
-                      <li
-                        key={fileEntry.path}
-                        className={selectedSourceFilePath === `${selectedRun.targetPath}/${fileEntry.path}` ? "selected-issue" : ""}
-                        onClick={() => {
-                          setSelectedSourceFilePath(`${selectedRun.targetPath}/${fileEntry.path}`);
-                        }}
-                      >
-                        <span className="mono">{fileEntry.path}</span>
-                        {" — "}
-                        issues: {fileEntry.issueCount}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-
-                {!filesLoading && !filesError && runFiles.length === 0 ? (
-                  <p className="empty">No PHP files for selected run.</p>
-                ) : null}
-
-                {!filesLoading && !filesError && runFiles.length > 0 && visibleRunFiles.length === 0 ? (
-                  <p className="empty">No files match current filter.</p>
-                ) : null}
-                  </>
-                ) : null}
-              </section>
+              <FilesDetailBlock
+                isFilesSectionOpen={isFilesSectionOpen}
+                setIsFilesSectionOpen={setIsFilesSectionOpen}
+                selectedSourceFilePath={selectedSourceFilePath}
+                setSelectedSourceFilePath={setSelectedSourceFilePath}
+                fileSearchTerm={fileSearchTerm}
+                setFileSearchTerm={setFileSearchTerm}
+                filesLoading={filesLoading}
+                filesError={filesError}
+                visibleRunFiles={visibleRunFiles}
+                runFiles={runFiles}
+                selectedRun={selectedRun}
+              />
 
               <section className="detail-block">
                 <div className="detail-block-header">
