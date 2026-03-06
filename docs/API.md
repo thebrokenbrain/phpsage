@@ -167,6 +167,14 @@ This document must be updated in the same iteration where any endpoint is added 
 	"source": "fallback",
 	"provider": "openai",
 	"fallbackReason": "LLM provider is not configured for explain yet",
+	"contextItems": [
+		{
+			"sourcePath": "variable.undefined.md",
+			"identifier": "variable.undefined",
+			"content": "...",
+			"score": 0.91
+		}
+	],
 	"usage": null,
 	"debug": null
 }
@@ -196,6 +204,14 @@ This document must be updated in the same iteration where any endpoint is added 
 	"source": "fallback",
 	"provider": "openai",
 	"fallbackReason": "LLM provider is not configured for suggest-fix yet",
+	"contextItems": [
+		{
+			"sourcePath": "variable.undefined.md",
+			"identifier": "variable.undefined",
+			"content": "...",
+			"score": 0.91
+		}
+	],
 	"usage": null,
 	"debug": null
 }

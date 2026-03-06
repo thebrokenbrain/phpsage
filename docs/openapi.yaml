@@ -380,6 +380,10 @@ components:
           type: string
         fallbackReason:
           type: string
+        contextItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiRagContextItem'
         usage:
           type: 'null'
         debug:
@@ -458,10 +462,27 @@ components:
           type: string
         fallbackReason:
           type: string
+        contextItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiRagContextItem'
         usage:
           type: 'null'
         debug:
           type: 'null'
+    AiRagContextItem:
+      type: object
+      required: [sourcePath, identifier, content, score]
+      properties:
+        sourcePath:
+          type: string
+        identifier:
+          type: string
+          nullable: true
+        content:
+          type: string
+        score:
+          type: number
     RunIssue:
       type: object
       required: [file, line, message]

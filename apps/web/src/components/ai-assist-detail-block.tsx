@@ -35,6 +35,18 @@ export function AiAssistDetailBlock({
             Explain source: {aiExplain.source} · provider: {aiExplain.provider}
           </p>
           {aiExplain.fallbackReason ? <p className="ai-meta">Explain fallback: {aiExplain.fallbackReason}</p> : null}
+          {aiExplain.contextItems && aiExplain.contextItems.length > 0 ? (
+            <div>
+              <p className="ai-meta">Retrieved context:</p>
+              <ul className="detail-list">
+                {aiExplain.contextItems.map((item, index) => (
+                  <li key={`${item.sourcePath}-${index}`}>
+                    <strong>{item.identifier ?? "unknown"}</strong> from <code>{item.sourcePath}</code> (score {item.score.toFixed(3)})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <p>{aiExplain.explanation}</p>
           {aiExplain.recommendations.length > 0 ? (
             <ul className="detail-list">
@@ -52,6 +64,9 @@ export function AiAssistDetailBlock({
             Suggest source: {aiSuggestFix.source} · provider: {aiSuggestFix.provider}
           </p>
           {aiSuggestFix.fallbackReason ? <p className="ai-meta">Suggest fallback: {aiSuggestFix.fallbackReason}</p> : null}
+          {aiSuggestFix.contextItems && aiSuggestFix.contextItems.length > 0 ? (
+            <p className="ai-meta">Suggest context items: {aiSuggestFix.contextItems.length}</p>
+          ) : null}
           <p>{aiSuggestFix.rationale}</p>
           <pre className="source-preview ai-diff-preview">{aiSuggestFix.proposedDiff}</pre>
         </>

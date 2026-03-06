@@ -1,5 +1,8 @@
 // This file provides suggest-fix use case with deterministic fallback output.
 
+import type { AiRagContextItem, AiRagRetriever } from "../ports/ai-rag-retriever.js";
+import { retrieveContextItemsSafely } from "./ai-rag-context.js";
+
 export interface AiSuggestFixRequest {
   readonly issueMessage: string;
   readonly issueIdentifier?: string;
@@ -14,20 +17,27 @@ export interface AiSuggestFixResponse {
   readonly source: "fallback";
   readonly provider: string;
   readonly fallbackReason: string;
+  readonly contextItems: AiRagContextItem[];
   readonly usage: null;
   readonly debug: null;
 }
 
 export class AiSuggestFixService {
-  public constructor(private readonly providerName: string = "fallback") {}
+  public constructor(
+    private readonly providerName: string = "fallback",
+    private readonly ragRetriever?: AiRagRetriever
+  ) {}
 
   public async suggestFix(request: AiSuggestFixRequest): Promise<AiSuggestFixResponse> {
+    const contextItems = await retrieveContextItemsSafely(this.ragRetriever, request);
+
     return {
       proposedDiff: this.buildFallbackDiff(request),
       rationale: this.buildRationale(request),
       source: "fallback",
       provider: this.providerName,
       fallbackReason: "LLM provider is not configured for suggest-fix yet",
+      contextItems,
       usage: null,
       debug: null
     };

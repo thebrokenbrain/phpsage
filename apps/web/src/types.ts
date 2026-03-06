@@ -70,6 +70,12 @@ export interface AiExplainPayload {
   readonly source: "fallback";
   readonly provider: string;
   readonly fallbackReason: string;
+  readonly contextItems?: Array<{
+    readonly sourcePath: string;
+    readonly identifier: string | null;
+    readonly content: string;
+    readonly score: number;
+  }>;
   readonly usage: null;
   readonly debug: null;
 }
@@ -80,6 +86,12 @@ export interface AiSuggestFixPayload {
   readonly source: "fallback";
   readonly provider: string;
   readonly fallbackReason: string;
+  readonly contextItems?: Array<{
+    readonly sourcePath: string;
+    readonly identifier: string | null;
+    readonly content: string;
+    readonly score: number;
+  }>;
   readonly usage: null;
   readonly debug: null;
 }

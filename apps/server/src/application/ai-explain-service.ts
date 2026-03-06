@@ -1,5 +1,8 @@
 // This file provides the explain use case with deterministic fallback output.
 
+import type { AiRagContextItem, AiRagRetriever } from "../ports/ai-rag-retriever.js";
+import { retrieveContextItemsSafely } from "./ai-rag-context.js";
+
 export interface AiExplainRequest {
   readonly issueMessage: string;
   readonly issueIdentifier?: string;
@@ -14,20 +17,27 @@ export interface AiExplainResponse {
   readonly source: "fallback";
   readonly provider: string;
   readonly fallbackReason: string;
+  readonly contextItems: AiRagContextItem[];
   readonly usage: null;
   readonly debug: null;
 }
 
 export class AiExplainService {
-  public constructor(private readonly providerName: string = "fallback") {}
+  public constructor(
+    private readonly providerName: string = "fallback",
+    private readonly ragRetriever?: AiRagRetriever
+  ) {}
 
   public async explain(request: AiExplainRequest): Promise<AiExplainResponse> {
+    const contextItems = await retrieveContextItemsSafely(this.ragRetriever, request);
+
     return {
       explanation: this.buildFallbackExplanation(request),
       recommendations: this.defaultRecommendations(request.issueIdentifier),
       source: "fallback",
       provider: this.providerName,
       fallbackReason: "LLM provider is not configured for explain yet",
+      contextItems,
       usage: null,
       debug: null
     };

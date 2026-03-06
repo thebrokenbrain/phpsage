@@ -5,6 +5,7 @@ import { AiIngestService } from "./application/ai-ingest-service.js";
 import { AiSuggestFixService } from "./application/ai-suggest-fix-service.js";
 import { RunService } from "./application/run-service.js";
 import { FileAiIngestJobRepository } from "./infrastructure/file-ai-ingest-job-repository.js";
+import { FilesystemAiRagRetriever } from "./infrastructure/filesystem-ai-rag-retriever.js";
 import { FileRunRepository } from "./infrastructure/file-run-repository.js";
 import { FilesystemAiIngestProcessor } from "./infrastructure/filesystem-ai-ingest-processor.js";
 import { RunSourceReader } from "./infrastructure/run-source-reader.js";
@@ -13,6 +14,7 @@ import { createHttpServer } from "./interfaces/http-server.js";
 const port = Number(process.env.PORT ?? 8080);
 const runsDirectoryPath = resolve(process.cwd(), "data/runs");
 const aiIngestJobsDirectoryPath = resolve(process.cwd(), "data/ai/ingest-jobs");
+const aiRagDirectoryPath = resolve(process.cwd(), process.env.AI_RAG_DIRECTORY?.trim() || "rag");
 
 const runRepository = new FileRunRepository(runsDirectoryPath);
 const runService = new RunService(runRepository);
@@ -21,8 +23,9 @@ const aiIngestService = new AiIngestService(
   new FileAiIngestJobRepository(aiIngestJobsDirectoryPath),
   new FilesystemAiIngestProcessor()
 );
-const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
-const aiSuggestFixService = new AiSuggestFixService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
+const aiRagRetriever = new FilesystemAiRagRetriever(aiRagDirectoryPath, 3);
+const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback", aiRagRetriever);
+const aiSuggestFixService = new AiSuggestFixService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback", aiRagRetriever);
 const server = createHttpServer(runService, runSourceReader, aiIngestService, aiExplainService, aiSuggestFixService);
 
 server.listen(port, () => {
