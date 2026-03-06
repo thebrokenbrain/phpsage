@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
-  AiHealthPayload,
   RunFileItem,
   RunFilesPayload,
   RunIssue,
@@ -20,6 +19,7 @@ import { useUrlPopstateSync } from "./hooks/use-url-popstate-sync.js";
 import { useDashboardUrlSync } from "./hooks/use-dashboard-url-sync.js";
 import { useRunDetail } from "./hooks/use-run-detail.js";
 import { useRunFiles } from "./hooks/use-run-files.js";
+import { useAiHealth } from "./hooks/use-ai-health.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -140,7 +140,6 @@ function readInitialQuerySelection(): {
 }
 
 export function App(): JSX.Element {
-  const aiHealthFailureCountRef = useRef(0);
   const initialSelection = useMemo(() => readInitialQuerySelection(), []);
   const apiBaseUrl = useMemo(() => {
     const value = import.meta.env.VITE_API_BASE_URL as string | undefined;
@@ -206,9 +205,14 @@ export function App(): JSX.Element {
     runId: selectedRunId
   });
 
-  const [isLlmAvailable, setIsLlmAvailable] = useState<boolean | null>(null);
-  const [activeAiProvider, setActiveAiProvider] = useState<string | null>(null);
-  const [activeAiModel, setActiveAiModel] = useState<string | null>(null);
+  const {
+    isLlmAvailable,
+    activeAiProvider,
+    activeAiModel
+  } = useAiHealth({
+    apiBase: apiBaseUrl,
+    failureThreshold: aiHealthFailureThreshold
+  });
 
   const filteredRuns = useMemo(() => {
     if (runsStatusFilter === "all") {
@@ -694,50 +698,6 @@ export function App(): JSX.Element {
   useEffect(() => {
     void loadRuns();
   }, []);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    async function loadAiHealth(): Promise<void> {
-      try {
-        const response = await fetch(`${apiBaseUrl}/api/ai/health`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload = (await response.json()) as AiHealthPayload;
-        if (isCancelled) {
-          return;
-        }
-
-        aiHealthFailureCountRef.current = 0;
-        setIsLlmAvailable(payload.enabled);
-        setActiveAiProvider(payload.activeProvider);
-        setActiveAiModel(payload.activeModel);
-      } catch {
-        if (isCancelled) {
-          return;
-        }
-
-        aiHealthFailureCountRef.current += 1;
-        if (aiHealthFailureCountRef.current >= aiHealthFailureThreshold) {
-          setIsLlmAvailable(false);
-          setActiveAiProvider(null);
-          setActiveAiModel(null);
-        }
-      }
-    }
-
-    void loadAiHealth();
-    const intervalId = window.setInterval(() => {
-      void loadAiHealth();
-    }, 15000);
-
-    return () => {
-      isCancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [apiBaseUrl]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
