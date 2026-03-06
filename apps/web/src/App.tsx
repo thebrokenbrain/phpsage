@@ -52,6 +52,7 @@ import { useResolvedSourceFilePath } from "./hooks/use-resolved-source-file-path
 import { useActiveSourceSnippet } from "./hooks/use-active-source-snippet.js";
 import { DashboardBrand } from "./components/dashboard-brand.js";
 import { HeaderRunFilters } from "./components/header-run-filters.js";
+import { HeaderToggleControls } from "./components/header-toggle-controls.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -454,41 +455,18 @@ export function App(): JSX.Element {
             runsSortOrder={runsSortOrder}
             setRunsSortOrder={setRunsSortOrder}
           />
-          <label className="toggle-label">
-            <input
-              type="checkbox"
-              checked={isLivePollingEnabled}
-              onChange={(event) => {
-                setIsLivePollingEnabled(event.target.checked);
-              }}
-            />
-            Live polling
-          </label>
-          <label className="toggle-label">
-            <input
-              type="checkbox"
-              checked={isAutoRunEnabled}
-              onChange={(event) => {
-                setIsAutoRunEnabled(event.target.checked);
-                if (event.target.checked) {
-                  setLastAutoRunError(null);
-                  setAutoRunDisabledReason(null);
-                  setAutoRunCountdownSec(Math.ceil(autoRunEffectiveIntervalMs / 1000));
-                }
-              }}
-            />
-            Auto-run
-          </label>
-          <label className="toggle-label">
-            <input
-              type="checkbox"
-              checked={autoRunPauseWhenHidden}
-              onChange={(event) => {
-                setAutoRunPauseWhenHidden(event.target.checked);
-              }}
-            />
-            Pause when hidden
-          </label>
+          <HeaderToggleControls
+            isLivePollingEnabled={isLivePollingEnabled}
+            setIsLivePollingEnabled={setIsLivePollingEnabled}
+            isAutoRunEnabled={isAutoRunEnabled}
+            setIsAutoRunEnabled={setIsAutoRunEnabled}
+            setLastAutoRunError={setLastAutoRunError}
+            setAutoRunDisabledReason={setAutoRunDisabledReason}
+            setAutoRunCountdownSec={setAutoRunCountdownSec}
+            autoRunEffectiveIntervalMs={autoRunEffectiveIntervalMs}
+            autoRunPauseWhenHidden={autoRunPauseWhenHidden}
+            setAutoRunPauseWhenHidden={setAutoRunPauseWhenHidden}
+          />
           <label>
             Interval
             <select
