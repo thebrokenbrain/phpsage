@@ -223,6 +223,61 @@ test("GET /api/ai/ingest returns recent ingest jobs with limit", async () => {
   }
 });
 
+test("GET /api/ai/ingest filters jobs by status", async () => {
+  const httpServer = await startTestHttpServer();
+
+  try {
+    await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ targetPath: "/workspace/examples/php-sample" })
+    });
+
+    await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ targetPath: "/workspace/non-existent-target" })
+    });
+
+    const failedResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest?status=failed&limit=10`);
+    assert.equal(failedResponse.status, 200);
+
+    const failedPayload = (await failedResponse.json()) as Array<{
+      status: string;
+      targetPath: string;
+    }>;
+
+    assert.ok(failedPayload.length >= 1);
+    assert.ok(failedPayload.every((job) => job.status === "failed"));
+    assert.equal(failedPayload[0].targetPath, "/workspace/non-existent-target");
+
+    const completedResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest?status=completed&limit=10`);
+    assert.equal(completedResponse.status, 200);
+    const completedPayload = (await completedResponse.json()) as Array<{ status: string }>;
+    assert.ok(completedPayload.every((job) => job.status === "completed"));
+  } finally {
+    await httpServer.close();
+  }
+});
+
+test("GET /api/ai/ingest validates status filter", async () => {
+  const httpServer = await startTestHttpServer();
+
+  try {
+    const response = await fetch(`${httpServer.baseUrl}/api/ai/ingest?status=unknown`);
+    assert.equal(response.status, 400);
+
+    const payload = (await response.json()) as { error: string };
+    assert.match(payload.error, /status must be one of/i);
+  } finally {
+    await httpServer.close();
+  }
+});
+
 test("POST /api/ai/explain validates missing issueMessage", async () => {
   const httpServer = await startTestHttpServer();
 

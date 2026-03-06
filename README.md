@@ -152,6 +152,7 @@ Estado actual:
 - endpoint IA de ingest implementado: `POST /api/ai/ingest` (creación de job asíncrono)
 - endpoint IA de estado de ingest implementado: `GET /api/ai/ingest/:jobId`
 - endpoint IA de histórico reciente de ingest implementado: `GET /api/ai/ingest?limit=<n>`
+- endpoint IA de histórico de ingest permite filtro por estado: `GET /api/ai/ingest?status=<queued|running|completed|failed>`
 - comando CLI de ingest implementado: `phpsage rag ingest [--target-path <path>] [--wait]`
 - ingest IA procesa recursivamente el filesystem objetivo y calcula `filesIndexed`/`chunksIndexed`
 - jobs de ingest persisten en `data/ai/ingest-jobs/<jobId>.json`

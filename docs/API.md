@@ -148,8 +148,9 @@ This document must be updated in the same iteration where any endpoint is added 
 	- `chunksIndexed`: chunks estimated as `ceil(lineCount / 120)` per indexed file
 - Explain/suggest retrieval uses top-k context documents controlled by `AI_RAG_TOP_K` (default `3`).
 
-- `GET /api/ai/ingest?limit=<n>`
-- Response `200`: array with most recent ingest jobs (default `limit=10`)
+- `GET /api/ai/ingest?limit=<n>&status=<queued|running|completed|failed>`
+- Response `200`: array with most recent ingest jobs (default `limit=10`), optionally filtered by status
+- Response `400`: invalid `status` query value
 
 - `GET /api/ai/ingest/:jobId`
 - Response `200`: current ingest job state

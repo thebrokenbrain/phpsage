@@ -39,6 +39,8 @@ interface IngestBody {
   targetPath?: string;
 }
 
+type AiIngestStatus = "queued" | "running" | "completed" | "failed";
+
 interface TargetPathValidationResult {
   targetPath: string | null;
   error: string | null;
@@ -100,7 +102,17 @@ export function createHttpServer(
       const limitParam = requestUrl.searchParams.get("limit");
       const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : 10;
       const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10;
-      const jobs = await aiIngestService.listRecent(limit);
+      const statusParam = requestUrl.searchParams.get("status");
+      const status = parseAiIngestStatus(statusParam);
+
+      if (statusParam !== null && status === null) {
+        writeJson(response, 400, { error: "status must be one of queued|running|completed|failed" });
+        return;
+      }
+
+      const jobs = status
+        ? (await aiIngestService.listRecent(1000)).filter((job) => job.status === status).slice(0, limit)
+        : await aiIngestService.listRecent(limit);
       writeJson(response, 200, jobs);
       return;
     }
@@ -320,6 +332,22 @@ function getAiHealth(): AiHealthResponse {
 function getRunIdByAction(pathname: string, action: "log" | "finish" | "source" | "files"): string | null {
   const match = pathname.match(new RegExp(`^/api/runs/([^/]+)/${action}$`));
   return match?.[1] ?? null;
+}
+
+function parseAiIngestStatus(value: string | null): AiIngestStatus | null {
+  if (!value) {
+    return null;
+  }
+
+  switch (value) {
+    case "queued":
+    case "running":
+    case "completed":
+    case "failed":
+      return value;
+    default:
+      return null;
+  }
 }
 
 function getAiIngestJobId(pathname: string): string | null {
