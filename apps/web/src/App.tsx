@@ -29,6 +29,7 @@ import { useCopyActions } from "./hooks/use-copy-actions.js";
 import { useRunsFiltersViewModel } from "./hooks/use-runs-filters-view-model.js";
 import { useAutoRunDerived } from "./hooks/use-auto-run-derived.js";
 import { useStartRun } from "./hooks/use-start-run.js";
+import { useResetDashboardControls } from "./hooks/use-reset-dashboard-controls.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -293,6 +294,25 @@ export function App(): JSX.Element {
     selectedRunId: selectedRun?.runId ?? null
   });
 
+  const { resetDashboardControls } = useResetDashboardControls({
+    setRunsStatusFilter,
+    setRunsSortOrder,
+    setIssueSearchTerm,
+    setIssueIdentifierFilter,
+    setLogSearchTerm,
+    setLogStreamFilter,
+    setFileSearchTerm,
+    setIsLivePollingEnabled,
+    setLivePollingIntervalMs,
+    defaultRunningPollIntervalMs,
+    setIsFilesSectionOpen,
+    setIsIssuesSectionOpen,
+    setIsSourceSectionOpen,
+    setIsLogsSectionOpen,
+    setAutoRunPauseWhenHidden,
+    setAutoRunMaxFailures
+  });
+
   const {
     autoRunCountdownSec,
     setAutoRunCountdownSec
@@ -554,24 +574,6 @@ export function App(): JSX.Element {
     setLogPage,
     detailPageSize
   });
-
-  function resetDashboardControls(): void {
-    setRunsStatusFilter("all");
-    setRunsSortOrder("updatedDesc");
-    setIssueSearchTerm("");
-    setIssueIdentifierFilter("all");
-    setLogSearchTerm("");
-    setLogStreamFilter("all");
-    setFileSearchTerm("");
-    setIsLivePollingEnabled(true);
-    setLivePollingIntervalMs(defaultRunningPollIntervalMs);
-    setIsFilesSectionOpen(true);
-    setIsIssuesSectionOpen(true);
-    setIsSourceSectionOpen(true);
-    setIsLogsSectionOpen(true);
-    setAutoRunPauseWhenHidden(true);
-    setAutoRunMaxFailures(3);
-  }
 
   useEffect(() => {
     if (!selectedRun) {
