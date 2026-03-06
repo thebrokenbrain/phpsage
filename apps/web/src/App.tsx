@@ -27,6 +27,7 @@ import { useRunningRunPolling } from "./hooks/use-running-run-polling.js";
 import { useDashboardStorage } from "./hooks/use-dashboard-storage.js";
 import { useDashboardPagination } from "./hooks/use-dashboard-pagination.js";
 import { useRunsList } from "./hooks/use-runs-list.js";
+import { useCopyActions } from "./hooks/use-copy-actions.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -182,9 +183,6 @@ export function App(): JSX.Element {
   const [fileSearchTerm, setFileSearchTerm] = useState(initialSelection.fileSearchTerm);
   const [selectedSourceFilePath, setSelectedSourceFilePath] = useState<string | null>(initialSelection.file);
   const [isSourceSectionOpen, setIsSourceSectionOpen] = useState(initialSelection.isSourceSectionOpen);
-  const [copyLinkStatus, setCopyLinkStatus] = useState<"idle" | "copied" | "error">("idle");
-  const [copyRunIdStatus, setCopyRunIdStatus] = useState<"idle" | "copied" | "error">("idle");
-
   const {
     runs,
     setRuns,
@@ -199,6 +197,15 @@ export function App(): JSX.Element {
   } = useRunsList({
     apiBaseUrl,
     initialSelectedRunId: initialSelection.runId
+  });
+
+  const {
+    copyLinkStatus,
+    copyRunIdStatus,
+    copyCurrentDeepLink,
+    copyRunId
+  } = useCopyActions({
+    selectedRunId: selectedRun?.runId ?? null
   });
   const {
     selectedRun,
@@ -686,40 +693,6 @@ export function App(): JSX.Element {
       return false;
     } finally {
       setStartRunLoading(false);
-    }
-  }
-
-  async function copyCurrentDeepLink(): Promise<void> {
-    if (typeof window === "undefined" || !window.navigator.clipboard) {
-      setCopyLinkStatus("error");
-      return;
-    }
-
-    try {
-      await window.navigator.clipboard.writeText(window.location.href);
-      setCopyLinkStatus("copied");
-      window.setTimeout(() => {
-        setCopyLinkStatus("idle");
-      }, 1500);
-    } catch {
-      setCopyLinkStatus("error");
-    }
-  }
-
-  async function copyRunId(): Promise<void> {
-    if (typeof window === "undefined" || !window.navigator.clipboard || !selectedRun) {
-      setCopyRunIdStatus("error");
-      return;
-    }
-
-    try {
-      await window.navigator.clipboard.writeText(selectedRun.runId);
-      setCopyRunIdStatus("copied");
-      window.setTimeout(() => {
-        setCopyRunIdStatus("idle");
-      }, 1500);
-    } catch {
-      setCopyRunIdStatus("error");
     }
   }
 
