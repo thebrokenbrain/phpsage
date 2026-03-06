@@ -24,13 +24,12 @@ import { useAutoRunCountdown } from "./hooks/use-auto-run-countdown.js";
 import { useAutoRunVisibilityPause } from "./hooks/use-auto-run-visibility-pause.js";
 import { useAutoRunScheduler } from "./hooks/use-auto-run-scheduler.js";
 import { useRunningRunPolling } from "./hooks/use-running-run-polling.js";
+import { useDashboardStorage } from "./hooks/use-dashboard-storage.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
 const defaultRunningPollIntervalMs = 2000;
 const aiHealthFailureThreshold = 2;
-const starterTargetStorageKey = "phpsage.runStarter.targetPath";
-const autoRunSettingsStorageKey = "phpsage.dashboard.autoRun.settings";
 const starterTargetPresets = ["/workspace/examples/php-sample", "/workspace/examples/php-sample-ok"];
 
 function readInitialQuerySelection(): {
@@ -396,6 +395,22 @@ export function App(): JSX.Element {
     setError
   });
 
+  useDashboardStorage({
+    initialStartTargetPath: initialSelection.startTargetPath,
+    setStartRunTargetPath,
+    isAutoRunEnabled,
+    setIsAutoRunEnabled,
+    autoRunIntervalMs,
+    setAutoRunIntervalMs,
+    autoRunTargetMode,
+    setAutoRunTargetMode,
+    autoRunPauseWhenHidden,
+    setAutoRunPauseWhenHidden,
+    autoRunMaxFailures,
+    setAutoRunMaxFailures,
+    startRunTargetPath
+  });
+
   const visibleRunFiles = useMemo(() => {
     const normalizedTerm = fileSearchTerm.trim().toLowerCase();
     if (normalizedTerm.length === 0) {
@@ -742,90 +757,6 @@ export function App(): JSX.Element {
   useEffect(() => {
     void loadRuns();
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    if (initialSelection.startTargetPath) {
-      return;
-    }
-
-    const storedTargetPath = window.localStorage.getItem(starterTargetStorageKey);
-    if (storedTargetPath && storedTargetPath.trim().length > 0) {
-      setStartRunTargetPath(storedTargetPath);
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    const hasAutoQueryState =
-      searchParams.has("auto") || searchParams.has("autoInterval") || searchParams.has("autoTarget") || searchParams.has("autoPauseHidden") || searchParams.has("autoMaxFailures");
-    if (hasAutoQueryState) {
-      return;
-    }
-
-    const storedAutoRunSettingsRaw = window.localStorage.getItem(autoRunSettingsStorageKey);
-    if (!storedAutoRunSettingsRaw) {
-      return;
-    }
-
-    try {
-      const parsedSettings = JSON.parse(storedAutoRunSettingsRaw) as {
-        isEnabled?: unknown;
-        intervalMs?: unknown;
-        targetMode?: unknown;
-        pauseWhenHidden?: unknown;
-        maxFailures?: unknown;
-      };
-
-      if (typeof parsedSettings.isEnabled === "boolean") {
-        setIsAutoRunEnabled(parsedSettings.isEnabled);
-      }
-
-      if (typeof parsedSettings.intervalMs === "number" && Number.isFinite(parsedSettings.intervalMs) && parsedSettings.intervalMs > 0) {
-        setAutoRunIntervalMs(parsedSettings.intervalMs);
-      }
-
-      if (parsedSettings.targetMode === "selected" || parsedSettings.targetMode === "starter") {
-        setAutoRunTargetMode(parsedSettings.targetMode);
-      }
-
-      if (typeof parsedSettings.pauseWhenHidden === "boolean") {
-        setAutoRunPauseWhenHidden(parsedSettings.pauseWhenHidden);
-      }
-
-      if (typeof parsedSettings.maxFailures === "number" && Number.isFinite(parsedSettings.maxFailures) && parsedSettings.maxFailures > 0) {
-        setAutoRunMaxFailures(parsedSettings.maxFailures);
-      }
-    } catch {
-      window.localStorage.removeItem(autoRunSettingsStorageKey);
-    }
-  }, [initialSelection.startTargetPath]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(starterTargetStorageKey, startRunTargetPath);
-  }, [startRunTargetPath]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(
-      autoRunSettingsStorageKey,
-      JSON.stringify({
-        isEnabled: isAutoRunEnabled,
-        intervalMs: autoRunIntervalMs,
-        targetMode: autoRunTargetMode,
-        pauseWhenHidden: autoRunPauseWhenHidden,
-        maxFailures: autoRunMaxFailures
-      })
-    );
-  }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode, isAutoRunEnabled]);
 
   useEffect(() => {
     if (!selectedRun) {
