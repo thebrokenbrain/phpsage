@@ -72,6 +72,16 @@ Levantar plataforma completa:
 docker compose up --build -d
 ```
 
+Opcional (recomendado si vas a usar `AI_PROVIDER=ollama`): precargar el modelo localmente antes de arrancar todo.
+
+```bash
+docker compose up -d ollama
+docker compose exec ollama ollama pull "${OLLAMA_MODEL:-llama3.2}"
+docker compose exec ollama ollama list
+```
+
+El modelo queda persistido en el volumen Docker `phpsage_ollama-data`, por lo que no se descarga de nuevo en cada reinicio.
+
 Servicios principales:
 
 - UI: `http://localhost:5173`
