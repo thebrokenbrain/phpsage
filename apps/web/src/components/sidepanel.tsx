@@ -47,9 +47,6 @@ export function Sidepanel({
               <span className={`run-status ${run.status}`}>{run.status}</span>
             </div>
             <div className="run-path" title={run.targetPath}>{run.targetPath}</div>
-            <div className="run-meta-row">
-              <span className="run-meta-pill">issues: {run.issueCount}</span>
-            </div>
           </button>
         ))}
       </div>
