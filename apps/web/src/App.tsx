@@ -31,6 +31,7 @@ import { useAutoRunDerived } from "./hooks/use-auto-run-derived.js";
 import { useStartRun } from "./hooks/use-start-run.js";
 import { useResetDashboardControls } from "./hooks/use-reset-dashboard-controls.js";
 import { readInitialQuerySelection } from "./hooks/use-initial-query-selection.js";
+import { useSelectedSourceFileGuard } from "./hooks/use-selected-source-file-guard.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -202,6 +203,11 @@ export function App(): JSX.Element {
     setIsLogsSectionOpen,
     setAutoRunPauseWhenHidden,
     setAutoRunMaxFailures
+  });
+
+  useSelectedSourceFileGuard({
+    selectedRun,
+    setSelectedSourceFilePath
   });
 
   const {
@@ -465,20 +471,6 @@ export function App(): JSX.Element {
     setLogPage,
     detailPageSize
   });
-
-  useEffect(() => {
-    if (!selectedRun) {
-      return;
-    }
-
-    setSelectedSourceFilePath((currentPath) => {
-      if (!currentPath) {
-        return null;
-      }
-
-      return currentPath.startsWith(`${selectedRun.targetPath}/`) ? currentPath : null;
-    });
-  }, [selectedRun]);
 
   useEffect(() => {
     setLastAutoRunError(null);
