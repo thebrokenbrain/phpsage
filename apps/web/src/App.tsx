@@ -50,6 +50,7 @@ import { useFilteredLogs } from "./hooks/use-filtered-logs.js";
 import { useActiveIssueLineInSource } from "./hooks/use-active-issue-line-in-source.js";
 import { useResolvedSourceFilePath } from "./hooks/use-resolved-source-file-path.js";
 import { useActiveSourceSnippet } from "./hooks/use-active-source-snippet.js";
+import { DashboardBrand } from "./components/dashboard-brand.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -444,18 +445,7 @@ export function App(): JSX.Element {
   return (
     <main className="app">
       <header className="header">
-        <div className="brand-group">
-          <img className="product-logo" src="/logo/phpsage-logo.png" alt="PHPSage" />
-          <div>
-            <h1 className="brand-title">Dashboard</h1>
-            <p className="brand-subtitle">PHPStan Pro-like run monitoring</p>
-            <div className="view-tabs" aria-hidden="true">
-              <span className="view-tab view-tab-active">Dashboard</span>
-              <span className="view-tab">Insights</span>
-              <span className="view-tab">Issue</span>
-            </div>
-          </div>
-        </div>
+        <DashboardBrand />
         <div className="header-actions">
           <label>
             Status
