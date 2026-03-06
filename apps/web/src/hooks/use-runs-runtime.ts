@@ -121,9 +121,12 @@ export function useRunsRuntime({
       }
 
       const data = (await response.json()) as AiHealthResponse;
-      const llmProviderStatus = data.providers.find((provider) => provider.provider === "ollama" || provider.provider === "openai")?.status;
+      const llmProviders = data.providers.filter((provider) => provider.provider === "ollama" || provider.provider === "openai");
+      const activeLlmProvider = llmProviders.find((provider) => provider.provider === data.activeProvider);
+      const hasAnyLlmProviderUp = llmProviders.some((provider) => provider.status === "up");
+      const isLlmUp = activeLlmProvider ? activeLlmProvider.status === "up" : hasAnyLlmProviderUp;
 
-      if (llmProviderStatus === "up") {
+      if (isLlmUp) {
         aiHealthFailureCountRef.current = 0;
         setIsLlmAvailable(true);
       } else {
