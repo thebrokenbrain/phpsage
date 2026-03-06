@@ -38,6 +38,7 @@ import { RunsSummary } from "./components/runs-summary.js";
 import { RunStarter } from "./components/run-starter.js";
 import { RunsTable } from "./components/runs-table.js";
 import { SelectionEmpty } from "./components/selection-empty.js";
+import { RunDetailMeta } from "./components/run-detail-meta.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -828,32 +829,16 @@ export function App(): JSX.Element {
 
           {selectedRunId ? (
             <section className="detail-panel">
-          <h2>Run detail</h2>
-          {detailLoading ? <p className="empty">Loading selected run...</p> : null}
-          {detailError ? <p className="error">Could not load run detail: {detailError}</p> : null}
+          <RunDetailMeta
+            detailLoading={detailLoading}
+            detailError={detailError}
+            selectedRun={selectedRun}
+            copyRunIdStatus={copyRunIdStatus}
+            copyRunId={copyRunId}
+          />
 
           {!detailLoading && !detailError && selectedRun ? (
             <>
-              <p className="mono">{selectedRun.runId}</p>
-              <button
-                onClick={() => {
-                  void copyRunId();
-                }}
-              >
-                {copyRunIdStatus === "copied" ? "Run ID copied" : "Copy run ID"}
-              </button>
-              <p>
-                Status: {selectedRun.status} · Exit: {selectedRun.exitCode ?? "-"}
-                {selectedRun.status === "running" ? <span className="live-badge">Live updating</span> : null}
-              </p>
-              <p>
-                Created: {new Date(selectedRun.createdAt).toLocaleString()} · Updated: {new Date(selectedRun.updatedAt).toLocaleString()}
-              </p>
-              <p className="mono">Target: {selectedRun.targetPath}</p>
-              <p>Logs: {selectedRun.logs.length} · Issues: {selectedRun.issues.length}</p>
-
-              {copyRunIdStatus === "error" ? <p className="error">Could not copy run ID.</p> : null}
-
               <section className="detail-block">
                 <div className="detail-block-header">
                   <h3>Files</h3>
