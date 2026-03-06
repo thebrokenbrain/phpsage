@@ -161,6 +161,7 @@ Estado actual:
 - target por defecto de ingest: `/workspace/rag` (o `AI_INGEST_DEFAULT_TARGET`)
 - endpoint IA de explain implementado: `POST /api/ai/explain` (respuesta fallback determinista en esta fase)
 - endpoint IA de suggest-fix implementado: `POST /api/ai/suggest-fix` (diff fallback determinista en esta fase)
+- con `AI_PROVIDER=openai` y `OPENAI_API_KEY`, explain/suggest-fix intentan LLM real (`/v1/responses`) con fallback robusto a `/v1/chat/completions`
 - explain/suggest-fix enriquecen respuesta con `contextItems` recuperados desde corpus `rag/`
 - `AI_RAG_TOP_K` permite ajustar cuántos contextos recuperar por petición IA (default `3`)
 - panel `AI Assist` permite expandir/colapsar contenido de contexto recuperado para inspección rápida

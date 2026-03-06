@@ -1,6 +1,7 @@
 // This file provides suggest-fix use case with deterministic fallback output.
 
 import type { AiRagContextItem, AiRagRetriever } from "../ports/ai-rag-retriever.js";
+import type { AiLlmClient, AiLlmDebugPayload, AiLlmUsage } from "../ports/ai-llm-client.js";
 import { retrieveContextItemsSafely, summarizeContextSources } from "./ai-rag-context.js";
 
 export interface AiSuggestFixRequest {
@@ -14,33 +15,93 @@ export interface AiSuggestFixRequest {
 export interface AiSuggestFixResponse {
   readonly proposedDiff: string;
   readonly rationale: string;
-  readonly source: "fallback";
+  readonly source: "fallback" | "llm";
   readonly provider: string;
-  readonly fallbackReason: string;
+  readonly fallbackReason: string | null;
   readonly contextItems: AiRagContextItem[];
-  readonly usage: null;
-  readonly debug: null;
+  readonly usage: AiLlmUsage | null;
+  readonly debug: AiLlmDebugPayload | null;
 }
 
 export class AiSuggestFixService {
   public constructor(
     private readonly providerName: string = "fallback",
     private readonly ragRetriever?: AiRagRetriever,
-    private readonly ragTopK: number = 3
+    private readonly ragTopK: number = 3,
+    private readonly llmClient?: AiLlmClient
   ) {}
 
   public async suggestFix(request: AiSuggestFixRequest): Promise<AiSuggestFixResponse> {
     const contextItems = await retrieveContextItemsSafely(this.ragRetriever, request, this.ragTopK);
 
+    if (this.llmClient) {
+      try {
+        const output = await this.llmClient.suggestFix({
+          issueMessage: request.issueMessage,
+          issueIdentifier: request.issueIdentifier,
+          filePath: request.filePath,
+          line: request.line,
+          sourceSnippet: request.sourceSnippet,
+          retrievedContext: contextItems.map((item) => item.content).join("\n\n")
+        });
+        const parsed = this.parseSuggestFixOutput(output.text);
+
+        return {
+          proposedDiff: parsed.proposedDiff,
+          rationale: parsed.rationale,
+          source: "llm",
+          provider: this.providerName,
+          fallbackReason: null,
+          contextItems,
+          usage: output.usage,
+          debug: output.debug
+        };
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        return this.buildFallbackResponse(request, contextItems, `LLM request failed: ${reason}`);
+      }
+    }
+
+    return this.buildFallbackResponse(request, contextItems, "LLM provider is not configured for suggest-fix yet");
+  }
+
+  private buildFallbackResponse(
+    request: AiSuggestFixRequest,
+    contextItems: AiRagContextItem[],
+    fallbackReason: string
+  ): AiSuggestFixResponse {
     return {
       proposedDiff: this.buildFallbackDiff(request),
       rationale: this.buildRationale(request, contextItems),
       source: "fallback",
       provider: this.providerName,
-      fallbackReason: "LLM provider is not configured for suggest-fix yet",
+      fallbackReason,
       contextItems,
       usage: null,
       debug: null
+    };
+  }
+
+  private parseSuggestFixOutput(text: string): { proposedDiff: string; rationale: string } {
+    const trimmed = text.trim();
+    if (!trimmed.startsWith("{")) {
+      return {
+        proposedDiff: trimmed,
+        rationale: "LLM proposed a direct unified diff response."
+      };
+    }
+
+    const parsed = JSON.parse(trimmed) as { proposedDiff?: string; rationale?: string };
+    const proposedDiff = typeof parsed.proposedDiff === "string" ? parsed.proposedDiff.trim() : "";
+    const rationale = typeof parsed.rationale === "string" ? parsed.rationale.trim() : "LLM proposed fix.";
+
+    if (!proposedDiff) {
+      throw new Error("LLM suggest-fix payload missing proposedDiff");
+    }
+
+    return {
+      proposedDiff,
+      rationale
     };
   }
 

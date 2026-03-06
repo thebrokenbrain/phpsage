@@ -187,15 +187,15 @@ This document must be updated in the same iteration where any endpoint is added 
 }
 ```
 
-- Response `200`: deterministic fallback explanation payload
+- Response `200`: explanation payload (`source=llm|fallback`)
 
 ```json
 {
 	"explanation": "...",
 	"recommendations": ["...", "..."],
-	"source": "fallback",
+	"source": "llm",
 	"provider": "openai",
-	"fallbackReason": "LLM provider is not configured for explain yet",
+	"fallbackReason": null,
 	"contextItems": [
 		{
 			"sourcePath": "variable.undefined.md",
@@ -204,10 +204,17 @@ This document must be updated in the same iteration where any endpoint is added 
 			"score": 0.91
 		}
 	],
-	"usage": null,
+	"usage": {
+		"model": "gpt-4o-mini",
+		"inputTokens": 120,
+		"outputTokens": 80,
+		"totalTokens": 200
+	},
 	"debug": null
 }
 ```
+
+- When LLM is unavailable or fails, endpoint returns deterministic fallback with `source="fallback"` and a populated `fallbackReason`.
 
 - Response `400`: invalid payload (`issueMessage is required`)
 
@@ -224,15 +231,15 @@ This document must be updated in the same iteration where any endpoint is added 
 }
 ```
 
-- Response `200`: deterministic fallback suggest-fix payload
+- Response `200`: suggest-fix payload (`source=llm|fallback`)
 
 ```json
 {
 	"proposedDiff": "--- a/src/Broken.php\n+++ b/src/Broken.php\n@@ -7,1 +7,1 @@\n-return $undefinedVariable + $value;\n+return $value + $value;",
 	"rationale": "...",
-	"source": "fallback",
+	"source": "llm",
 	"provider": "openai",
-	"fallbackReason": "LLM provider is not configured for suggest-fix yet",
+	"fallbackReason": null,
 	"contextItems": [
 		{
 			"sourcePath": "variable.undefined.md",
@@ -241,7 +248,12 @@ This document must be updated in the same iteration where any endpoint is added 
 			"score": 0.91
 		}
 	],
-	"usage": null,
+	"usage": {
+		"model": "gpt-4o-mini",
+		"inputTokens": 140,
+		"outputTokens": 110,
+		"totalTokens": 250
+	},
 	"debug": null
 }
 ```

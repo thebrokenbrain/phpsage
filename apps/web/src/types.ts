@@ -75,33 +75,55 @@ export interface AiIngestJobPayload {
 export interface AiExplainPayload {
   readonly explanation: string;
   readonly recommendations: string[];
-  readonly source: "fallback";
+  readonly source: "fallback" | "llm";
   readonly provider: string;
-  readonly fallbackReason: string;
+  readonly fallbackReason: string | null;
   readonly contextItems?: Array<{
     readonly sourcePath: string;
     readonly identifier: string | null;
     readonly content: string;
     readonly score: number;
   }>;
-  readonly usage: null;
-  readonly debug: null;
+  readonly usage: {
+    readonly model: string;
+    readonly inputTokens: number | null;
+    readonly outputTokens: number | null;
+    readonly totalTokens: number | null;
+  } | null;
+  readonly debug: {
+    readonly strategy: string;
+    readonly endpoint: string;
+    readonly prompt: string;
+    readonly requestBody: Record<string, unknown>;
+    readonly rawResponse: unknown;
+  } | null;
 }
 
 export interface AiSuggestFixPayload {
   readonly proposedDiff: string;
   readonly rationale: string;
-  readonly source: "fallback";
+  readonly source: "fallback" | "llm";
   readonly provider: string;
-  readonly fallbackReason: string;
+  readonly fallbackReason: string | null;
   readonly contextItems?: Array<{
     readonly sourcePath: string;
     readonly identifier: string | null;
     readonly content: string;
     readonly score: number;
   }>;
-  readonly usage: null;
-  readonly debug: null;
+  readonly usage: {
+    readonly model: string;
+    readonly inputTokens: number | null;
+    readonly outputTokens: number | null;
+    readonly totalTokens: number | null;
+  } | null;
+  readonly debug: {
+    readonly strategy: string;
+    readonly endpoint: string;
+    readonly prompt: string;
+    readonly requestBody: Record<string, unknown>;
+    readonly rawResponse: unknown;
+  } | null;
 }
 
 export interface StartRunPayload {

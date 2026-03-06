@@ -118,7 +118,7 @@ paths:
               $ref: '#/components/schemas/AiExplainRequest'
       responses:
         '200':
-          description: Explain result payload (fallback for now)
+          description: Explain result payload (llm-first with fallback)
           content:
             application/json:
               schema:
@@ -140,7 +140,7 @@ paths:
               $ref: '#/components/schemas/AiSuggestFixRequest'
       responses:
         '200':
-          description: Suggest-fix result payload (fallback for now)
+          description: Suggest-fix result payload (llm-first with fallback)
           content:
             application/json:
               schema:
@@ -441,19 +441,24 @@ components:
             type: string
         source:
           type: string
-          enum: [fallback]
+          enum: [fallback, llm]
         provider:
           type: string
         fallbackReason:
           type: string
+          nullable: true
         contextItems:
           type: array
           items:
             $ref: '#/components/schemas/AiRagContextItem'
         usage:
-          type: 'null'
+          allOf:
+            - $ref: '#/components/schemas/AiUsage'
+          nullable: true
         debug:
-          type: 'null'
+          allOf:
+            - $ref: '#/components/schemas/AiDebugPayload'
+          nullable: true
     AiIngestStartRequest:
       type: object
       properties:
@@ -523,19 +528,54 @@ components:
           type: string
         source:
           type: string
-          enum: [fallback]
+          enum: [fallback, llm]
         provider:
           type: string
         fallbackReason:
           type: string
+          nullable: true
         contextItems:
           type: array
           items:
             $ref: '#/components/schemas/AiRagContextItem'
         usage:
-          type: 'null'
+          allOf:
+            - $ref: '#/components/schemas/AiUsage'
+          nullable: true
         debug:
-          type: 'null'
+          allOf:
+            - $ref: '#/components/schemas/AiDebugPayload'
+          nullable: true
+    AiUsage:
+      type: object
+      required: [model, inputTokens, outputTokens, totalTokens]
+      properties:
+        model:
+          type: string
+        inputTokens:
+          type: integer
+          nullable: true
+        outputTokens:
+          type: integer
+          nullable: true
+        totalTokens:
+          type: integer
+          nullable: true
+    AiDebugPayload:
+      type: object
+      required: [strategy, endpoint, prompt, requestBody, rawResponse]
+      properties:
+        strategy:
+          type: string
+        endpoint:
+          type: string
+        prompt:
+          type: string
+        requestBody:
+          type: object
+          additionalProperties: true
+        rawResponse:
+          description: Raw provider response payload
     AiRagContextItem:
       type: object
       required: [sourcePath, identifier, content, score]
