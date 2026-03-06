@@ -29,6 +29,7 @@ import { useDashboardPagination } from "./hooks/use-dashboard-pagination.js";
 import { useRunsList } from "./hooks/use-runs-list.js";
 import { useCopyActions } from "./hooks/use-copy-actions.js";
 import { useRunsFiltersViewModel } from "./hooks/use-runs-filters-view-model.js";
+import { useAutoRunDerived } from "./hooks/use-auto-run-derived.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -262,20 +263,17 @@ export function App(): JSX.Element {
     autoRunConsecutiveFailures
   });
 
-  const resolvedAutoRunTargetPath = useMemo(() => {
-    return autoRunTargetMode === "selected"
-      ? (selectedRun?.targetPath ?? startRunTargetPath)
-      : startRunTargetPath;
-  }, [autoRunTargetMode, selectedRun, startRunTargetPath]);
-
-  const isAutoRunUsingStarterFallback = useMemo(() => {
-    return autoRunTargetMode === "selected" && !selectedRun;
-  }, [autoRunTargetMode, selectedRun]);
-
-  const autoRunEffectiveIntervalMs = useMemo(() => {
-    const multiplier = 1 + Math.min(autoRunConsecutiveFailures, 4);
-    return autoRunIntervalMs * multiplier;
-  }, [autoRunConsecutiveFailures, autoRunIntervalMs]);
+  const {
+    resolvedAutoRunTargetPath,
+    isAutoRunUsingStarterFallback,
+    autoRunEffectiveIntervalMs
+  } = useAutoRunDerived({
+    autoRunTargetMode,
+    selectedRun,
+    startRunTargetPath,
+    autoRunConsecutiveFailures,
+    autoRunIntervalMs
+  });
 
   const {
     autoRunCountdownSec,
