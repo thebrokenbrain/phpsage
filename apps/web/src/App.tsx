@@ -22,6 +22,7 @@ import { useRunFiles } from "./hooks/use-run-files.js";
 import { useAiHealth } from "./hooks/use-ai-health.js";
 import { useAutoRunCountdown } from "./hooks/use-auto-run-countdown.js";
 import { useAutoRunVisibilityPause } from "./hooks/use-auto-run-visibility-pause.js";
+import { useAutoRunScheduler } from "./hooks/use-auto-run-scheduler.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -367,6 +368,18 @@ export function App(): JSX.Element {
     autoRunEffectiveIntervalMs,
     setAutoRunDisabledReason,
     setAutoRunCountdownSec
+  });
+
+  useAutoRunScheduler({
+    isAutoRunEnabled,
+    autoRunPauseWhenHidden,
+    autoRunEffectiveIntervalMs,
+    resolvedAutoRunTargetPath,
+    runs,
+    startRunLoading,
+    setLastAutoRunAt,
+    setAutoRunTriggerCount,
+    startRunFromUi
   });
 
   const visibleRunFiles = useMemo(() => {
@@ -851,39 +864,6 @@ export function App(): JSX.Element {
   useEffect(() => {
     setLastAutoRunError(null);
   }, [autoRunIntervalMs, autoRunMaxFailures, autoRunPauseWhenHidden, autoRunTargetMode]);
-
-  useEffect(() => {
-    if (!isAutoRunEnabled) {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      if (autoRunPauseWhenHidden && typeof document !== "undefined" && document.visibilityState === "hidden") {
-        return;
-      }
-
-      if (resolvedAutoRunTargetPath.trim().length === 0) {
-        return;
-      }
-
-      const hasRunningRun = runs.some((run) => run.status === "running");
-      if (hasRunningRun || startRunLoading) {
-        return;
-      }
-
-      void (async () => {
-        const didStart = await startRunFromUi(resolvedAutoRunTargetPath, "auto");
-        if (didStart) {
-          setLastAutoRunAt(new Date().toISOString());
-          setAutoRunTriggerCount((currentValue) => currentValue + 1);
-        }
-      })();
-    }, autoRunEffectiveIntervalMs);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [autoRunEffectiveIntervalMs, autoRunPauseWhenHidden, isAutoRunEnabled, resolvedAutoRunTargetPath, runs, startRunLoading]);
 
   useEffect(() => {
     if (!selectedRun) {
