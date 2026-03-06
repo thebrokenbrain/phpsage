@@ -34,6 +34,7 @@ import { readInitialQuerySelection } from "./hooks/use-initial-query-selection.j
 import { useSelectedSourceFileGuard } from "./hooks/use-selected-source-file-guard.js";
 import { useAutoRunErrorReset } from "./hooks/use-auto-run-error-reset.js";
 import { ActiveControls } from "./components/active-controls.js";
+import { RunsSummary } from "./components/runs-summary.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -805,29 +806,29 @@ export function App(): JSX.Element {
 
       {startRunError ? <p className="error">Could not start run: {startRunError}</p> : null}
 
-      <section className="runs-summary">
-        <span>All: {runsSummary.total}</span>
-        <span>Running: {runsSummary.running}</span>
-        <span>Finished: {runsSummary.finished}</span>
-        {lastRefreshAt ? <span>Last refresh: {new Date(lastRefreshAt).toLocaleTimeString()}</span> : null}
-        <span>Auto-run: {isAutoRunEnabled ? "ON" : "OFF"}</span>
-        {isAutoRunEnabled ? <span>Auto mode: {autoRunTargetMode}</span> : null}
-        {isAutoRunEnabled && isAutoRunUsingStarterFallback ? <span>Auto mode fallback: using starter target (no selected run)</span> : null}
-        {isAutoRunEnabled ? <span>Next auto-run in: {autoRunCountdownSec}s</span> : null}
-        {isAutoRunEnabled ? <span>Auto effective interval: {Math.round(autoRunEffectiveIntervalMs / 1000)}s</span> : null}
-        {isAutoRunEnabled ? <span>Auto target path: {resolvedAutoRunTargetPath || "(empty)"}</span> : null}
-        {isAutoRunEnabled && autoRunPauseWhenHidden && typeof document !== "undefined" && document.visibilityState === "hidden" ? <span>Auto-run paused: tab hidden</span> : null}
-        {isAutoRunEnabled && runsSummary.running > 0 ? <span>Auto-run waiting for active run</span> : null}
-        {lastAutoRunAt ? <span>Last auto-run: {new Date(lastAutoRunAt).toLocaleTimeString()}</span> : null}
-        {lastAutoRunError ? <span>Auto-run error: {lastAutoRunError}</span> : null}
-        <span>LLM: {isLlmAvailable === null ? "..." : isLlmAvailable ? "ON" : "OFF"}</span>
-        {activeAiProvider ? <span>AI provider: {activeAiProvider}</span> : null}
-        {activeAiModel ? <span>AI model: {activeAiModel}</span> : null}
-        <span>Auto-run triggers: {autoRunTriggerCount}</span>
-        <span>Auto-run failures: {autoRunFailureCount}</span>
-        {autoRunConsecutiveFailures > 0 ? <span>Auto-run consecutive failures: {autoRunConsecutiveFailures}</span> : null}
-        {!isAutoRunEnabled && autoRunDisabledReason ? <span>Auto-run paused reason: {autoRunDisabledReason}</span> : null}
-      </section>
+      <RunsSummary
+        total={runsSummary.total}
+        running={runsSummary.running}
+        finished={runsSummary.finished}
+        lastRefreshAt={lastRefreshAt}
+        isAutoRunEnabled={isAutoRunEnabled}
+        autoRunTargetMode={autoRunTargetMode}
+        isAutoRunUsingStarterFallback={isAutoRunUsingStarterFallback}
+        autoRunCountdownSec={autoRunCountdownSec}
+        autoRunEffectiveIntervalMs={autoRunEffectiveIntervalMs}
+        resolvedAutoRunTargetPath={resolvedAutoRunTargetPath}
+        autoRunPauseWhenHidden={autoRunPauseWhenHidden}
+        isDocumentHidden={typeof document !== "undefined" && document.visibilityState === "hidden"}
+        lastAutoRunAt={lastAutoRunAt}
+        lastAutoRunError={lastAutoRunError}
+        isLlmAvailable={isLlmAvailable}
+        activeAiProvider={activeAiProvider}
+        activeAiModel={activeAiModel}
+        autoRunTriggerCount={autoRunTriggerCount}
+        autoRunFailureCount={autoRunFailureCount}
+        autoRunConsecutiveFailures={autoRunConsecutiveFailures}
+        autoRunDisabledReason={autoRunDisabledReason}
+      />
 
       <ActiveControls labels={activeControlLabels} />
 
