@@ -46,6 +46,7 @@ import { LogsDetailBlock } from "./components/logs-detail-block.js";
 import { AiAssistDetailBlock } from "./components/ai-assist-detail-block.js";
 import { useVisibleRunFiles } from "./hooks/use-visible-run-files.js";
 import { useFilteredIssueEntries } from "./hooks/use-filtered-issue-entries.js";
+import { useFilteredLogs } from "./hooks/use-filtered-logs.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -434,25 +435,11 @@ export function App(): JSX.Element {
     issueIdentifierFilter
   });
 
-  const filteredLogs = useMemo(() => {
-    if (!selectedRun) {
-      return [] as RunLogEntry[];
-    }
-
-    const normalizedSearchTerm = logSearchTerm.trim().toLowerCase();
-
-    return selectedRun.logs.filter((logEntry) => {
-      if (logStreamFilter !== "all" && logEntry.stream !== logStreamFilter) {
-        return false;
-      }
-
-      if (normalizedSearchTerm.length === 0) {
-        return true;
-      }
-
-      return `${logEntry.stream} ${logEntry.message}`.toLowerCase().includes(normalizedSearchTerm);
-    });
-  }, [logSearchTerm, logStreamFilter, selectedRun]);
+  const filteredLogs = useFilteredLogs({
+    selectedRun,
+    logSearchTerm,
+    logStreamFilter
+  });
 
   useDashboardPagination({
     selectedRun,
