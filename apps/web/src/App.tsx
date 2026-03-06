@@ -42,6 +42,7 @@ import { RunDetailMeta } from "./components/run-detail-meta.js";
 import { FilesDetailBlock } from "./components/files-detail-block.js";
 import { IssuesDetailBlock } from "./components/issues-detail-block.js";
 import { SourceDetailBlock } from "./components/source-detail-block.js";
+import { LogsDetailBlock } from "./components/logs-detail-block.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -882,103 +883,19 @@ export function App(): JSX.Element {
                 activeIssueLineInSource={activeIssueLineInSource}
               />
 
-              <section className="detail-block">
-                <div className="detail-block-header">
-                  <h3>Logs</h3>
-                  <button
-                    onClick={() => {
-                      setIsLogsSectionOpen((isOpen) => !isOpen);
-                    }}
-                  >
-                    {isLogsSectionOpen ? "Hide" : "Show"}
-                  </button>
-                  <div className="detail-actions">
-                    <button
-                      onClick={() => {
-                        setLogSearchTerm("");
-                        setLogStreamFilter("all");
-                        setLogPage(0);
-                      }}
-                      disabled={logSearchTerm.trim().length === 0 && logStreamFilter === "all"}
-                    >
-                      Clear log filters
-                    </button>
-                    <select
-                      value={logStreamFilter}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        if (value === "stdout" || value === "stderr") {
-                          setLogStreamFilter(value);
-                          setLogPage(0);
-                          return;
-                        }
-
-                        setLogStreamFilter("all");
-                        setLogPage(0);
-                      }}
-                    >
-                      <option value="all">All streams</option>
-                      <option value="stdout">stdout</option>
-                      <option value="stderr">stderr</option>
-                    </select>
-                    <input
-                      type="search"
-                      placeholder="Filter logs"
-                      value={logSearchTerm}
-                      onChange={(event) => {
-                        setLogSearchTerm(event.target.value);
-                        setLogPage(0);
-                      }}
-                    />
-                  </div>
-                  {isLogsSectionOpen && filteredLogs.length > detailPageSize ? (
-                    <div className="pager">
-                      <button
-                        onClick={() => {
-                          setLogPage((page) => Math.max(0, page - 1));
-                        }}
-                        disabled={logPage === 0}
-                      >
-                        Prev
-                      </button>
-                      <span>
-                        {logPage + 1}/{Math.max(1, Math.ceil(filteredLogs.length / detailPageSize))}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setLogPage((page) => {
-                            const maxPage = Math.max(0, Math.ceil(filteredLogs.length / detailPageSize) - 1);
-                            return Math.min(maxPage, page + 1);
-                          });
-                        }}
-                        disabled={logPage >= Math.max(0, Math.ceil(filteredLogs.length / detailPageSize) - 1)}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-
-                {isLogsSectionOpen ? (
-                  filteredLogs.length > 0 ? (
-                    <ul className="detail-list">
-                      {filteredLogs
-                        .slice(logPage * detailPageSize, (logPage + 1) * detailPageSize)
-                        .map((logEntry, index) => (
-                          <li key={`${logEntry.timestamp}-${logEntry.stream}-${index}`}>
-                            <span className="mono">{new Date(logEntry.timestamp).toLocaleTimeString()} [{logEntry.stream}]</span>
-                            {" — "}
-                            {logEntry.message.length > 200 ? `${logEntry.message.slice(0, 200)}…` : logEntry.message}
-                          </li>
-                        ))}
-                    </ul>
-                  ) : selectedRun.logs.length > 0 ? (
-                    <p className="empty">No logs match current filter.</p>
-                  ) : (
-                    <p className="empty">No logs in selected run.</p>
-                  )
-                ) : null}
-              </section>
+              <LogsDetailBlock
+                isLogsSectionOpen={isLogsSectionOpen}
+                setIsLogsSectionOpen={setIsLogsSectionOpen}
+                logSearchTerm={logSearchTerm}
+                setLogSearchTerm={setLogSearchTerm}
+                logStreamFilter={logStreamFilter}
+                setLogStreamFilter={setLogStreamFilter}
+                setLogPage={setLogPage}
+                filteredLogs={filteredLogs}
+                logPage={logPage}
+                detailPageSize={detailPageSize}
+                selectedRun={selectedRun}
+              />
 
               <section className="detail-block">
                 <div className="detail-block-header">
