@@ -45,6 +45,7 @@ import { SourceDetailBlock } from "./components/source-detail-block.js";
 import { LogsDetailBlock } from "./components/logs-detail-block.js";
 import { AiAssistDetailBlock } from "./components/ai-assist-detail-block.js";
 import { useVisibleRunFiles } from "./hooks/use-visible-run-files.js";
+import { useFilteredIssueEntries } from "./hooks/use-filtered-issue-entries.js";
 
 const defaultApiBaseUrl = "http://localhost:8080";
 const detailPageSize = 10;
@@ -427,31 +428,11 @@ export function App(): JSX.Element {
     onSelectIssueByIndex: selectIssueByIndex
   });
 
-  const filteredIssueEntries = useMemo(() => {
-    if (!selectedRun) {
-      return [] as Array<{ issue: RunIssue; absoluteIndex: number }>;
-    }
-
-    const normalizedSearchTerm = issueSearchTerm.trim().toLowerCase();
-
-    return selectedRun.issues
-      .map((issue, absoluteIndex) => ({ issue, absoluteIndex }))
-      .filter(({ issue }) => {
-        if (issueIdentifierFilter === "with" && !issue.identifier) {
-          return false;
-        }
-
-        if (issueIdentifierFilter === "without" && issue.identifier) {
-          return false;
-        }
-
-        if (normalizedSearchTerm.length === 0) {
-          return true;
-        }
-
-        return `${issue.file}:${issue.line} ${issue.message}`.toLowerCase().includes(normalizedSearchTerm);
-      });
-  }, [issueIdentifierFilter, issueSearchTerm, selectedRun]);
+  const filteredIssueEntries = useFilteredIssueEntries({
+    selectedRun,
+    issueSearchTerm,
+    issueIdentifierFilter
+  });
 
   const filteredLogs = useMemo(() => {
     if (!selectedRun) {
