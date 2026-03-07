@@ -1,0 +1,35 @@
+http:
+  routers:
+    phpsage-docs:
+      rule: PathPrefix(`/docs`)
+      entryPoints:
+        - web
+      service: phpsage-docs
+
+    phpsage-web:
+      rule: PathPrefix(`/`)
+      entryPoints:
+        - web
+      service: phpsage-web
+
+    phpsage-api:
+      rule: PathPrefix(`/api`) || Path(`/healthz`)
+      entryPoints:
+        - web
+      service: phpsage-api
+
+  services:
+    phpsage-docs:
+      loadBalancer:
+        servers:
+          - url: http://api-docs:8080
+
+    phpsage-web:
+      loadBalancer:
+        servers:
+          - url: http://phpsage-web:5173
+
+    phpsage-api:
+      loadBalancer:
+        servers:
+          - url: http://phpsage-server:8080

@@ -97,15 +97,21 @@ docker compose up --build
 
 The server will use a second compose file, expected to be named `docker-compose.server.yml`.
 
-The first functional slice keeps this file intentionally small.
+The current functional slices keep this file intentionally small.
 
 Current slice scope:
 
 - add Traefik
 - expose `80` on the host
 - route `/` to the web service running internally on `5173`
+- route `/api` and `/healthz` to the server running internally on `8080`
+- route `/docs` to Swagger running internally on `8080` in the `api-docs` container
 
-Later slices can extend it to cover API, docs, and HTTPS on `443`.
+For reliability, Traefik is configured with a file provider and fixed routes instead of Docker label autodiscovery.
+
+In the current slices, routing is path-based only so it can be validated locally without depending on host-rule interpolation.
+
+Later slices can extend it to cover HTTPS on `443`.
 
 That file should eventually:
 
@@ -113,8 +119,10 @@ That file should eventually:
 - expose only `80` and `443` on the host
 - route `/` to the web service running internally on `5173`
 - route `/api` and `/healthz` to the server running internally on `8080`
-- optionally route `/docs` to Swagger
+- route `/docs` to Swagger
 - avoid exposing `5173`, `8080`, and `8081` directly on the public interface
+
+In the current implementation, fixed routing lives in `deploy/traefik/dynamic.yml`.
 
 Expected server command:
 
@@ -144,9 +152,9 @@ The PHPSage `.env` file must exist on the server.
 
 It is required because `docker compose`, `docker-compose.yml`, and the future `docker-compose.server.yml` use it to start the application services.
 
-For the first Traefik slice, the server `.env` must also define:
+`PHPSAGE_PUBLIC_HOST` remains useful for later host-based routing and Cloudflare-facing slices, but it is not required by the current file-provider rules.
 
-- `PHPSAGE_PUBLIC_HOST`
+The `api-docs` service also receives `BASE_URL=/docs` from the server override so Swagger UI can be published cleanly behind Traefik under that path.
 
 Operational rule:
 
@@ -240,6 +248,14 @@ curl http://127.0.0.1:8080/api/ai/health
 
 Once Traefik is in place, also verify public access through the domain on `80/443` rather than through direct dev ports.
 
+Current Traefik verification examples:
+
+```bash
+curl http://127.0.0.1/healthz
+curl http://127.0.0.1/api/ai/health
+curl -I http://127.0.0.1/docs/
+```
+
 ## Manual Application Update
 
 When you push changes to `main`, the manual deployment flow will be:
@@ -255,9 +271,9 @@ docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d
 
 In this dev phase, the decision is to expose the application externally through Traefik on standard ports.
 
-For the first slice, only `80` is routed through Traefik so the web UI can be validated end-to-end.
+For the current slices, `80` is routed through Traefik so both the web UI and backend HTTP endpoints can be validated end-to-end.
 
-`443`, `/api`, and `/docs` can be added in later slices.
+`443` can be added in a later slice.
 
 Current public entrypoint:
 
@@ -278,8 +294,8 @@ For a dev version that is easily accessible to the professor, the best next iter
 1. keep manual application deployment outside Pulumi
 2. keep the firewall on `22`, `80`, and `443`
 3. add Traefik through `docker-compose.server.yml`
-4. validate the web UI first on `80`
-5. add API, docs, and `443` in later slices
+4. validate the web UI and backend routes on `80`
+5. validate `/docs` and add `443` in a later slice
 6. do not introduce GHCR yet
 7. do not introduce GitHub Actions yet
 
@@ -290,10 +306,11 @@ Yes. The current decisions are coherent enough to start implementation.
 At this point, the next concrete work item is clear:
 
 1. create `docker-compose.server.yml`
-2. add Traefik routing for the web service
-3. keep `docker-compose.yml` unchanged for local development
-4. deploy manually on the server and validate domain access through `80`
-5. extend routing in later slices
+2. add Traefik routing for the web service and backend HTTP endpoints
+3. add Swagger routing on `/docs`
+4. keep `docker-compose.yml` unchanged for local development
+5. deploy manually on the server and validate domain access through `80`
+6. extend routing with `443` in a later slice
 
 ## Later Phase
 
@@ -311,4 +328,6 @@ That workflow should not change the deployment model. It should only automate it
 - `docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d` working
 - health checks passing inside the server
 - external access validated through `80`
+- `/api` and `/healthz` validated through Traefik on `80`
+- `/docs` validated through Traefik on `80`
 - local development still working on `5173`, `8080`, and `8081`

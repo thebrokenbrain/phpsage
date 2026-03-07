@@ -1,18 +1,19 @@
 services:
   traefik:
-    image: traefik:v3.1
+    image: traefik:3.6.10
     command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
       - --entrypoints.web.address=:80
     ports:
       - "80:80"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./deploy/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
 
   phpsage-web:
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.phpsage-web.rule=Host(`${PHPSAGE_PUBLIC_HOST}`)"
-      - "traefik.http.routers.phpsage-web.entrypoints=web"
-      - "traefik.http.services.phpsage-web.loadbalancer.server.port=5173"
+    environment:
+      PHPSAGE_PUBLIC_HOST: ${PHPSAGE_PUBLIC_HOST}
+
+  api-docs:
+    environment:
+      BASE_URL: /docs
