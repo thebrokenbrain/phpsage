@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
-.PHONY: help infra/image infra/deps infra/preview infra/up infra/destroy deploy/app deploy/all local/up local/reset local/down local/destroy
+.PHONY: help ensure/env infra/image infra/deps infra/preview infra/up infra/destroy deploy/app deploy/all local/up local/reset local/down local/destroy
 
 ROOT_DIR := $(CURDIR)
 INFRA_DIR := $(ROOT_DIR)/infra
@@ -32,6 +32,12 @@ help:
 	@printf '  %-16s %s\n' 'deploy/app' 'Deploy the application to the provisioned server over SSH'
 	@printf '  %-16s %s\n' 'deploy/all' 'Provision infra and then deploy the application'
 
+ensure/env:
+	@if [ ! -f .env ] && [ -f .env.example ]; then \
+		cp .env.example .env; \
+		printf '%s\n' 'Created .env from .env.example'; \
+	fi
+
 infra/image:
 	docker build -t iac-tooling $(INFRA_DIR)
 
@@ -47,10 +53,10 @@ infra/up: infra/deps
 infra/destroy: infra/deps
 	$(INFRA_DOCKER_RUN) sh -lc 'pulumi login && pulumi stack select dev && pulumi destroy --yes'
 
-local/up:
+local/up: ensure/env
 	docker compose up --build -d
 
-local/reset:
+local/reset: ensure/env
 	docker compose down --remove-orphans
 	docker compose up --build -d
 
