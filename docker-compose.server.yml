@@ -5,10 +5,16 @@ services:
       - --providers.file.filename=/etc/traefik/dynamic.yml
       - --providers.file.watch=true
       - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.websecure.address=:443
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./deploy/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ${PHPSAGE_TLS_CERT_PATH}:/etc/traefik/certs/origin.crt:ro
+      - ${PHPSAGE_TLS_KEY_PATH}:/etc/traefik/certs/origin.key:ro
 
   phpsage-web:
     environment:

@@ -23,6 +23,8 @@ obj/
 .env
 .env.*
 !.env.example
+certificates/*.crt
+certificates/*.key
 .pulumi/
 .pulumi-state/
 Pulumi.*.yaml.backup

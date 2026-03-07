@@ -102,24 +102,28 @@ The current functional slices keep this file intentionally small.
 Current slice scope:
 
 - add Traefik
-- expose `80` on the host
-- route `/` to the web service running internally on `5173`
-- route `/api` and `/healthz` to the server running internally on `8080`
-- route `/docs` to Swagger running internally on `8080` in the `api-docs` container
+- expose `80` and `443` on the host
+- redirect `80` to `443`
+- route `/` to the web service running internally on `5173` through TLS
+- route `/api` and `/healthz` to the server running internally on `8080` through TLS
+- route `/docs` to Swagger running internally on `8080` in the `api-docs` container through TLS
+- load a certificate and private key for Cloudflare Full (strict)
 
 For reliability, Traefik is configured with a file provider and fixed routes instead of Docker label autodiscovery.
 
 In the current slices, routing is path-based only so it can be validated locally without depending on host-rule interpolation.
 
-Later slices can extend it to cover HTTPS on `443`.
+The current implementation is suitable for Cloudflare `Full (strict)` because Traefik now terminates TLS on `443` with an origin certificate.
 
 That file should eventually:
 
 - add Traefik
 - expose only `80` and `443` on the host
+- redirect `80` to `443`
 - route `/` to the web service running internally on `5173`
 - route `/api` and `/healthz` to the server running internally on `8080`
 - route `/docs` to Swagger
+- terminate TLS with an origin certificate trusted by Cloudflare
 - avoid exposing `5173`, `8080`, and `8081` directly on the public interface
 
 In the current implementation, fixed routing lives in `deploy/traefik/dynamic.yml`.
@@ -154,12 +158,54 @@ It is required because `docker compose`, `docker-compose.yml`, and the future `d
 
 `PHPSAGE_PUBLIC_HOST` remains useful for later host-based routing and Cloudflare-facing slices, but it is not required by the current file-provider rules.
 
+For the TLS slice, the server `.env` must also define:
+
+- `PHPSAGE_TLS_CERT_PATH`
+- `PHPSAGE_TLS_KEY_PATH`
+
 The `api-docs` service also receives `BASE_URL=/docs` from the server override so Swagger UI can be published cleanly behind Traefik under that path.
 
 Operational rule:
 
 - `infra/.env` is for running Pulumi
 - `/opt/phpsage/.env` is for running PHPSage
+
+### Cloudflare Origin Certificate
+
+Because Cloudflare is configured in `Full (strict)`, the server must present a certificate on `443`.
+
+The simplest setup for this phase is a Cloudflare Origin Certificate.
+
+Recommended repository-local paths:
+
+- `./certificates/cloudflare-origin.crt`
+- `./certificates/cloudflare-origin.key`
+
+This directory should stay outside git and can be prepared before the server exists.
+
+Local preparation:
+
+```bash
+cd /path/to/phpsage
+mkdir -p certificates
+chmod 700 certificates
+```
+
+Then paste the certificate and private key obtained from Cloudflare into those files and restrict the key permissions:
+
+```bash
+chmod 600 certificates/cloudflare-origin.key
+chmod 644 certificates/cloudflare-origin.crt
+```
+
+After that, set these values in `/opt/phpsage/.env` or your local `.env`:
+
+```bash
+PHPSAGE_TLS_CERT_PATH=./certificates/cloudflare-origin.crt
+PHPSAGE_TLS_KEY_PATH=./certificates/cloudflare-origin.key
+```
+
+When the server exists, copy the same files into `/opt/phpsage/certificates/` and keep the same relative paths in `.env`.
 
 ## Recommended Manual Flow
 
@@ -231,6 +277,14 @@ cp .env.example .env
 
 Then fill in the real values required by the application for whichever AI/RAG mode you want to run.
 
+At minimum for the public entrypoint, ensure these values are set:
+
+```bash
+PHPSAGE_PUBLIC_HOST=phpsage.example.com
+PHPSAGE_TLS_CERT_PATH=./certificates/cloudflare-origin.crt
+PHPSAGE_TLS_KEY_PATH=./certificates/cloudflare-origin.key
+```
+
 ### 5. Start PHPSage With Docker Compose
 
 ```bash
@@ -251,9 +305,11 @@ Once Traefik is in place, also verify public access through the domain on `80/44
 Current Traefik verification examples:
 
 ```bash
-curl http://127.0.0.1/healthz
-curl http://127.0.0.1/api/ai/health
-curl -I http://127.0.0.1/docs/
+curl -k -I https://127.0.0.1/
+curl -k https://127.0.0.1/healthz
+curl -k https://127.0.0.1/api/ai/health
+curl -k -I https://127.0.0.1/docs/
+curl -I http://127.0.0.1/
 ```
 
 ## Manual Application Update
@@ -271,13 +327,12 @@ docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d
 
 In this dev phase, the decision is to expose the application externally through Traefik on standard ports.
 
-For the current slices, `80` is routed through Traefik so both the web UI and backend HTTP endpoints can be validated end-to-end.
-
-`443` can be added in a later slice.
+For the current slices, `80` redirects to `443`, and the web UI, backend HTTP endpoints, and Swagger are served through HTTPS.
 
 Current public entrypoint:
 
-- `80` for HTTP
+- `80` for HTTP to HTTPS redirection
+- `443` for HTTPS
 
 Internally, the application can continue using:
 
@@ -294,8 +349,8 @@ For a dev version that is easily accessible to the professor, the best next iter
 1. keep manual application deployment outside Pulumi
 2. keep the firewall on `22`, `80`, and `443`
 3. add Traefik through `docker-compose.server.yml`
-4. validate the web UI and backend routes on `80`
-5. validate `/docs` and add `443` in a later slice
+4. validate HTTPS routing on `443`
+5. validate the HTTP to HTTPS redirect on `80`
 6. do not introduce GHCR yet
 7. do not introduce GitHub Actions yet
 
@@ -309,8 +364,8 @@ At this point, the next concrete work item is clear:
 2. add Traefik routing for the web service and backend HTTP endpoints
 3. add Swagger routing on `/docs`
 4. keep `docker-compose.yml` unchanged for local development
-5. deploy manually on the server and validate domain access through `80`
-6. extend routing with `443` in a later slice
+5. add origin TLS on `443` for Cloudflare `Full (strict)`
+6. deploy manually on the server and validate domain access through `80/443`
 
 ## Later Phase
 
@@ -327,7 +382,8 @@ That workflow should not change the deployment model. It should only automate it
 - `PHPSAGE_PUBLIC_HOST` defined in the server `.env`
 - `docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d` working
 - health checks passing inside the server
-- external access validated through `80`
-- `/api` and `/healthz` validated through Traefik on `80`
-- `/docs` validated through Traefik on `80`
+- external access validated through `443`
+- HTTP to HTTPS redirect validated on `80`
+- `/api` and `/healthz` validated through Traefik on `443`
+- `/docs` validated through Traefik on `443`
 - local development still working on `5173`, `8080`, and `8081`

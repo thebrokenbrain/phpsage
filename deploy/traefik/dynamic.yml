@@ -1,22 +1,30 @@
+tls:
+  certificates:
+    - certFile: /etc/traefik/certs/origin.crt
+      keyFile: /etc/traefik/certs/origin.key
+
 http:
   routers:
     phpsage-docs:
       rule: PathPrefix(`/docs`)
       entryPoints:
-        - web
+        - websecure
       service: phpsage-docs
+      tls: {}
 
     phpsage-web:
       rule: PathPrefix(`/`)
       entryPoints:
-        - web
+        - websecure
       service: phpsage-web
+      tls: {}
 
     phpsage-api:
       rule: PathPrefix(`/api`) || Path(`/healthz`)
       entryPoints:
-        - web
+        - websecure
       service: phpsage-api
+      tls: {}
 
   services:
     phpsage-docs:
