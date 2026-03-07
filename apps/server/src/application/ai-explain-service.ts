@@ -44,10 +44,11 @@ export class AiExplainService {
           sourceSnippet: request.sourceSnippet,
           retrievedContext: contextItems.map((item) => item.content).join("\n\n")
         });
+        const parsedOutput = this.parseExplainOutput(output.text);
 
         return {
-          explanation: output.text,
-          recommendations: this.extractRecommendations(output.text),
+          explanation: parsedOutput.explanation,
+          recommendations: parsedOutput.recommendations,
           source: "llm",
           provider: this.providerName,
           fallbackReason: null,
@@ -113,6 +114,29 @@ export class AiExplainService {
       rawResponse: {
         fallbackReason
       }
+    };
+  }
+
+  private parseExplainOutput(text: string): { explanation: string; recommendations: string[] } {
+    const normalizedText = text.replace(/\r\n/g, "\n").replace(/\\n/g, "\n").trim();
+    const recommendations = this.extractRecommendations(normalizedText);
+    const explanation = normalizedText
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("- "))
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    if (explanation.length > 0) {
+      return {
+        explanation,
+        recommendations
+      };
+    }
+
+    return {
+      explanation: recommendations.length > 0 ? "Suggested actions for this issue are listed below." : normalizedText,
+      recommendations
     };
   }
 

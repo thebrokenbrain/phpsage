@@ -74,6 +74,7 @@ test("AiExplainService uses llm output when client is available", async () => {
   assert.equal(result.source, "llm");
   assert.equal(result.fallbackReason, null);
   assert.equal(result.usage?.totalTokens, 30);
+  assert.equal(result.explanation, "Issue explanation");
   assert.deepEqual(result.recommendations, ["Recommendation A", "Recommendation B"]);
 });
 
@@ -157,5 +158,6 @@ test("AiExplainService supports ollama-backed llm client", async () => {
 
   assert.equal(result.source, "llm");
   assert.equal(result.provider, "ollama");
+  assert.equal(result.explanation, "Short explanation");
   assert.deepEqual(result.recommendations, ["First action", "Second action"]);
 });
