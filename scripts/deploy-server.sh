@@ -130,7 +130,7 @@ stream_worktree_snapshot() {
 
 sync_remote_repository_from_git() {
   ssh_cmd "mkdir -p '$DEPLOY_PATH/data' '$DEPLOY_PATH/certificates'"
-  ssh_cmd "git config --global --add safe.directory '$DEPLOY_PATH' && cd '$DEPLOY_PATH' && if [ ! -d .git ]; then git init >/dev/null 2>&1 && git remote add origin '$DEPLOY_REMOTE'; fi && git remote set-url origin '$DEPLOY_REMOTE' && git fetch --depth=1 origin '$DEPLOY_BRANCH' && git clean -fdx -e .env -e certificates -e data && git checkout -B '$DEPLOY_BRANCH' 'origin/$DEPLOY_BRANCH' && git reset --hard 'origin/$DEPLOY_BRANCH' && git clean -fdx -e .env -e certificates -e data"
+  ssh_cmd "git config --global --add safe.directory '$DEPLOY_PATH' && cd '$DEPLOY_PATH' && if [ ! -d .git ]; then git init >/dev/null 2>&1; fi && if ! git remote get-url origin >/dev/null 2>&1; then git remote add origin '$DEPLOY_REMOTE'; fi && git remote set-url origin '$DEPLOY_REMOTE' && git fetch --depth=1 origin '$DEPLOY_BRANCH' && git clean -fdx -e .env -e certificates -e data && git checkout -B '$DEPLOY_BRANCH' 'origin/$DEPLOY_BRANCH' && git reset --hard 'origin/$DEPLOY_BRANCH' && git clean -fdx -e .env -e certificates -e data"
 }
 
 sync_remote_repository_from_local() {
