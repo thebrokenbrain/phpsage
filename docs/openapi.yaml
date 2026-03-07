@@ -489,9 +489,25 @@ components:
           type: integer
         chunksIndexed:
           type: integer
+    AiIngestProgress:
+      type: object
+      required: [filesProcessed, filesTotal, chunksProcessed, chunksTotal, progressPercent]
+      properties:
+        filesProcessed:
+          type: integer
+        filesTotal:
+          type: integer
+        chunksProcessed:
+          type: integer
+        chunksTotal:
+          type: integer
+        progressPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
     AiIngestJob:
       type: object
-      required: [jobId, targetPath, status, createdAt, updatedAt, startedAt, finishedAt, error, stats]
+      required: [jobId, targetPath, status, createdAt, updatedAt, startedAt, finishedAt, error, progress, stats]
       properties:
         jobId:
           type: string
@@ -517,6 +533,8 @@ components:
         error:
           type: string
           nullable: true
+        progress:
+          $ref: '#/components/schemas/AiIngestProgress'
         stats:
           allOf:
             - $ref: '#/components/schemas/AiIngestStats'

@@ -173,6 +173,13 @@ test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId retur
       startedAt: string | null;
       finishedAt: string | null;
       error: string | null;
+      progress: {
+        filesProcessed: number;
+        filesTotal: number;
+        chunksProcessed: number;
+        chunksTotal: number;
+        progressPercent: number;
+      };
       stats: { filesIndexed: number; chunksIndexed: number } | null;
     };
 
@@ -180,6 +187,7 @@ test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId retur
     assert.equal(createdPayload.targetPath, "/workspace/examples/php-sample");
     assert.match(createdPayload.status, /queued|running|completed/);
     assert.equal(createdPayload.error, null);
+    assert.ok(createdPayload.progress.progressPercent >= 0);
 
     const readResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest/${createdPayload.jobId}`);
     assert.equal(readResponse.status, 200);
@@ -187,14 +195,19 @@ test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId retur
       jobId: string;
       targetPath: string;
       status: string;
+      progress: {
+        progressPercent: number;
+      };
       stats: { filesIndexed: number; chunksIndexed: number } | null;
     };
 
     assert.equal(readPayload.jobId, createdPayload.jobId);
     assert.equal(readPayload.targetPath, "/workspace/examples/php-sample");
     assert.match(readPayload.status, /queued|running|completed/);
+    assert.ok(readPayload.progress.progressPercent >= 0);
     if (readPayload.status === "completed") {
       assert.deepEqual(readPayload.stats, { filesIndexed: 0, chunksIndexed: 0 });
+      assert.equal(readPayload.progress.progressPercent, 100);
     }
   } finally {
     await httpServer.close();

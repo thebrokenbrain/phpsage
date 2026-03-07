@@ -50,3 +50,22 @@ test("ignores configured directories", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("reports completed progress snapshot when filesystem ingest finishes", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "phpsage-ai-ingest-fs-"));
+
+  try {
+    await writeFile(join(directory, "guide.md"), buildLines(10), "utf-8");
+
+    const processor = new FilesystemAiIngestProcessor();
+    const progressSnapshots: number[] = [];
+    const stats = await processor.ingest(directory, (progress) => {
+      progressSnapshots.push(progress.progressPercent);
+    });
+
+    assert.deepEqual(stats, { filesIndexed: 1, chunksIndexed: 1 });
+    assert.deepEqual(progressSnapshots, [100]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

@@ -7,6 +7,14 @@ export interface AiIngestStats {
   readonly chunksIndexed: number;
 }
 
+export interface AiIngestProgress {
+  readonly filesProcessed: number;
+  readonly filesTotal: number;
+  readonly chunksProcessed: number;
+  readonly chunksTotal: number;
+  readonly progressPercent: number;
+}
+
 export interface AiIngestJob {
   readonly jobId: string;
   readonly targetPath: string;
@@ -16,6 +24,7 @@ export interface AiIngestJob {
   readonly startedAt: string | null;
   readonly finishedAt: string | null;
   readonly error: string | null;
+  readonly progress: AiIngestProgress;
   readonly stats: AiIngestStats | null;
 }
 

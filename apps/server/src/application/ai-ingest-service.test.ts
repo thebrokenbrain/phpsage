@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { AiIngestService } from "./ai-ingest-service.js";
-import type { AiIngestProcessor } from "../ports/ai-ingest-processor.js";
+import type { AiIngestProcessor, AiIngestProgressReporter } from "../ports/ai-ingest-processor.js";
 import type { AiIngestJob, AiIngestJobRepository, AiIngestStats } from "../ports/ai-ingest-job-repository.js";
 
 class InMemoryAiIngestJobRepository implements AiIngestJobRepository {
@@ -42,6 +42,32 @@ class FailingProcessor implements AiIngestProcessor {
   }
 }
 
+class ProgressProcessor implements AiIngestProcessor {
+  public async ingest(_targetPath: string, reportProgress?: AiIngestProgressReporter): Promise<AiIngestStats> {
+    await reportProgress?.({
+      filesProcessed: 0,
+      filesTotal: 2,
+      chunksProcessed: 1,
+      chunksTotal: 4,
+      progressPercent: 25
+    });
+    await delay(5);
+    await reportProgress?.({
+      filesProcessed: 1,
+      filesTotal: 2,
+      chunksProcessed: 3,
+      chunksTotal: 4,
+      progressPercent: 75
+    });
+    await delay(5);
+
+    return {
+      filesIndexed: 2,
+      chunksIndexed: 4
+    };
+  }
+}
+
 async function waitForStatus(
   service: AiIngestService,
   jobId: string,
@@ -70,6 +96,7 @@ test("AiIngestService marks job as completed and stores stats", async () => {
   assert.equal(completed.error, null);
   assert.ok(completed.startedAt);
   assert.ok(completed.finishedAt);
+  assert.equal(completed.progress.progressPercent, 100);
   assert.deepEqual(completed.stats, { filesIndexed: 2, chunksIndexed: 7 });
 });
 
@@ -82,6 +109,27 @@ test("AiIngestService marks job as failed when processor throws", async () => {
   assert.equal(failed.stats, null);
   assert.match(failed.error ?? "", /ingest failed/);
   assert.ok(failed.finishedAt);
+});
+
+test("AiIngestService stores reported progress while job is running", async () => {
+  const service = new AiIngestService(new InMemoryAiIngestJobRepository(), new ProgressProcessor());
+
+  const job = await service.start("/workspace/docs/phpstan");
+
+  for (let index = 0; index < 30; index += 1) {
+    const current = await service.getById(job.jobId);
+    if (current && current.progress.progressPercent >= 25) {
+      assert.equal(current.progress.filesTotal, 2);
+      assert.equal(current.progress.chunksTotal, 4);
+      break;
+    }
+
+    await delay(5);
+  }
+
+  const completed = await waitForStatus(service, job.jobId, "completed");
+  assert.equal(completed.progress.progressPercent, 100);
+  assert.equal(completed.progress.chunksProcessed, 4);
 });
 
 test("AiIngestService exposes latest started job", async () => {

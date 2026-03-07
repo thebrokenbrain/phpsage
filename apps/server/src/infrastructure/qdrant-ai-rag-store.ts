@@ -4,7 +4,9 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import type { AiIngestStats } from "../ports/ai-ingest-job-repository.js";
+import type { AiIngestProgressReporter } from "../ports/ai-ingest-processor.js";
 import type { AiRagContextItem, AiRagRetrieveRequest, AiRagRetriever } from "../ports/ai-rag-retriever.js";
+import type { FileAiRagIngestStateStore } from "./file-ai-rag-ingest-state-store.js";
 
 interface QdrantPoint {
   id: number;
@@ -28,6 +30,7 @@ interface QdrantSearchResult {
 const DEFAULT_VECTOR_SIZE = 256;
 const MAX_FILE_SIZE_BYTES = 512_000;
 const IGNORED_DIRECTORIES = new Set([".git", "node_modules", "dist", "coverage", "data"]);
+const UPSERT_BATCH_SIZE = 32;
 
 export class QdrantAiRagStore implements AiRagRetriever {
   private collectionEnsured = false;
@@ -36,44 +39,85 @@ export class QdrantAiRagStore implements AiRagRetriever {
     private readonly baseUrl: string,
     private readonly collectionName: string,
     private readonly vectorSize: number = DEFAULT_VECTOR_SIZE,
-    private readonly defaultTopK: number = 3
+    private readonly defaultTopK: number = 3,
+    private readonly ingestStateStore?: FileAiRagIngestStateStore
   ) {}
 
-  public async ingestDirectory(targetPath: string): Promise<AiIngestStats> {
-    await this.ensureCollection();
-
+  public async ingestDirectory(targetPath: string, reportProgress?: AiIngestProgressReporter): Promise<AiIngestStats> {
     const absoluteTargetPath = resolve(targetPath);
     const filePaths = await this.collectMarkdownFiles(absoluteTargetPath);
-    const points: QdrantPoint[] = [];
-
-    for (const filePath of filePaths) {
+    const documents = await Promise.all(filePaths.map(async (filePath) => {
       const content = await readFile(filePath, "utf-8");
       const chunks = chunkMarkdownContent(content);
       const relativePath = relative(absoluteTargetPath, filePath).replace(/\\/g, "/");
-      const identifier = inferIdentifierFromPath(relativePath);
 
-      chunks.forEach((chunk, index) => {
-        const id = toStablePointId(`${relativePath}::${index}`);
-        points.push({
-          id,
-          vector: textToVector(chunk, this.vectorSize),
-          payload: {
-            path: relativePath,
-            identifier,
-            content: chunk
-          }
-        });
-      });
+      return {
+        relativePath,
+        identifier: inferIdentifierFromPath(relativePath),
+        chunks
+      };
+    }));
+    documents.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+
+    const fingerprint = buildCorpusFingerprint(documents);
+    const stateKey = `${this.collectionName}::${absoluteTargetPath}`;
+    const cachedState = await this.ingestStateStore?.get(stateKey);
+    if (cachedState && cachedState.fingerprint === fingerprint) {
+      await reportProgress?.(toProgressSnapshot(
+        cachedState.stats.filesIndexed,
+        cachedState.stats.filesIndexed,
+        cachedState.stats.chunksIndexed,
+        cachedState.stats.chunksIndexed
+      ));
+      return cachedState.stats;
     }
 
-    if (points.length > 0) {
-      await this.upsertPoints(points);
+    await this.ensureCollection();
+
+    const totalChunks = documents.reduce((sum, document) => sum + document.chunks.length, 0);
+    let filesProcessed = 0;
+    let chunksProcessed = 0;
+
+    await reportProgress?.(toProgressSnapshot(filesProcessed, documents.length, chunksProcessed, totalChunks));
+
+    for (const document of documents) {
+      const points = document.chunks.map((chunk, index) => ({
+        id: toStablePointId(`${document.relativePath}::${index}`),
+        vector: textToVector(chunk, this.vectorSize),
+        payload: {
+          path: document.relativePath,
+          identifier: document.identifier,
+          content: chunk
+        }
+      }));
+
+      for (let index = 0; index < points.length; index += UPSERT_BATCH_SIZE) {
+        const batch = points.slice(index, index + UPSERT_BATCH_SIZE);
+        if (batch.length === 0) {
+          continue;
+        }
+
+        await this.upsertPoints(batch);
+        chunksProcessed += batch.length;
+        await reportProgress?.(toProgressSnapshot(filesProcessed, documents.length, chunksProcessed, totalChunks));
+      }
+
+      filesProcessed += 1;
+      await reportProgress?.(toProgressSnapshot(filesProcessed, documents.length, chunksProcessed, totalChunks));
     }
 
-    return {
-      filesIndexed: filePaths.length,
-      chunksIndexed: points.length
+    const stats = {
+      filesIndexed: documents.length,
+      chunksIndexed: totalChunks
     };
+
+    await this.ingestStateStore?.save(stateKey, {
+      fingerprint,
+      stats,
+      updatedAt: new Date().toISOString()
+    });
+
+    return stats;
   }
 
   public async retrieve(request: AiRagRetrieveRequest): Promise<AiRagContextItem[]> {
@@ -204,6 +248,8 @@ export class QdrantAiRagStore implements AiRagRetriever {
     const entries = await readdir(path, { withFileTypes: true });
     const files: string[] = [];
 
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+
     for (const entry of entries) {
       if (entry.isDirectory() && IGNORED_DIRECTORIES.has(entry.name)) {
         continue;
@@ -216,6 +262,36 @@ export class QdrantAiRagStore implements AiRagRetriever {
 
     return files;
   }
+}
+
+function buildCorpusFingerprint(documents: Array<{ relativePath: string; chunks: string[] }>): string {
+  const hash = createHash("sha1");
+
+  for (const document of documents) {
+    hash.update(document.relativePath);
+    hash.update("\u0000");
+
+    for (const chunk of document.chunks) {
+      hash.update(chunk);
+      hash.update("\u0000");
+    }
+  }
+
+  return hash.digest("hex");
+}
+
+function toProgressSnapshot(filesProcessed: number, filesTotal: number, chunksProcessed: number, chunksTotal: number) {
+  const progressPercent = chunksTotal > 0
+    ? Math.round((chunksProcessed / chunksTotal) * 100)
+    : (filesTotal > 0 ? Math.round((filesProcessed / filesTotal) * 100) : 100);
+
+  return {
+    filesProcessed,
+    filesTotal,
+    chunksProcessed,
+    chunksTotal,
+    progressPercent: Math.min(100, Math.max(0, progressPercent))
+  };
 }
 
 function chunkMarkdownContent(content: string): string[] {

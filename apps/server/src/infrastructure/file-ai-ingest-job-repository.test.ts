@@ -18,6 +18,13 @@ function createJob(overrides: Partial<AiIngestJob>): AiIngestJob {
     startedAt: null,
     finishedAt: null,
     error: null,
+    progress: {
+      filesProcessed: 0,
+      filesTotal: 0,
+      chunksProcessed: 0,
+      chunksTotal: 0,
+      progressPercent: 0
+    },
     stats: null,
     ...overrides
   };

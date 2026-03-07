@@ -33,6 +33,7 @@ Pulumi.*.yaml.bak
 # Runtime data
 data/runs/*.json
 data/ai/ingest-jobs/*.json
+data/ai/rag-ingest-state.json
 
 # Temporary files
 tmp/

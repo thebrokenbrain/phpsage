@@ -2,7 +2,7 @@
 
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
-import type { AiIngestProcessor } from "../ports/ai-ingest-processor.js";
+import type { AiIngestProcessor, AiIngestProgressReporter } from "../ports/ai-ingest-processor.js";
 import type { AiIngestStats } from "../ports/ai-ingest-job-repository.js";
 import type { QdrantAiRagStore } from "./qdrant-ai-rag-store.js";
 
@@ -13,12 +13,20 @@ const LINES_PER_CHUNK = 120;
 export class FilesystemAiIngestProcessor implements AiIngestProcessor {
   public constructor(private readonly ragStore?: QdrantAiRagStore) {}
 
-  public async ingest(targetPath: string): Promise<AiIngestStats> {
+  public async ingest(targetPath: string, reportProgress?: AiIngestProgressReporter): Promise<AiIngestStats> {
     if (this.ragStore) {
-      return this.ragStore.ingestDirectory(targetPath);
+      return this.ragStore.ingestDirectory(targetPath, reportProgress);
     }
 
-    return this.walk(targetPath);
+    const stats = await this.walk(targetPath);
+    await reportProgress?.({
+      filesProcessed: stats.filesIndexed,
+      filesTotal: stats.filesIndexed,
+      chunksProcessed: stats.chunksIndexed,
+      chunksTotal: stats.chunksIndexed,
+      progressPercent: 100
+    });
+    return stats;
   }
 
   private async walk(path: string): Promise<AiIngestStats> {

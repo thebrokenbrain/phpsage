@@ -84,19 +84,23 @@ Implemented and active in `apps/server/src/interfaces/http-server.ts`.
 
 - `POST /api/ai/ingest`
   - body optional: `{ "targetPath": string }`
-  - `202`: ingest job
+  - `202`: ingest job with progress snapshot
 
 - `GET /api/ai/ingest?limit=<n>&status=<queued|running|completed|failed>`
-  - `200`: recent jobs (optionally filtered)
+  - `200`: recent jobs (optionally filtered) with progress snapshot
   - `400`: invalid `status`
 
 - `GET /api/ai/ingest/latest`
-  - `200`: latest job
+  - `200`: latest job with progress snapshot
   - `404`: `{ "error": "Ingest job not found" }`
 
 - `GET /api/ai/ingest/:jobId`
-  - `200`: job detail
+  - `200`: job detail with `progress.filesProcessed`, `progress.filesTotal`, `progress.chunksProcessed`, `progress.chunksTotal`, `progress.progressPercent`
   - `404`: `{ "error": "Ingest job not found" }`
+
+Notes:
+
+- when using `AI_RAG_BACKEND=qdrant`, ingest skips full reindex work if the target corpus fingerprint did not change since the last successful ingest for the same target and collection
 
 - `POST /api/ai/explain`
   - body:

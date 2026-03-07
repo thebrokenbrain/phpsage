@@ -45,8 +45,19 @@ if [ "${WAIT_MODE}" = "--wait" ]; then
   for i in $(seq 1 120); do
     body="$(curl -sS "http://localhost:8080/api/ai/ingest/${job_id}")"
     status="$(printf '%s\n' "${body}" | sed -nE 's/.*"status":"([^"]+)".*/\1/p')"
+    progress_percent="$(printf '%s\n' "${body}" | sed -nE 's/.*"progressPercent":([0-9]+).*/\1/p')"
+    files_processed="$(printf '%s\n' "${body}" | sed -nE 's/.*"filesProcessed":([0-9]+).*/\1/p')"
+    files_total="$(printf '%s\n' "${body}" | sed -nE 's/.*"filesTotal":([0-9]+).*/\1/p')"
+    chunks_processed="$(printf '%s\n' "${body}" | sed -nE 's/.*"chunksProcessed":([0-9]+).*/\1/p')"
+    chunks_total="$(printf '%s\n' "${body}" | sed -nE 's/.*"chunksTotal":([0-9]+).*/\1/p')"
 
-    echo "[reindex-rag] poll[${i}] status=${status}"
+    progress_percent="${progress_percent:-0}"
+    files_processed="${files_processed:-0}"
+    files_total="${files_total:-0}"
+    chunks_processed="${chunks_processed:-0}"
+    chunks_total="${chunks_total:-0}"
+
+    echo "[reindex-rag] poll[${i}] status=${status} progress=${progress_percent}% files=${files_processed}/${files_total} chunks=${chunks_processed}/${chunks_total}"
 
     if [ "${status}" = "completed" ]; then
       echo "[reindex-rag] Completed successfully"

@@ -5,6 +5,7 @@ import { AiIngestService } from "./application/ai-ingest-service.js";
 import { AiSuggestFixService } from "./application/ai-suggest-fix-service.js";
 import { RunService } from "./application/run-service.js";
 import { FileAiIngestJobRepository } from "./infrastructure/file-ai-ingest-job-repository.js";
+import { FileAiRagIngestStateStore } from "./infrastructure/file-ai-rag-ingest-state-store.js";
 import { FilesystemAiRagRetriever } from "./infrastructure/filesystem-ai-rag-retriever.js";
 import { FileRunRepository } from "./infrastructure/file-run-repository.js";
 import { FilesystemAiIngestProcessor } from "./infrastructure/filesystem-ai-ingest-processor.js";
@@ -19,6 +20,7 @@ import type { AiLlmClient } from "./ports/ai-llm-client.js";
 const port = Number(process.env.PORT ?? 8080);
 const runsDirectoryPath = resolve(process.cwd(), "data/runs");
 const aiIngestJobsDirectoryPath = resolve(process.cwd(), "data/ai/ingest-jobs");
+const aiRagIngestStatePath = resolve(process.cwd(), "data/ai/rag-ingest-state.json");
 const aiRagDirectoryPath = resolve(process.cwd(), process.env.AI_RAG_DIRECTORY?.trim() || "docs/phpstan");
 const aiRagTopK = readPositiveIntegerEnvOrDefault("AI_RAG_TOP_K", 3);
 const aiRagBackend = (process.env.AI_RAG_BACKEND?.trim().toLowerCase() || "filesystem") as "filesystem" | "qdrant";
@@ -38,7 +40,10 @@ const aiRequestTimeoutMs = readPositiveIntegerEnvOrDefault("AI_HEALTH_TIMEOUT_MS
 const runRepository = new FileRunRepository(runsDirectoryPath);
 const runService = new RunService(runRepository);
 const runSourceReader = new RunSourceReader();
-const qdrantStore = aiRagBackend === "qdrant" ? new QdrantAiRagStore(qdrantUrl, qdrantCollection, 256, aiRagTopK) : undefined;
+const aiRagIngestStateStore = new FileAiRagIngestStateStore(aiRagIngestStatePath);
+const qdrantStore = aiRagBackend === "qdrant"
+  ? new QdrantAiRagStore(qdrantUrl, qdrantCollection, 256, aiRagTopK, aiRagIngestStateStore)
+  : undefined;
 const aiIngestService = new AiIngestService(
   new FileAiIngestJobRepository(aiIngestJobsDirectoryPath),
   new FilesystemAiIngestProcessor(qdrantStore)
