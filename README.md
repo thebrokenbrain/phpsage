@@ -224,3 +224,4 @@ Descripción por directorio:
 - Contrato OpenAPI: `docs/openapi.yaml`
 - Contrato UX: `docs/UX.md`
 - Infraestructura: `infra/README.md`
+- Despliegue de la aplicacion: `docs/DEPLOY.md`

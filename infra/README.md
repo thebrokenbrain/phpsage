@@ -15,7 +15,7 @@ Estado actual:
 Esta IaC provisiona:
 
 - servidor en Hetzner
-- firewall basico (`22`, `80`, `443`)
+- firewall para entorno dev (`22`, `80`, `443`, `5173`, `8080`, `8081`)
 - registro SSH key en Hetzner
 - bootstrap base del servidor
 - directorio `/opt/phpsage`
@@ -23,6 +23,10 @@ Esta IaC provisiona:
 - proteccion Zero Trust / Access para el dominio
 
 No despliega la aplicacion PHPSage.
+
+Nota de esta fase:
+
+- para facilitar el acceso externo a la version dev de PHPSage, el firewall expone `5173`, `8080` y `8081`
 
 ## Requisitos
 
@@ -237,3 +241,4 @@ Despues de `up`, comprueba:
 - que existe `/opt/phpsage`
 - que el dominio resuelve correctamente
 - que Zero Trust limita acceso a los emails permitidos
+- que los puertos `5173`, `8080` y `8081` responden desde fuera si vas a exponer directamente la UI, la API y Swagger
