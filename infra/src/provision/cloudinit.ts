@@ -19,6 +19,7 @@ packages:
   - ${REQUIRED_PACKAGES.join("\n  - ")}
 runcmd:
   - mkdir -p /opt/phpsage
+  - mkdir -p /opt/phpsage/certificates
   - systemctl enable docker
   - systemctl start docker
 `;

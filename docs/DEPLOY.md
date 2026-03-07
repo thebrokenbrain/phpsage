@@ -36,6 +36,11 @@ Application deployment happens inside the server:
 - create the application `.env`
 - run Docker Compose with a server-specific override file
 
+The repository also includes an operator-friendly automation path:
+
+- `make deploy/app` copies the local `.env` and referenced TLS files to the server, then runs Docker Compose remotely over SSH
+- `make deploy/all` runs `pulumi up` first and then deploys the application
+
 ### GitHub Actions
 
 GitHub Actions is deferred to a later phase.
@@ -208,6 +213,57 @@ PHPSAGE_TLS_KEY_PATH=./certificates/cloudflare-origin.key
 When the server exists, copy the same files into `/opt/phpsage/certificates/` and keep the same relative paths in `.env`.
 
 ## Recommended Manual Flow
+
+## Automated Flow
+
+If you want a single operator entrypoint, use the repository root `Makefile`.
+
+Available commands:
+
+```bash
+make infra/deps
+make infra/preview
+make infra/up
+make deploy/app
+make deploy/all
+```
+
+What `make deploy/app` does:
+
+1. ensures the local `iac-tooling` image exists
+2. reads the target host from the Pulumi stack output `publicIpv4`
+3. connects through SSH as `root` by default
+4. clones or updates the repository in `/opt/phpsage`
+5. copies the local `.env` to `/opt/phpsage/.env`
+6. copies the TLS certificate and key referenced by `.env` when those variables are present
+7. runs `docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d`
+
+Why `make infra/deps` exists:
+
+- the `iac-tooling` image provides the Pulumi CLI
+- the Pulumi TypeScript program still runs from the mounted `infra/` directory on the host
+- because of that, `infra/node_modules` must exist before `pulumi preview`, `pulumi up`, or `pulumi stack output`
+
+If you run the raw `docker run ... pulumi up` command without installing dependencies first, Pulumi will fail with a message similar to `It looks like the Pulumi SDK has not been installed.`
+
+Optional overrides for the automated flow:
+
+- `PHPSAGE_ENV_FILE`
+- `PHPSAGE_INFRA_ENV_FILE`
+- `PHPSAGE_DEPLOY_HOST`
+- `PHPSAGE_DEPLOY_USER`
+- `PHPSAGE_DEPLOY_PORT`
+- `PHPSAGE_DEPLOY_PATH`
+- `PHPSAGE_DEPLOY_BRANCH`
+- `PHPSAGE_DEPLOY_REMOTE`
+
+Example:
+
+```bash
+PHPSAGE_DEPLOY_USER=root make deploy/app
+```
+
+The manual flow below remains valid if you want explicit control over each step.
 
 ### 1. Bring Up The Infrastructure
 

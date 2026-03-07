@@ -122,6 +122,35 @@ Scripts útiles de smoke/reindex:
 ./scripts/reindex-rag.sh --wait
 ```
 
+### Deploy automatizado al servidor
+
+Para automatizar el flujo operador sin meter el despliegue de código dentro de Pulumi, el repositorio incluye un `Makefile` y un script de despliegue por SSH.
+
+Comandos disponibles:
+
+```bash
+make infra/preview
+make infra/up
+make deploy/app
+make deploy/all
+```
+
+Resumen del flujo:
+
+- `make infra/deps`: instala dependencias de `infra/` dentro del flujo dockerizado para que Pulumi pueda ejecutar el programa TypeScript montado desde el host.
+- `make infra/up`: provisiona o actualiza la infraestructura con Pulumi usando el flujo `docker-only`.
+- `make deploy/app`: obtiene la IP pública desde Pulumi, conecta por SSH, clona o actualiza el repositorio en `/opt/phpsage`, copia el `.env` local y los certificados referenciados desde ese `.env`, y levanta Docker Compose en el servidor.
+- `make deploy/all`: ejecuta ambos pasos de forma secuencial.
+
+Nota importante: usar Docker para Pulumi no elimina la necesidad de instalar dependencias del programa IaC. El binario `pulumi` vive dentro del contenedor, pero el código TypeScript de `infra/` se ejecuta desde el directorio montado del host, así que `node_modules` debe existir en `infra/`.
+
+Requisitos para `make deploy/app`:
+
+- `infra/.env` configurado
+- `.env` local listo para copiar al servidor
+- acceso SSH al host provisionado
+- certificados en `certificates/` si usas Cloudflare `Full (strict)`
+
 ### Infraestructura como código
 
 La infraestructura de PHPSage forma parte del monorepo en `infra/` y se gestiona con Pulumi en un flujo `docker-only`.
