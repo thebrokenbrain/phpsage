@@ -18,7 +18,7 @@ services:
       qdrant:
         condition: service_started
       ollama:
-        condition: service_healthy
+        condition: service_started
     working_dir: /workspace
     command: ["sh", "-lc", "npm run build && node apps/server/dist/index.js"]
     healthcheck:

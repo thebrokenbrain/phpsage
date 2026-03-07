@@ -81,6 +81,8 @@ Levantar plataforma completa:
 docker compose up --build -d
 ```
 
+En local, `ollama` ya no bloquea el arranque del resto del stack mientras termina de descargar el modelo. Esto evita falsos fallos de `docker compose up` en máquinas donde la primera descarga tarda más de lo esperado.
+
 Opcional (recomendado si vas a usar `AI_PROVIDER=ollama`): precargar el modelo localmente antes de arrancar todo.
 
 ```bash
@@ -88,6 +90,8 @@ docker compose up -d ollama
 docker compose exec ollama ollama pull "${OLLAMA_MODEL:-llama3.2}"
 docker compose exec ollama ollama list
 ```
+
+Si estás usando `AI_PROVIDER=openai`, no necesitas esperar a que `ollama` termine esa precarga para levantar la UI y la API local.
 
 El modelo queda persistido en el volumen Docker `phpsage_ollama-data`, por lo que no se descarga de nuevo en cada reinicio.
 
