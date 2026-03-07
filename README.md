@@ -95,6 +95,13 @@ Servicios principales:
 - API: `http://localhost:8080`
 - Swagger: `http://localhost:8081`
 
+Notas sobre routing en desarrollo y despliegue:
+
+- La Web UI usa mismo origen por defecto para `/api` y `/healthz`.
+- En local con Docker, Vite proxya esas rutas hacia `phpsage-server:8080`.
+- En desarrollo local fuera de Docker, el proxy por defecto apunta a `http://127.0.0.1:8080`.
+- En servidor detrás de Traefik, la UI consume la API a través del mismo host público.
+
 Verificaciones rápidas:
 
 ```bash
@@ -229,6 +236,7 @@ Descripción por directorio:
 - Runs:
   - `GET /api/runs`
   - `GET /api/runs/:runId`
+  - `DELETE /api/runs/:runId`
   - `POST /api/runs/start`
   - `POST /api/runs/:runId/log`
   - `POST /api/runs/:runId/finish`
@@ -247,8 +255,8 @@ Descripción por directorio:
 - `Dashboard` con control de ejecuciones y estado en vivo.
 - `Insights` con KPIs y distribución de issues.
 - `Issue` con navegación contextual de issue, archivo y línea.
-- Side panel con runs y árbol de ficheros.
-- AI Assist para explain/suggest-fix sobre issue activo.
+- Side panel con runs, borrado de runs y árbol de ficheros.
+- AI Assist para explain/suggest-fix sobre issue activo, con deduplicación defensiva de recomendaciones ya presentes en el texto principal.
 
 ## Referencias de documentación
 
