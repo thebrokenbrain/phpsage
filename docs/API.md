@@ -29,6 +29,7 @@ Implemented and active in `apps/server/src/interfaces/http-server.ts`.
   - `200 text/plain`: `ok`
 
 - `GET /api/ai/health`
+  - `200`: health payload with provider probes plus `rag.backend`, `rag.status`, `rag.progressPercent`, `rag.targetPath`, `rag.error`
   - `200 application/json`
   - shape:
     - `status: "ok" | "degraded"`

@@ -395,7 +395,7 @@ components:
   schemas:
     AiHealthResponse:
       type: object
-      required: [status, enabled, activeProvider, activeModel, timestamp, providers]
+      required: [status, enabled, activeProvider, activeModel, timestamp, providers, rag]
       properties:
         status:
           type: string
@@ -415,6 +415,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AiProviderHealth'
+        rag:
+          $ref: '#/components/schemas/AiRagHealth'
     AiProviderHealth:
       type: object
       required: [provider, url, status, latencyMs, error]
@@ -429,6 +431,25 @@ components:
           enum: [up, down]
         latencyMs:
           type: integer
+        error:
+          type: string
+          nullable: true
+    AiRagHealth:
+      type: object
+      required: [backend, status, progressPercent, targetPath, error]
+      properties:
+        backend:
+          type: string
+          enum: [filesystem, qdrant]
+        status:
+          type: string
+          enum: [on, processing, off]
+        progressPercent:
+          type: integer
+          nullable: true
+        targetPath:
+          type: string
+          nullable: true
         error:
           type: string
           nullable: true

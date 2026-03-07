@@ -51,6 +51,9 @@ export function App() {
     isLlmAvailable,
     activeAiProvider,
     activeAiModel,
+    activeRagBackend,
+    ragStatus,
+    ragProgressPercent,
     deletingRunId,
     handleStartRun,
     handleDeleteRun
@@ -191,6 +194,9 @@ export function App() {
         isLlmAvailable={isLlmAvailable}
         activeAiProvider={activeAiProvider}
         activeAiModel={activeAiModel}
+        activeRagBackend={activeRagBackend}
+        ragStatus={ragStatus}
+        ragProgressPercent={ragProgressPercent}
         isRunDetailLoading={isRunDetailLoading}
         viewMode={viewMode}
         loading={loading}

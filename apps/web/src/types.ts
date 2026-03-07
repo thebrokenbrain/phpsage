@@ -44,8 +44,15 @@ export interface RunFilesResponse {
 export interface AiHealthResponse {
   readonly status: "ok" | "degraded";
   readonly timestamp: string;
-  readonly activeProvider: string;
-  readonly activeModel: string;
+  readonly activeProvider: string | null;
+  readonly activeModel: string | null;
+  readonly rag: {
+    readonly backend: "filesystem" | "qdrant";
+    readonly status: "on" | "processing" | "off";
+    readonly progressPercent: number | null;
+    readonly targetPath: string | null;
+    readonly error: string | null;
+  };
   readonly providers: Array<{
     readonly provider: string;
     readonly url: string;

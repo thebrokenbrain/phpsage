@@ -25,6 +25,9 @@ interface UseRunsRuntimeResult {
   isLlmAvailable: boolean | null;
   activeAiProvider: string | null;
   activeAiModel: string | null;
+  activeRagBackend: "filesystem" | "qdrant" | null;
+  ragStatus: "on" | "processing" | "off" | null;
+  ragProgressPercent: number | null;
   deletingRunId: string | null;
   handleStartRun: () => Promise<void>;
   handleDeleteRun: (runId: string) => Promise<void>;
@@ -49,6 +52,9 @@ export function useRunsRuntime({
   const [isLlmAvailable, setIsLlmAvailable] = useState<boolean | null>(null);
   const [activeAiProvider, setActiveAiProvider] = useState<string | null>(null);
   const [activeAiModel, setActiveAiModel] = useState<string | null>(null);
+  const [activeRagBackend, setActiveRagBackend] = useState<"filesystem" | "qdrant" | null>(null);
+  const [ragStatus, setRagStatus] = useState<"on" | "processing" | "off" | null>(null);
+  const [ragProgressPercent, setRagProgressPercent] = useState<number | null>(null);
   const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
 
   const runDetailRequestRef = useRef(0);
@@ -141,12 +147,16 @@ export function useRunsRuntime({
 
       setActiveAiProvider(data.activeProvider ?? null);
       setActiveAiModel(data.activeModel ?? null);
+      setActiveRagBackend(data.rag.backend);
+      setRagStatus(data.rag.status);
+      setRagProgressPercent(data.rag.progressPercent);
     } catch {
       aiHealthFailureCountRef.current += 1;
       if (aiHealthFailureCountRef.current >= aiHealthFailureThreshold) {
         setIsLlmAvailable(false);
         setActiveAiProvider(null);
         setActiveAiModel(null);
+        setRagStatus(null);
       }
     }
   }
@@ -284,6 +294,9 @@ export function useRunsRuntime({
     isLlmAvailable,
     activeAiProvider,
     activeAiModel,
+    activeRagBackend,
+    ragStatus,
+    ragProgressPercent,
     deletingRunId,
     handleStartRun,
     handleDeleteRun

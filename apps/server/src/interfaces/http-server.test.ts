@@ -555,6 +555,13 @@ test("GET /api/ai/health returns disabled status when no provider is configured"
       activeProvider: string | null;
       activeModel: string | null;
       timestamp: string;
+      rag: {
+        backend: string;
+        status: string;
+        progressPercent: number | null;
+        targetPath: string | null;
+        error: string | null;
+      };
       providers: Array<{
         provider: string;
         url: string;
@@ -568,6 +575,8 @@ test("GET /api/ai/health returns disabled status when no provider is configured"
     assert.equal(payload.enabled, false);
     assert.equal(payload.activeProvider, null);
     assert.equal(payload.activeModel, null);
+    assert.equal(payload.rag.backend, "filesystem");
+    assert.equal(payload.rag.status, "on");
     assert.match(payload.timestamp, /T/);
     assert.equal(payload.providers.length, 3);
   } finally {
@@ -640,6 +649,11 @@ test("GET /api/ai/health returns enabled status with configured provider and mod
       enabled: boolean;
       activeProvider: string | null;
       activeModel: string | null;
+      rag: {
+        backend: string;
+        status: string;
+        progressPercent: number | null;
+      };
       providers: Array<{
         provider: string;
         status: string;
@@ -650,6 +664,8 @@ test("GET /api/ai/health returns enabled status with configured provider and mod
     assert.equal(payload.enabled, true);
     assert.equal(payload.activeProvider, "openai");
     assert.equal(payload.activeModel, "gpt-5-mini");
+    assert.equal(payload.rag.backend, "filesystem");
+    assert.equal(payload.rag.status, "on");
     const openaiProbe = payload.providers.find((provider) => provider.provider === "openai");
     assert.equal(openaiProbe?.status, "up");
   } finally {
@@ -683,6 +699,73 @@ test("GET /api/ai/health returns enabled status with configured provider and mod
       delete process.env.AI_HEALTH_TIMEOUT_MS;
     } else {
       process.env.AI_HEALTH_TIMEOUT_MS = previousHealthTimeout;
+    }
+  }
+});
+
+test("GET /api/ai/health reports rag processing while ingest job is running", async () => {
+  let releaseProcessing: (() => void) | undefined;
+  const processingGate = new Promise<void>((resolve) => {
+    releaseProcessing = resolve;
+  });
+
+  class SlowAiIngestProcessor implements AiIngestProcessor {
+    public async ingest(_targetPath: string, reportProgress?: import("../ports/ai-ingest-processor.js").AiIngestProgressReporter) {
+      await reportProgress?.({
+        filesProcessed: 0,
+        filesTotal: 1,
+        chunksProcessed: 1,
+        chunksTotal: 4,
+        progressPercent: 25
+      });
+      await processingGate;
+
+      return {
+        filesIndexed: 1,
+        chunksIndexed: 4,
+        skipped: false,
+        skipReason: null
+      };
+    }
+  }
+
+  const previousBackend = process.env.AI_RAG_BACKEND;
+  process.env.AI_RAG_BACKEND = "qdrant";
+
+  const httpServer = await startTestHttpServer({
+    aiIngestProcessor: new SlowAiIngestProcessor()
+  });
+
+  try {
+    const createResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetPath: "/workspace/docs/phpstan" })
+    });
+    assert.equal(createResponse.status, 202);
+
+    const healthResponse = await fetch(`${httpServer.baseUrl}/api/ai/health`);
+    assert.equal(healthResponse.status, 200);
+    const payload = (await healthResponse.json()) as {
+      rag: {
+        backend: string;
+        status: string;
+        progressPercent: number | null;
+      };
+    };
+
+    assert.equal(payload.rag.backend, "qdrant");
+    assert.equal(payload.rag.status, "processing");
+    assert.equal(payload.rag.progressPercent, 25);
+  } finally {
+    if (releaseProcessing) {
+      releaseProcessing();
+    }
+    await httpServer.close();
+    if (previousBackend === undefined) {
+      delete process.env.AI_RAG_BACKEND;
+    } else {
+      process.env.AI_RAG_BACKEND = previousBackend;
     }
   }
 });

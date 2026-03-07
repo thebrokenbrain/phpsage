@@ -7,6 +7,9 @@ interface TopbarProps {
   isLlmAvailable: boolean | null;
   activeAiProvider: string | null;
   activeAiModel: string | null;
+  activeRagBackend: "filesystem" | "qdrant" | null;
+  ragStatus: "on" | "processing" | "off" | null;
+  ragProgressPercent: number | null;
   isRunDetailLoading: boolean;
   viewMode: ViewMode;
   loading: boolean;
@@ -19,6 +22,9 @@ export function Topbar({
   isLlmAvailable,
   activeAiProvider,
   activeAiModel,
+  activeRagBackend,
+  ragStatus,
+  ragProgressPercent,
   isRunDetailLoading,
   viewMode,
   loading,
@@ -43,6 +49,14 @@ export function Topbar({
               </span>
               <span className="metric-detail">
                 {activeAiProvider && activeAiModel ? `${activeAiProvider} · ${activeAiModel}` : "provider/model unknown"}
+              </span>
+              <span className="metric-separator" />
+              <span className="metric-label">RAG</span>
+              <span className={`metric-badge ${ragStatusClassName(ragStatus)}`}>
+                {ragStatusLabel(ragStatus)}
+              </span>
+              <span className="metric-detail">
+                {formatRagDetail(activeRagBackend, ragStatus, ragProgressPercent)}
               </span>
             </>
           )}
@@ -70,4 +84,44 @@ export function Topbar({
       </div>
     </header>
   );
+}
+
+function ragStatusClassName(status: "on" | "processing" | "off" | null): string {
+  if (status === "on") {
+    return "ok";
+  }
+
+  if (status === "processing") {
+    return "processing";
+  }
+
+  return "off";
+}
+
+function ragStatusLabel(status: "on" | "processing" | "off" | null): string {
+  if (status === null) {
+    return "...";
+  }
+
+  if (status === "processing") {
+    return "SYNC";
+  }
+
+  return status.toUpperCase();
+}
+
+function formatRagDetail(
+  backend: "filesystem" | "qdrant" | null,
+  status: "on" | "processing" | "off" | null,
+  progressPercent: number | null
+): string {
+  if (!backend) {
+    return "backend unknown";
+  }
+
+  if (status === "processing") {
+    return `${backend} · ${progressPercent ?? 0}%`;
+  }
+
+  return backend;
 }

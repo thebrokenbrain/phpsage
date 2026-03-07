@@ -53,6 +53,7 @@ interface AiHealthResponse {
   activeModel: string | null;
   timestamp: string;
   providers: AiProviderHealth[];
+  rag: AiRagHealth;
 }
 
 interface AiProviderHealth {
@@ -60,6 +61,14 @@ interface AiProviderHealth {
   url: string;
   status: "up" | "down";
   latencyMs: number;
+  error: string | null;
+}
+
+interface AiRagHealth {
+  backend: "filesystem" | "qdrant";
+  status: "on" | "processing" | "off";
+  progressPercent: number | null;
+  targetPath: string | null;
   error: string | null;
 }
 
@@ -88,7 +97,7 @@ export function createHttpServer(
     }
 
     if (method === "GET" && requestUrl.pathname === "/api/ai/health") {
-      writeJson(response, 200, await getAiHealth());
+      writeJson(response, 200, await getAiHealth(aiIngestService));
       return;
     }
 
@@ -329,9 +338,10 @@ export function createHttpServer(
   });
 }
 
-async function getAiHealth(): Promise<AiHealthResponse> {
+async function getAiHealth(aiIngestService: AiIngestService): Promise<AiHealthResponse> {
   const providerFromEnv = process.env.AI_PROVIDER?.trim();
   const openAiApiKey = process.env.OPENAI_API_KEY?.trim();
+  const ragBackend = (process.env.AI_RAG_BACKEND?.trim().toLowerCase() || "filesystem") as "filesystem" | "qdrant";
   const activeProvider = providerFromEnv && providerFromEnv.length > 0
     ? providerFromEnv
     : (openAiApiKey && openAiApiKey.length > 0 ? "openai" : null);
@@ -366,6 +376,7 @@ async function getAiHealth(): Promise<AiHealthResponse> {
   const isActiveProviderHealthy = activeProvider === null
     ? true
     : providers.some((provider) => provider.provider === activeProvider && provider.status === "up");
+  const rag = await getRagHealth(aiIngestService, ragBackend, providers);
 
   return {
     status: isActiveProviderHealthy ? "ok" : "degraded",
@@ -373,7 +384,66 @@ async function getAiHealth(): Promise<AiHealthResponse> {
     activeProvider,
     activeModel,
     timestamp: new Date().toISOString(),
-    providers
+    providers,
+    rag
+  };
+}
+
+async function getRagHealth(
+  aiIngestService: AiIngestService,
+  ragBackend: "filesystem" | "qdrant",
+  providers: AiProviderHealth[]
+): Promise<AiRagHealth> {
+  const latestJob = await aiIngestService.getLatest();
+
+  if (latestJob && (latestJob.status === "queued" || latestJob.status === "running")) {
+    return {
+      backend: ragBackend,
+      status: "processing",
+      progressPercent: latestJob.progress.progressPercent,
+      targetPath: latestJob.targetPath,
+      error: null
+    };
+  }
+
+  if (latestJob?.status === "completed") {
+    return {
+      backend: ragBackend,
+      status: "on",
+      progressPercent: latestJob.progress.progressPercent,
+      targetPath: latestJob.targetPath,
+      error: latestJob.stats?.skipReason ?? null
+    };
+  }
+
+  if (latestJob?.status === "failed") {
+    return {
+      backend: ragBackend,
+      status: "off",
+      progressPercent: latestJob.progress.progressPercent,
+      targetPath: latestJob.targetPath,
+      error: latestJob.error
+    };
+  }
+
+  if (ragBackend === "filesystem") {
+    const ragDirectoryPath = resolve(process.cwd(), process.env.AI_RAG_DIRECTORY?.trim() || "docs/phpstan");
+    return {
+      backend: ragBackend,
+      status: existsSync(ragDirectoryPath) ? "on" : "off",
+      progressPercent: null,
+      targetPath: ragDirectoryPath,
+      error: existsSync(ragDirectoryPath) ? null : `Missing RAG directory: ${ragDirectoryPath}`
+    };
+  }
+
+  const qdrantProvider = providers.find((provider) => provider.provider === "qdrant");
+  return {
+    backend: ragBackend,
+    status: qdrantProvider?.status === "up" ? "off" : "off",
+    progressPercent: null,
+    targetPath: process.env.AI_INGEST_DEFAULT_TARGET?.trim() || "/workspace/docs/phpstan",
+    error: qdrantProvider?.status === "down" ? qdrantProvider.error : null
   };
 }
 
