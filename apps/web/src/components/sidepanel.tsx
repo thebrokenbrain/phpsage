@@ -44,6 +44,7 @@ export function Sidepanel({
         {runs.map((run) => (
           <div key={run.runId} className={`run-item ${run.runId === selectedRunId ? "active" : ""}`}>
             <button
+              type="button"
               className={`item-button ${run.runId === selectedRunId ? "active" : ""}`}
               onClick={() => onSelectRun(run.runId)}
             >
@@ -59,7 +60,10 @@ export function Sidepanel({
               aria-label={`Delete run ${run.runId.slice(0, 8)}`}
               title="Delete run"
               disabled={deletingRunId === run.runId}
-              onClick={() => {
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
                 if (!window.confirm(`Delete run ${run.runId.slice(0, 8)}?`)) {
                   return;
                 }

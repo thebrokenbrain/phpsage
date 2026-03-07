@@ -141,8 +141,8 @@ Resumen del flujo:
 - `make infra/deps`: instala dependencias de `infra/` dentro del flujo dockerizado para que Pulumi pueda ejecutar el programa TypeScript montado desde el host.
 - `make infra/up`: provisiona o actualiza la infraestructura con Pulumi usando el flujo `docker-only`.
 - `make infra/destroy`: destruye los recursos provisionados del stack `dev` con Pulumi. No elimina el stack de Pulumi Cloud.
-- `make deploy/app`: obtiene la IP pública desde Pulumi, conecta por SSH, sincroniza el código del repositorio público desde GitHub en `/opt/phpsage`, copia el `.env` local y los certificados referenciados desde ese `.env`, y levanta Docker Compose en el servidor.
-- `make deploy/all`: ejecuta ambos pasos de forma secuencial.
+- `make deploy/app`: obtiene la IP pública desde Pulumi, conecta por SSH, sincroniza el código del repositorio público desde GitHub en `/opt/phpsage`, copia el `.env` local y los certificados referenciados desde ese `.env`, y levanta Docker Compose en el servidor. No añade espera previa por defecto.
+- `make deploy/all`: ejecuta ambos pasos de forma secuencial y añade una espera de 30 segundos entre `infra/up` y el despliegue de app para dejar margen a que SSH termine de levantar en una máquina recién provisionada.
 
 Nota importante: usar Docker para Pulumi no elimina la necesidad de instalar dependencias del programa IaC. El binario `pulumi` vive dentro del contenedor, pero el código TypeScript de `infra/` se ejecuta desde el directorio montado del host, así que `node_modules` debe existir en `infra/`.
 

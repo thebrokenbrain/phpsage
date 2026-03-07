@@ -46,4 +46,5 @@ infra/destroy: infra/deps
 deploy/app:
 	bash $(DEPLOY_SCRIPT)
 
-deploy/all: infra/up deploy/app
+deploy/all: infra/up
+	PHPSAGE_DEPLOY_WAIT_SECONDS=30 bash $(DEPLOY_SCRIPT)

@@ -258,6 +258,7 @@ Optional overrides for the automated flow:
 - `PHPSAGE_DEPLOY_PATH`
 - `PHPSAGE_DEPLOY_BRANCH`
 - `PHPSAGE_DEPLOY_REMOTE`
+- `PHPSAGE_DEPLOY_WAIT_SECONDS` (`0` by default for `make deploy/app`; `make deploy/all` sets it to `30` automatically after `infra/up`)
 
 Example:
 

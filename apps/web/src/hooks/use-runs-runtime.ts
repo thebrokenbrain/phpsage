@@ -241,6 +241,12 @@ export function useRunsRuntime({
     setDeletingRunId(runId);
 
     try {
+      const currentRuns = runs;
+      const deletedRunIndex = currentRuns.findIndex((run) => run.runId === runId);
+      const fallbackRunId = deletedRunIndex >= 0
+        ? (currentRuns[deletedRunIndex + 1]?.runId ?? currentRuns[deletedRunIndex - 1]?.runId ?? null)
+        : null;
+
       const response = await fetch(`${apiBase}/api/runs/${runId}`, {
         method: "DELETE"
       });
@@ -250,7 +256,8 @@ export function useRunsRuntime({
 
       setRuns((currentRuns) => currentRuns.filter((run) => run.runId !== runId));
       if (selectedRunId === runId) {
-        setSelectedRunId(null);
+        runDetailRequestRef.current += 1;
+        setSelectedRunId(fallbackRunId);
         setSelectedRun(null);
         setRunFiles([]);
         onRunSelectionCleared?.();
