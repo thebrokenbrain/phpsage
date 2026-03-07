@@ -136,6 +136,10 @@ Para automatizar el flujo operador sin meter el despliegue de código dentro de 
 Comandos disponibles:
 
 ```bash
+make local/up
+make local/reset
+make local/down
+make local/destroy
 make infra/preview
 make infra/up
 make infra/destroy
@@ -145,11 +149,25 @@ make deploy/all
 
 Resumen del flujo:
 
+- `make local/up`: construye y levanta el stack Docker local para desarrollo o validación rápida.
+- `make local/reset`: baja el stack local, limpia contenedores huérfanos y lo vuelve a levantar desde cero.
+- `make local/down`: detiene y elimina los contenedores y redes del proyecto en local, sin borrar volúmenes ni imágenes.
+- `make local/destroy`: elimina contenedores, redes, volúmenes del proyecto y las imágenes construidas localmente por Compose (`--rmi local`).
 - `make infra/deps`: instala dependencias de `infra/` dentro del flujo dockerizado para que Pulumi pueda ejecutar el programa TypeScript montado desde el host.
 - `make infra/up`: provisiona o actualiza la infraestructura con Pulumi usando el flujo `docker-only`.
 - `make infra/destroy`: destruye los recursos provisionados del stack `dev` con Pulumi. No elimina el stack de Pulumi Cloud.
 - `make deploy/app`: obtiene la IP pública desde Pulumi, conecta por SSH, sincroniza el código del repositorio público desde GitHub en `/opt/phpsage`, copia el `.env` local y los certificados referenciados desde ese `.env`, y levanta Docker Compose en el servidor. No añade espera previa por defecto.
 - `make deploy/all`: ejecuta ambos pasos de forma secuencial y añade una espera de 30 segundos entre `infra/up` y el despliegue de app para dejar margen a que SSH termine de levantar en una máquina recién provisionada.
+
+Separación recomendada:
+
+- usa `local/*` para trabajar sólo contra Docker en tu máquina
+- usa `deploy/*` para el host remoto provisionado por Pulumi
+
+Precaución con `local/destroy`:
+
+- borra también los volúmenes Docker del proyecto, incluido el estado local de Qdrant y Ollama
+- si usas Ollama localmente, tendrás que volver a descargar el modelo después
 
 Nota importante: usar Docker para Pulumi no elimina la necesidad de instalar dependencias del programa IaC. El binario `pulumi` vive dentro del contenedor, pero el código TypeScript de `infra/` se ejecuta desde el directorio montado del host, así que `node_modules` debe existir en `infra/`.
 

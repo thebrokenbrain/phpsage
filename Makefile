@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
-.PHONY: help infra/image infra/deps infra/preview infra/up infra/destroy deploy/app deploy/all
+.PHONY: help infra/image infra/deps infra/preview infra/up infra/destroy deploy/app deploy/all local/up local/reset local/down local/destroy
 
 ROOT_DIR := $(CURDIR)
 INFRA_DIR := $(ROOT_DIR)/infra
@@ -25,6 +25,10 @@ help:
 	@printf '  %-16s %s\n' 'infra/preview' 'Run pulumi preview for the dev stack'
 	@printf '  %-16s %s\n' 'infra/up' 'Run pulumi up for the dev stack'
 	@printf '  %-16s %s\n' 'infra/destroy' 'Run pulumi destroy for the dev stack'
+	@printf '  %-16s %s\n' 'local/up' 'Build and start the local Docker stack'
+	@printf '  %-16s %s\n' 'local/reset' 'Recreate the local Docker stack from a clean stopped state'
+	@printf '  %-16s %s\n' 'local/down' 'Stop and remove local project containers and networks'
+	@printf '  %-16s %s\n' 'local/destroy' 'Remove local project containers, networks, volumes, and project-built images'
 	@printf '  %-16s %s\n' 'deploy/app' 'Deploy the application to the provisioned server over SSH'
 	@printf '  %-16s %s\n' 'deploy/all' 'Provision infra and then deploy the application'
 
@@ -42,6 +46,19 @@ infra/up: infra/deps
 
 infra/destroy: infra/deps
 	$(INFRA_DOCKER_RUN) sh -lc 'pulumi login && pulumi stack select dev && pulumi destroy --yes'
+
+local/up:
+	docker compose up --build -d
+
+local/reset:
+	docker compose down --remove-orphans
+	docker compose up --build -d
+
+local/down:
+	docker compose down --remove-orphans
+
+local/destroy:
+	docker compose down --remove-orphans --volumes --rmi local
 
 deploy/app:
 	bash $(DEPLOY_SCRIPT)
