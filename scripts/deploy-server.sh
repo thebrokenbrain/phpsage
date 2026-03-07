@@ -12,6 +12,7 @@ DEPLOY_BRANCH="${PHPSAGE_DEPLOY_BRANCH:-main}"
 DEPLOY_USER="${PHPSAGE_DEPLOY_USER:-root}"
 DEPLOY_PORT="${PHPSAGE_DEPLOY_PORT:-22}"
 DEPLOY_HOST="${PHPSAGE_DEPLOY_HOST:-}"
+DEPLOY_SOURCE="${PHPSAGE_DEPLOY_SOURCE:-git}"
 DEPLOY_REMOTE="${PHPSAGE_DEPLOY_REMOTE:-$(git -C "$ROOT_DIR" remote get-url origin)}"
 
 require_command() {
@@ -69,14 +70,73 @@ ssh_target() {
   printf '%s@%s\n' "$DEPLOY_USER" "$DEPLOY_HOST"
 }
 
+ssh_base_args() {
+  printf '%s\n' "-p" "$DEPLOY_PORT" "-o" "StrictHostKeyChecking=accept-new"
+}
+
+check_ssh_host_key() {
+  local output
+
+  set +e
+  output="$({ ssh $(ssh_base_args) "$(ssh_target)" true; } 2>&1)"
+  local status=$?
+  set -e
+
+  if [[ $status -eq 0 ]]; then
+    return 0
+  fi
+
+  if grep -q "REMOTE HOST IDENTIFICATION HAS CHANGED" <<<"$output"; then
+    echo "SSH host key mismatch detected for $DEPLOY_HOST." >&2
+    echo "This usually means the server was reprovisioned and your local known_hosts entry is stale." >&2
+    echo "Review the new fingerprint, then refresh the entry with:" >&2
+    echo "  ssh-keygen -R '$DEPLOY_HOST'" >&2
+    echo "After that, run make deploy/app again." >&2
+    exit 1
+  fi
+
+  echo "$output" >&2
+  exit $status
+}
+
 ssh_cmd() {
-  ssh -p "$DEPLOY_PORT" -o StrictHostKeyChecking=accept-new "$(ssh_target)" "$@"
+  ssh $(ssh_base_args) "$(ssh_target)" "$@"
 }
 
 scp_file() {
   local source_path="$1"
   local target_path="$2"
   scp -P "$DEPLOY_PORT" "$source_path" "$(ssh_target):$target_path"
+}
+
+detect_remote_compose_command() {
+  ssh_cmd "if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif docker-compose version >/dev/null 2>&1; then printf 'docker-compose'; elif command -v apt-get >/dev/null 2>&1; then apt-get update >/dev/null 2>&1 && (apt-get install -y docker-compose-plugin >/dev/null 2>&1 || apt-get install -y docker-compose >/dev/null 2>&1) && if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif docker-compose version >/dev/null 2>&1; then printf 'docker-compose'; else echo 'Docker Compose installation succeeded but no compose command is available.' >&2; exit 1; fi; else echo 'No Docker Compose command found on remote host.' >&2; exit 1; fi"
+}
+
+stream_worktree_snapshot() {
+  tar \
+    --exclude=.git \
+    --exclude=.env \
+    --exclude=infra/.env \
+    --exclude=node_modules \
+    --exclude=infra/node_modules \
+    --exclude=certificates/*.crt \
+    --exclude=certificates/*.key \
+    --exclude=data/runs \
+    --exclude=data/ai/ingest-jobs \
+    -cf - \
+    -C "$ROOT_DIR" .
+}
+
+sync_remote_repository_from_git() {
+  ssh_cmd "mkdir -p '$DEPLOY_PATH/data' '$DEPLOY_PATH/certificates'"
+  ssh_cmd "cd '$DEPLOY_PATH' && if [ ! -d .git ]; then git init >/dev/null 2>&1 && git remote add origin '$DEPLOY_REMOTE'; fi && git remote set-url origin '$DEPLOY_REMOTE' && git fetch --depth=1 origin '$DEPLOY_BRANCH' && git clean -fdx -e .env -e certificates -e data && git checkout -B '$DEPLOY_BRANCH' 'origin/$DEPLOY_BRANCH' && git reset --hard 'origin/$DEPLOY_BRANCH' && git clean -fdx -e .env -e certificates -e data"
+}
+
+sync_remote_repository_from_local() {
+  ssh_cmd "mkdir -p '$DEPLOY_PATH/data' '$DEPLOY_PATH/certificates'"
+  ssh_cmd "find '$DEPLOY_PATH' -mindepth 1 -maxdepth 1 ! -name '.env' ! -name 'certificates' ! -name 'data' -exec rm -rf {} +"
+  stream_worktree_snapshot | ssh_cmd "tar -xf - -C '$DEPLOY_PATH'"
 }
 
 ensure_iac_image() {
@@ -105,16 +165,23 @@ pulumi_stack_output() {
     -v "$HOME/.ssh":/root/.ssh:ro \
     -v iac_pulumi_home:/root/.pulumi \
     -w /workspace \
-    iac-tooling sh -lc "pulumi login && pulumi stack select dev && pulumi stack output $output_name"
+    iac-tooling sh -lc "pulumi login >/dev/null 2>&1 && pulumi stack select dev >/dev/null 2>&1 && pulumi stack output $output_name" | awk 'NF { line = $0 } END { print line }'
 }
 
 require_command docker
 require_command git
 require_command ssh
 require_command scp
+require_command tar
 
 require_file "$APP_ENV_FILE"
 require_file "$INFRA_ENV_FILE"
+
+if [[ "$DEPLOY_SOURCE" != "git" && "$DEPLOY_SOURCE" != "local" ]]; then
+  echo "Unsupported PHPSAGE_DEPLOY_SOURCE: $DEPLOY_SOURCE" >&2
+  echo "Expected 'git' or 'local'." >&2
+  exit 1
+fi
 
 ensure_iac_image
 ensure_infra_dependencies
@@ -141,15 +208,25 @@ if [[ -n "$TLS_CERT_RAW" && -n "$TLS_KEY_RAW" ]]; then
   require_file "$TLS_KEY_LOCAL"
 fi
 
-DEPLOY_REMOTE="$(normalize_remote_url "$DEPLOY_REMOTE")"
+if [[ "$DEPLOY_SOURCE" == "git" ]]; then
+  DEPLOY_REMOTE="$(normalize_remote_url "$DEPLOY_REMOTE")"
+fi
 
 echo "Deploy host: $DEPLOY_HOST"
 echo "Deploy path: $DEPLOY_PATH"
+echo "Deploy source: $DEPLOY_SOURCE"
+
+check_ssh_host_key
+
+REMOTE_COMPOSE_COMMAND="$(detect_remote_compose_command)"
 
 ssh_cmd "mkdir -p '$DEPLOY_PATH'"
 
-ssh_cmd "if [ ! -d '$DEPLOY_PATH/.git' ]; then git clone '$DEPLOY_REMOTE' '$DEPLOY_PATH'; fi"
-ssh_cmd "cd '$DEPLOY_PATH' && git fetch --all --prune && git checkout '$DEPLOY_BRANCH' && git pull --ff-only origin '$DEPLOY_BRANCH'"
+if [[ "$DEPLOY_SOURCE" == "git" ]]; then
+  sync_remote_repository_from_git
+else
+  sync_remote_repository_from_local
+fi
 
 scp_file "$APP_ENV_FILE" "$DEPLOY_PATH/.env"
 
@@ -160,6 +237,10 @@ if [[ -n "${TLS_CERT_RAW:-}" && -n "${TLS_KEY_RAW:-}" ]]; then
   ssh_cmd "chmod 644 '$TLS_CERT_REMOTE' && chmod 600 '$TLS_KEY_REMOTE'"
 fi
 
-ssh_cmd "cd '$DEPLOY_PATH' && docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d"
+if [[ "$REMOTE_COMPOSE_COMMAND" == "docker-compose" ]]; then
+  ssh_cmd "cd '$DEPLOY_PATH' && docker-compose down --remove-orphans || true"
+fi
+
+ssh_cmd "cd '$DEPLOY_PATH' && $REMOTE_COMPOSE_COMMAND -f docker-compose.yml -f docker-compose.server.yml up --build -d"
 
 echo "Deployment finished on $(ssh_target)"

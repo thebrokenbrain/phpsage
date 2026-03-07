@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
-.PHONY: help infra/image infra/deps infra/preview infra/up deploy/app deploy/all
+.PHONY: help infra/image infra/deps infra/preview infra/up infra/destroy deploy/app deploy/all
 
 ROOT_DIR := $(CURDIR)
 INFRA_DIR := $(ROOT_DIR)/infra
@@ -24,6 +24,7 @@ help:
 	@printf '  %-16s %s\n' 'infra/deps' 'Install infra dependencies inside the dockerized workflow'
 	@printf '  %-16s %s\n' 'infra/preview' 'Run pulumi preview for the dev stack'
 	@printf '  %-16s %s\n' 'infra/up' 'Run pulumi up for the dev stack'
+	@printf '  %-16s %s\n' 'infra/destroy' 'Run pulumi destroy for the dev stack'
 	@printf '  %-16s %s\n' 'deploy/app' 'Deploy the application to the provisioned server over SSH'
 	@printf '  %-16s %s\n' 'deploy/all' 'Provision infra and then deploy the application'
 
@@ -38,6 +39,9 @@ infra/preview: infra/deps
 
 infra/up: infra/deps
 	$(INFRA_DOCKER_RUN) sh -lc 'pulumi login && pulumi stack select dev || pulumi stack init dev && pulumi up --yes'
+
+infra/destroy: infra/deps
+	$(INFRA_DOCKER_RUN) sh -lc 'pulumi login && pulumi stack select dev && pulumi destroy --yes'
 
 deploy/app:
 	bash $(DEPLOY_SCRIPT)

@@ -38,7 +38,7 @@ Application deployment happens inside the server:
 
 The repository also includes an operator-friendly automation path:
 
-- `make deploy/app` copies the local `.env` and referenced TLS files to the server, then runs Docker Compose remotely over SSH
+- `make deploy/app` pulls the application code from the public GitHub repository on the server, copies the local `.env` and referenced TLS files to the server, then runs Docker Compose remotely over SSH
 - `make deploy/all` runs `pulumi up` first and then deploys the application
 
 ### GitHub Actions
@@ -233,10 +233,11 @@ What `make deploy/app` does:
 1. ensures the local `iac-tooling` image exists
 2. reads the target host from the Pulumi stack output `publicIpv4`
 3. connects through SSH as `root` by default
-4. clones or updates the repository in `/opt/phpsage`
-5. copies the local `.env` to `/opt/phpsage/.env`
-6. copies the TLS certificate and key referenced by `.env` when those variables are present
-7. runs `docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d`
+4. fetches the selected branch from the configured Git remote inside `/opt/phpsage`
+5. resets the remote checkout to that branch while preserving `.env`, `certificates/`, and `data/`
+6. copies the local `.env` to `/opt/phpsage/.env`
+7. copies the TLS certificate and key referenced by `.env` when those variables are present
+8. runs `docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d`
 
 Why `make infra/deps` exists:
 
@@ -250,6 +251,7 @@ Optional overrides for the automated flow:
 
 - `PHPSAGE_ENV_FILE`
 - `PHPSAGE_INFRA_ENV_FILE`
+- `PHPSAGE_DEPLOY_SOURCE` (`git` by default, `local` for the current working tree)
 - `PHPSAGE_DEPLOY_HOST`
 - `PHPSAGE_DEPLOY_USER`
 - `PHPSAGE_DEPLOY_PORT`
@@ -261,6 +263,12 @@ Example:
 
 ```bash
 PHPSAGE_DEPLOY_USER=root make deploy/app
+```
+
+If you need to deploy unpushed local changes temporarily, you can switch to the local mode explicitly:
+
+```bash
+PHPSAGE_DEPLOY_SOURCE=local make deploy/app
 ```
 
 The manual flow below remains valid if you want explicit control over each step.

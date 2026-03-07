@@ -131,6 +131,7 @@ Comandos disponibles:
 ```bash
 make infra/preview
 make infra/up
+make infra/destroy
 make deploy/app
 make deploy/all
 ```
@@ -139,7 +140,8 @@ Resumen del flujo:
 
 - `make infra/deps`: instala dependencias de `infra/` dentro del flujo dockerizado para que Pulumi pueda ejecutar el programa TypeScript montado desde el host.
 - `make infra/up`: provisiona o actualiza la infraestructura con Pulumi usando el flujo `docker-only`.
-- `make deploy/app`: obtiene la IP pública desde Pulumi, conecta por SSH, clona o actualiza el repositorio en `/opt/phpsage`, copia el `.env` local y los certificados referenciados desde ese `.env`, y levanta Docker Compose en el servidor.
+- `make infra/destroy`: destruye los recursos provisionados del stack `dev` con Pulumi. No elimina el stack de Pulumi Cloud.
+- `make deploy/app`: obtiene la IP pública desde Pulumi, conecta por SSH, sincroniza el código del repositorio público desde GitHub en `/opt/phpsage`, copia el `.env` local y los certificados referenciados desde ese `.env`, y levanta Docker Compose en el servidor.
 - `make deploy/all`: ejecuta ambos pasos de forma secuencial.
 
 Nota importante: usar Docker para Pulumi no elimina la necesidad de instalar dependencias del programa IaC. El binario `pulumi` vive dentro del contenedor, pero el código TypeScript de `infra/` se ejecuta desde el directorio montado del host, así que `node_modules` debe existir en `infra/`.
@@ -149,6 +151,7 @@ Requisitos para `make deploy/app`:
 - `infra/.env` configurado
 - `.env` local listo para copiar al servidor
 - acceso SSH al host provisionado
+- repositorio público accesible desde el servidor o `PHPSAGE_DEPLOY_SOURCE=local` si quieres forzar el árbol local actual
 - certificados en `certificates/` si usas Cloudflare `Full (strict)`
 
 ### Infraestructura como código
