@@ -1,212 +1,294 @@
-# PHPSage
+<h1 align="center">
+  <img src="assets/readme/logo/phpsage-logo.png" alt="PHPSage logo" />
+</h1>
 
-PHPSage es una plataforma Docker-first para ejecutar análisis de PHPStan, persistir historial de runs y navegar resultados en una UI web en vivo, con soporte opcional de IA/RAG para explicar issues y sugerir fixes con guardarraíles.
+PHPSage es una herramienta web orientada al desarrollador PHP que parte de la salida de PHPStan y la enriquece con contexto operativo, navegación sobre el código y asistencia de IA para comprender mejor cada issue y evaluar posibles soluciones.
 
-## a) Descripción general del proyecto
+![Vista general de PHPSage](assets/readme/readme/images/image-01.png)
 
-PHPSage está orientado a un flujo end-to-end de análisis estático PHP:
+## Índice de contenido
 
-- CLI para lanzar análisis y abrir la experiencia de aplicación.
-- Server API para gestionar el ciclo de vida de runs (`start/log/finish`), consultar historial y exponer endpoints de IA.
-- Web UI para explorar runs, logs, issues, archivos y código fuente.
-- Capa IA/RAG opcional con proveedores OpenAI u Ollama, incluyendo sugerencias de patch seguras.
+- [a. Descripción general del proyecto](#a-descripción-general-del-proyecto)
+- [b. Stack tecnológico utilizado](#b-stack-tecnológico-utilizado)
+- [c. Instalación y ejecución](#c-instalación-y-ejecución)
+  - [Demo](#demo)
+  - [Local](#local)
+    - [Requisitos](#requisitos)
+    - [Arranque rápido](#arranque-rápido)
+    - [Comandos locales útiles](#comandos-locales-útiles)
+    - [Ejecutar un análisis](#ejecutar-un-análisis)
+  - [Remoto](#remoto)
+    - [Provisionar infraestructura](#provisionar-infraestructura)
+    - [Desplegar la aplicación en el cloud de Hetzner](#desplegar-la-aplicación-en-el-cloud-de-hetzner)
+    - [Requisitos mínimos para remoto](#requisitos-mínimos-para-remoto)
+    - [Ejecución remota manual](#ejecución-remota-manual)
+    - [Cómo probarlo en remoto](#cómo-probarlo-en-remoto)
+  - [Variables de configuración](#variables-de-configuración)
+- [d. Estructura del proyecto](#d-estructura-del-proyecto)
+- [e. Funcionalidades principales](#e-funcionalidades-principales)
+- [f. Comandos más habituales](#f-comandos-más-habituales)
+- [g. Documentación complementaria](#g-documentación-complementaria)
 
-Comandos principales del CLI:
+## a. Descripción general del proyecto
+
+PHPSage está diseñado para convertir la salida estática de PHPStan en una experiencia de análisis más útil, navegable y accionable para el desarrollador PHP.
+
+Para ello, el proyecto agrupa en un mismo monorepo las piezas necesarias para trabajar con análisis estático de PHP de forma operativa:
+
+- una CLI para lanzar análisis y tareas de ingest de RAG
+- una API que gestiona el ciclo de vida de los runs y la integración con IA
+- una UI web para navegar logs, issues, archivos y código fuente
+- un paquete compartido con contratos y utilidades comunes
+- una capa de infraestructura como código para el entorno remoto
+
+El flujo principal es este:
+
+1. Se levanta la plataforma en local o en remoto con Docker Compose.
+2. Se ejecuta un análisis desde la CLI.
+3. El server persiste el run y expone logs, resultados y ficheros asociados.
+4. La UI permite inspeccionar el run y, si la IA está activa, pedir explicaciones o sugerencias de fix.
+
+Comandos principales del producto:
 
 - `phpsage app`
 - `phpsage phpstan analyse <path>`
 - `phpsage rag ingest`
 
-## b) Stack tecnológico utilizado
+## b. Stack tecnológico utilizado
 
-- Monorepo con npm workspaces.
-- TypeScript en apps y paquete compartido.
-- Node.js para CLI, server y tooling.
-- React + Vite + TypeScript en frontend.
-- Docker + Docker Compose para ejecución reproducible.
-- Qdrant (opcional) y backend filesystem para RAG.
-- Pulumi + TypeScript en `infra/` para infraestructura como código.
+### Aplicación
 
-## c) Instalación y ejecución
+- Node.js
+- TypeScript
+- npm workspaces
+- React
+- Vite
 
-### Programas necesarios
+### Backend y herramientas
 
-Para usar PHPSage en modo recomendado (Docker-first):
+- API HTTP en Node.js
+- CLI propia para análisis y tareas de RAG
+- paquete compartido para contratos, parsing y utilidades
 
-- Docker Desktop (incluye Docker Engine).
-- Docker Compose v2 (`docker compose`).
+### IA y RAG
 
-Opcional para desarrollo local fuera de Docker:
+- Ollama como proveedor local opcional
+- OpenAI como proveedor remoto opcional
+- Qdrant como backend vectorial opcional
+- filesystem como backend simple de RAG sin vector database
 
-- Node.js 22+ y npm.
+### Infraestructura y operación
 
-### Pasos de instalación
+- Docker
+- Docker Compose
+- Makefile para flujos operativos
+- Pulumi + TypeScript en `infra/`
+- Hetzner Cloud para servidor
+- Cloudflare para DNS y acceso público
+- Traefik para entrada HTTPS en remoto
 
-1. Clonar el repositorio y entrar en la carpeta del proyecto.
-2. Crear archivo de entorno a partir del ejemplo.
+## c. Instalación y ejecución
 
-```bash
-cp .env.example .env
-```
+## Demo
 
-Si prefieres ir directo al flujo Docker local, `make local/up` y `make local/reset` crean `.env` automáticamente a partir de `.env.example` cuando aún no existe.
+PHPSage dispone de una instancia desplegada y accesible para revisión:
 
-Si también vas a desplegar infraestructura, crea además el archivo de entorno de `infra/`:
+- `https://phpsage.nopingnogain.com`
 
-```bash
-cp infra/.env.example infra/.env
-```
+Ese entorno debe considerarse la demostración principal del proyecto. No es una URL prevista para el futuro ni un entorno teórico: es una web ya publicada, accesible por HTTPS y operativa sobre el cloud de Hetzner.
 
-### Configuración de `.env`
+Para un profesor o revisor, ese es el punto de entrada más directo para comprobar que el sistema está efectivamente desplegado y funcionando fuera del entorno local.
 
-El archivo `.env` define proveedor de IA y parámetros de RAG. Valores importantes:
+Además, está conectado con OpenAI para validar el comportamiento real de la capa IA en un entorno externo.
 
-- `AI_PROVIDER=ollama|openai`
-- `OLLAMA_BASE_URL`, `OLLAMA_MODEL`
-- `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `OPENAI_MODEL`
-- `AI_RAG_BACKEND=filesystem|qdrant`
-- `QDRANT_URL`, `QDRANT_COLLECTION`
-- `AI_INGEST_DEFAULT_TARGET`, `AI_RAG_DIRECTORY`, `AI_RAG_TOP_K`
+El acceso a esa URL está protegido con Cloudflare Zero Trust. Para entrar se solicita autenticación por correo y se envía un código OTP de un solo uso al email autorizado.
 
-Notas:
+En el estado actual, el acceso se realiza con el correo `mouredev@gmail.com`, que recibe el código de verificación necesario para completar la entrada.
 
-- Docker Compose lee `.env` por defecto.
-- Puedes usar otro archivo con `PHPSAGE_ENV_FILE=<ruta>`.
+Se ha protegido de esta forma porque esa instancia está conectada a una cuenta de OpenAI con crédito disponible para probar un modelo grande. Zero Trust evita dejar expuesto públicamente un entorno que consume recursos reales de proveedor.
 
-### Comandos precisos de ejecución
+## Local
 
-Levantar plataforma completa:
+### Requisitos
 
-```bash
-docker compose up --build -d
-```
+- Docker Desktop
+- Docker Compose v2
+- Make
 
-El stack por defecto levanta la API, la UI, Swagger, Qdrant y Ollama. El contenedor `phpsage-cli` queda como herramienta bajo demanda y no entra en `up` por defecto.
+Para levantar PHPSage en local no necesitas instalar Node.js ni dependencias del proyecto en el host.
 
-En local, `ollama` ya no bloquea el arranque del resto del stack mientras termina de descargar el modelo. Esto evita falsos fallos de `docker compose up` en máquinas donde la primera descarga tarda más de lo esperado.
+### Arranque rápido
 
-Opcional (recomendado si vas a usar `AI_PROVIDER=ollama`): precargar el modelo localmente antes de arrancar todo.
+Desde la raíz del proyecto:
 
 ```bash
-docker compose up -d ollama
-docker compose exec ollama ollama pull "${OLLAMA_MODEL:-llama3.2}"
-docker compose exec ollama ollama list
+make local/up
 ```
 
-Si estás usando `AI_PROVIDER=openai`, no necesitas esperar a que `ollama` termine esa precarga para levantar la UI y la API local.
+Ese comando:
 
-El modelo queda persistido en el volumen Docker `phpsage_ollama-data`, por lo que no se descarga de nuevo en cada reinicio.
+- crea `.env` a partir de `.env.example` si todavía no existe
+- construye las imágenes necesarias
+- arranca el stack local en segundo plano
 
-Servicios principales:
+Servicios disponibles en local:
 
 - UI: `http://localhost:5173`
 - API: `http://localhost:8080`
-- Swagger: `http://localhost:8081`
+- Swagger UI: `http://localhost:8081`
+- Qdrant: `http://localhost:6333`
+- Ollama: `http://localhost:11434`
 
-Notas sobre routing en desarrollo y despliegue:
-
-- La Web UI usa mismo origen por defecto para `/api` y `/healthz`.
-- En local con Docker, Vite proxya esas rutas hacia `phpsage-server:8080`.
-- En desarrollo local fuera de Docker, el proxy por defecto apunta a `http://127.0.0.1:8080`.
-- En servidor detrás de Traefik, la UI consume la API a través del mismo host público.
-
-Verificaciones rápidas:
-
-```bash
-curl http://localhost:8080/healthz
-curl http://localhost:8080/api/ai/health
-```
-
-Ejecutar un análisis desde contenedor CLI:
-
-```bash
-docker compose run --rm --build phpsage-cli phpsage phpstan analyse /workspace/examples/php-sample --docker --no-open
-```
-
-Persistencia de runs:
-
-- El historial se guarda en `data/runs/` del host.
-- Los archivos `*.json` de runs están ignorados por git (`.gitignore`).
-
-Scripts útiles de smoke/reindex:
-
-```bash
-./scripts/smoke-no-ai.sh
-./scripts/smoke-ollama.sh
-./scripts/smoke-openai.sh
-./scripts/reindex-rag.sh --wait
-```
-
-### Deploy automatizado al servidor
-
-Para automatizar el flujo operador sin meter el despliegue de código dentro de Pulumi, el repositorio incluye un `Makefile` y un script de despliegue por SSH.
-
-Comandos disponibles:
+### Comandos locales útiles
 
 ```bash
 make local/up
 make local/reset
 make local/down
 make local/destroy
-make infra/preview
+```
+
+Uso recomendado:
+
+- `make local/up`: primer arranque o volver a levantar el stack
+- `make local/reset`: reiniciar el stack desde un estado limpio sin tocar volúmenes
+- `make local/down`: parar los contenedores
+- `make local/destroy`: borrar contenedores, redes, volúmenes e imágenes construidas por Compose
+
+### Ejecutar un análisis
+
+Con el stack levantado, puedes lanzar un análisis desde la CLI en contenedor:
+
+```bash
+docker compose run --rm --build phpsage-cli phpsage phpstan analyse /workspace/examples/php-sample --docker --no-open
+```
+
+Comprobaciones rápidas:
+
+```bash
+curl http://localhost:8080/healthz
+curl http://localhost:8080/api/ai/health
+```
+
+## Remoto
+
+El flujo remoto está separado en dos fases: provisionar infraestructura y desplegar la aplicación en el cloud de Hetzner.
+
+### Provisionar infraestructura
+
+La infraestructura vive en `infra/` y se gestiona con Pulumi. Desde la raíz del repositorio, el entrypoint operativo es:
+
+```bash
 make infra/up
+```
+
+También están disponibles:
+
+```bash
+make infra/preview
 make infra/destroy
+```
+
+Ese flujo usa un contenedor de tooling y el archivo `infra/.env`.
+
+### Desplegar la aplicación en el cloud de Hetzner
+
+Una vez provisionado el host, el despliegue se hace por SSH:
+
+```bash
 make deploy/app
+```
+
+Si quieres encadenar el provisionado y el despliegue:
+
+```bash
 make deploy/all
 ```
 
-Resumen del flujo:
+Qué hace el despliegue:
 
-- `make local/up`: construye y levanta el stack Docker local para desarrollo o validación rápida.
-- `make local/reset`: baja el stack local, limpia contenedores huérfanos y lo vuelve a levantar desde cero.
-- `make local/down`: detiene y elimina los contenedores y redes del proyecto en local, sin borrar volúmenes ni imágenes.
-- `make local/destroy`: elimina contenedores, redes, volúmenes del proyecto y las imágenes construidas localmente por Compose (`--rmi local`).
-- `make infra/deps`: instala dependencias de `infra/` dentro del flujo dockerizado para que Pulumi pueda ejecutar el programa TypeScript montado desde el host.
-- `make infra/up`: provisiona o actualiza la infraestructura con Pulumi usando el flujo `docker-only`.
-- `make infra/destroy`: destruye los recursos provisionados del stack `dev` con Pulumi. No elimina el stack de Pulumi Cloud.
-- `make deploy/app`: obtiene la IP pública desde Pulumi, conecta por SSH, sincroniza el código del repositorio público desde GitHub en `/opt/phpsage`, copia el `.env` local y los certificados referenciados desde ese `.env`, y levanta Docker Compose en el servidor. No añade espera previa por defecto.
-- `make deploy/all`: ejecuta ambos pasos de forma secuencial, añade una espera inicial de 30 segundos y después deja que el script de despliegue espere activamente a que `cloud-init` termine en la máquina recién provisionada antes de continuar.
+- obtiene la IP pública desde Pulumi si no la indicas manualmente
+- conecta por SSH al servidor
+- sincroniza el código en `/opt/phpsage`
+- copia el `.env` local al servidor
+- copia certificados TLS si están referenciados en `.env`
+- levanta Docker Compose remoto con la configuración de servidor
 
-Separación recomendada:
+### Requisitos mínimos para remoto
 
-- usa `local/*` para trabajar sólo contra Docker en tu máquina
-- usa `deploy/*` para el host remoto provisionado por Pulumi
+- `infra/.env` configurado con credenciales de Pulumi, Hetzner y Cloudflare
+- `.env` de la aplicación configurado en la raíz del proyecto
+- secretos y credenciales de proveedor correctamente configurados antes de arrancar o probar la capa IA
+- acceso SSH válido al servidor
+- repositorio accesible desde el host remoto o configuración explícita para desplegar desde el árbol local
 
-Precaución con `local/destroy`:
+En la práctica, si quieres que el entorno remoto funcione con OpenAI, debes tener definidos como mínimo:
 
-- borra también los volúmenes Docker del proyecto, incluido el estado local de Qdrant y Ollama
-- si usas Ollama localmente, tendrás que volver a descargar el modelo después
+- `AI_PROVIDER=openai`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- cualquier otra variable de red o endpoint que aplique a tu proveedor
 
-Nota importante: usar Docker para Pulumi no elimina la necesidad de instalar dependencias del programa IaC. El binario `pulumi` vive dentro del contenedor, pero el código TypeScript de `infra/` se ejecuta desde el directorio montado del host, así que `node_modules` debe existir en `infra/`.
+### Ejecución remota manual
 
-Requisitos para `make deploy/app`:
+Si necesitas operar manualmente en el servidor, la combinación esperada es:
 
-- `infra/.env` configurado
-- `.env` local listo para copiar al servidor
-- acceso SSH al host provisionado
-- repositorio público accesible desde el servidor o `PHPSAGE_DEPLOY_SOURCE=local` si quieres forzar el árbol local actual
-- certificados en `certificates/` si usas Cloudflare `Full (strict)`
+```bash
+docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d
+```
 
-Comportamiento de robustez del deploy:
+En remoto, Traefik expone la aplicación por `80` y `443` y enruta web, API y documentación bajo el mismo host.
 
-- si el host remoto acaba de ser reprovisionado y mantiene la misma IP, el script detecta el cambio de huella SSH
-- cuando `PHPSAGE_DEPLOY_HOST` es una IP literal, elimina automáticamente la entrada obsoleta de `known_hosts` y reintenta una vez
-- además espera a que `cloud-init` termine antes de intentar resolver Docker Compose en el servidor
+### Cómo probarlo en remoto
 
-### Infraestructura como código
+El sitio ideal para validar el comportamiento desplegado es:
 
-La infraestructura de PHPSage forma parte del monorepo en `infra/` y se gestiona con Pulumi en un flujo `docker-only`.
+- `https://phpsage.nopingnogain.com`
 
-Desde ese directorio se provisionan:
+Ese entorno debe tomarse como referencia para comprobar:
 
-- servidor Hetzner
-- firewall base
-- DNS en Cloudflare
-- Zero Trust opcional
+- que la UI carga correctamente en HTTPS
+- que el acceso queda filtrado por Cloudflare Zero Trust mediante OTP por correo
+- que los runs siguen siendo navegables
+- que la API responde bajo el mismo host
+- que la integración con OpenAI está operativa
 
-La guía operativa completa está en `infra/README.md`.
+Si el objetivo es demostrar el estado real del proyecto sin levantar nada en local, esa es la URL que conviene usar primero.
 
-## d) Estructura del proyecto
+## Variables de configuración
+
+El proyecto puede arrancar en local solo con el contenido base de `.env.example`. Estas son las variables mas relevantes:
+
+| Variable | Uso | Valor habitual |
+| --- | --- | --- |
+| `AI_PROVIDER` | Selecciona el proveedor de IA | `ollama` u `openai` |
+| `OLLAMA_BASE_URL` | URL de Ollama | `http://ollama:11434` |
+| `OLLAMA_MODEL` | Modelo por defecto en Ollama | `llama3.2` |
+| `OPENAI_BASE_URL` | Endpoint base para OpenAI compatible | `https://api.openai.com` |
+| `OPENAI_API_KEY` | Credencial para OpenAI | obligatorio si usas OpenAI |
+| `OPENAI_MODEL` | Modelo usado con OpenAI | `gpt-4o-mini` |
+| `AI_HEALTH_TIMEOUT_MS` | Timeout de probes de salud IA | `5000` |
+| `AI_DEBUG_LLM_IO` | Expone payloads LLM en respuestas de debug | `true` o `false` |
+| `AI_RAG_BACKEND` | Backend de recuperación de contexto | `filesystem` o `qdrant` |
+| `QDRANT_URL` | URL de Qdrant | `http://qdrant:6333` |
+| `QDRANT_COLLECTION` | Coleccion vectorial | `phpsage-rag` |
+| `AI_INGEST_DEFAULT_TARGET` | Ruta por defecto para ingest | `/workspace/docs/phpstan` |
+| `AI_RAG_DIRECTORY` | Directorio documental en modo filesystem | `docs/phpstan` |
+| `AI_RAG_TOP_K` | Número de fragmentos recuperados | `3` |
+| `AI_RAG_AUTO_INGEST_ON_BOOT` | Ejecuta ingest automática al arrancar | `true` o `false` |
+| `PHPSAGE_PUBLIC_HOST` | Dominio público en remoto | dominio final |
+| `PHPSAGE_TLS_CERT_PATH` | Certificado TLS usado por Traefik | ruta del certificado |
+| `PHPSAGE_TLS_KEY_PATH` | Clave privada TLS usada por Traefik | ruta de la clave |
+| `PHPSAGE_DEPLOY_SOURCE` | Fuente del despliegue remoto | `git` o `local` |
+
+Notas útiles:
+
+- si vas a trabajar solo en local, normalmente basta con dejar `AI_PROVIDER=ollama`
+- si usas OpenAI, cambia `AI_PROVIDER=openai` y define al menos `OPENAI_API_KEY` y `OPENAI_MODEL`
+- las variables sensibles y secretos nunca deben quedar sin configurar en remoto si quieres probar IA real
+- para despliegue HTTPS con Cloudflare Full strict, necesitas `PHPSAGE_TLS_CERT_PATH` y `PHPSAGE_TLS_KEY_PATH`
+
+## d. Estructura del proyecto
 
 ```text
 phpsage/
@@ -214,86 +296,70 @@ phpsage/
     cli/
     server/
     web/
+  certificates/
+  data/
+    ai/
+    runs/
+  deploy/
+    traefik/
+  docs/
+  examples/
   infra/
   packages/
     shared/
-  docs/
-    phpstan/
-  examples/
-  assets/
-    logo/
-  data/
-    runs/
   scripts/
   .env.example
   docker-compose.yml
+  docker-compose.server.yml
   Dockerfile
+  Makefile
   package.json
 ```
 
-Descripción por directorio:
+Descripción de carpetas y ficheros principales:
 
-- `apps/cli`: interfaz de línea de comandos (`app`, `phpstan analyse`, `rag ingest`).
-- `apps/server`: API HTTP y orquestación del ciclo de vida de runs + endpoints IA/RAG.
-- `apps/web`: interfaz React/Vite con Dashboard, Insights e Issue navigation.
-- `infra`: proyecto Pulumi para Hetzner, Cloudflare y bootstrap base del servidor.
-- `packages/shared`: contratos/tipos compartidos y utilidades puras (por ejemplo parser de salida PHPStan).
-- `docs`: documentación funcional y técnica (`API.md`, `UX.md`, `openapi.yaml`).
-- `examples`: proyectos PHP de ejemplo para pruebas y smoke.
-- `docs/phpstan`: corpus markdown para ingest y recuperación de contexto.
-- `assets/logo`: recursos de marca.
-- `data/runs`: persistencia local de runs en JSON.
-- `scripts`: automatizaciones de smoke, reindex y wrappers de utilidad.
+- `apps/cli/`: CLI de PHPSage. Desde aquí se lanzan análisis, modo app e ingest de RAG.
+- `apps/server/`: API HTTP y coordinación del ciclo de vida de runs, lectura de source y endpoints de IA.
+- `apps/web/`: interfaz React/Vite para inspeccionar runs, issues, archivos y resultados de IA.
+- `packages/shared/`: tipos compartidos, contratos serializables, parser de salida y utilidades comunes.
+- `infra/`: infraestructura como código con Pulumi para Hetzner, Cloudflare, firewall, DNS y bootstrap base.
+- `deploy/traefik/`: configuración de Traefik usada en despliegue remoto.
+- `docs/`: documentación funcional, API, UX y guías operativas.
+- `examples/`: proyectos PHP de ejemplo para smoke tests y validaciones manuales.
+- `scripts/`: automatizaciones auxiliares, smokes, reindexado y despliegue.
+- `data/runs/`: persistencia local de runs y resultados de análisis.
+- `data/ai/`: datos auxiliares relacionados con ingest y almacenamiento IA.
+- `certificates/`: certificados TLS locales para despliegues remotos con HTTPS. Debe mantenerse fuera de git.
+- `.env.example`: plantilla base de configuración de la aplicación.
+- `docker-compose.yml`: stack local principal para desarrollo y validación.
+- `docker-compose.server.yml`: override para exponer la aplicacion en remoto mediante Traefik.
+- `Makefile`: entrypoints operativos para local, infraestructura y despliegue.
 
-## e) Funcionalidades principales
+## e. Funcionalidades principales
 
-### CLI
+- Ejecución de análisis PHPStan desde CLI.
+- Persistencia del historial de runs en JSON.
+- Streaming de logs y estado del run en vivo.
+- UI web para navegar runs, issues, archivos y código fuente.
+- API para listar runs, consultar detalle, leer source y explorar ficheros asociados.
+- Capa IA opcional para explicar issues y proponer fixes.
+- RAG con backend filesystem o Qdrant.
+- Ingest de documentación para enriquecer el contexto de IA.
+- Despliegue remoto automatizado sobre infraestructura provisionada con Pulumi.
 
-- `phpsage app`: arranca experiencia de aplicación (app-first).
-- `phpsage phpstan analyse <path>` con:
-  - sincronización de lifecycle (`start/log/finish`)
-  - modo watch (`--watch`) y ajustes (`--watch-interval`, `--watch-debounce`, `--watch-max-cycles`, etc.)
-  - timeout (`--timeout-ms`)
-  - resumen JSON (`--json-summary`)
-- `phpsage rag ingest` con:
-  - ejecución y espera (`--wait`)
-  - listado de jobs (`--list`)
-  - filtros por estado (`--status`) y límite (`--limit`)
+## f. Comandos más habituales
 
-### API
+```bash
+make local/up
+docker compose run --rm --build phpsage-cli phpsage phpstan analyse /workspace/examples/php-sample --docker --no-open
+make infra/up
+make deploy/app
+```
 
-- Salud:
-  - `GET /healthz`
-  - `GET /api/ai/health`
-- Runs:
-  - `GET /api/runs`
-  - `GET /api/runs/:runId`
-  - `DELETE /api/runs/:runId`
-  - `POST /api/runs/start`
-  - `POST /api/runs/:runId/log`
-  - `POST /api/runs/:runId/finish`
-  - `GET /api/runs/:runId/source?file=...`
-  - `GET /api/runs/:runId/files`
-- IA/RAG:
-  - `POST /api/ai/ingest`
-  - `GET /api/ai/ingest`
-  - `GET /api/ai/ingest/latest`
-  - `GET /api/ai/ingest/:jobId`
-  - `POST /api/ai/explain`
-  - `POST /api/ai/suggest-fix`
+## g. Documentación complementaria
 
-### Web UI
-
-- `Dashboard` con control de ejecuciones y estado en vivo.
-- `Insights` con KPIs y distribución de issues.
-- `Issue` con navegación contextual de issue, archivo y línea.
-- Side panel con runs, borrado de runs y árbol de ficheros.
-- AI Assist para explain/suggest-fix sobre issue activo, con deduplicación defensiva de recomendaciones ya presentes en el texto principal.
-
-## Referencias de documentación
-
-- Contrato API (manual): `docs/API.md`
-- Contrato OpenAPI: `docs/openapi.yaml`
-- Contrato UX: `docs/UX.md`
-- Infraestructura: `infra/README.md`
-- Despliegue de la aplicacion: `docs/DEPLOY.md`
+- `docs/API.md`: contrato funcional de la API.
+- `docs/openapi.yaml`: especificación OpenAPI.
+- `docs/UX.md`: comportamiento y decisiones principales de la interfaz.
+- `docs/DEPLOY.md`: detalles del despliegue remoto.
+- `infra/README.md`: operativa de la infraestructura como código.
