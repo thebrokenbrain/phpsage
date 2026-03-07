@@ -13,11 +13,11 @@ COPY apps ./apps
 COPY packages ./packages
 COPY docs ./docs
 COPY examples ./examples
-COPY data ./data
 COPY scripts/phpsage.sh /usr/local/bin/phpsage
 COPY scripts/phpstan.sh /usr/local/bin/phpstan
 
 RUN npm ci
+RUN mkdir -p /workspace/data/runs /workspace/data/ai/ingest-jobs
 RUN chmod +x /usr/local/bin/phpsage
 RUN chmod +x /usr/local/bin/phpstan /usr/local/bin/phpstan.phar
 
