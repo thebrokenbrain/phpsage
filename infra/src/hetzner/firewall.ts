@@ -26,25 +26,7 @@ export function createFirewall(args: FirewallArgs, opts?: pulumi.CustomResourceO
         protocol: "tcp",
         port: "443",
         sourceIps: ["0.0.0.0/0", "::/0"],
-      },
-      {
-        direction: "in",
-        protocol: "tcp",
-        port: "5173",
-        sourceIps: ["0.0.0.0/0", "::/0"],
-      },
-      {
-        direction: "in",
-        protocol: "tcp",
-        port: "8080",
-        sourceIps: ["0.0.0.0/0", "::/0"],
-      },
-      {
-        direction: "in",
-        protocol: "tcp",
-        port: "8081",
-        sourceIps: ["0.0.0.0/0", "::/0"],
-      },
+      }
     ],
   }, opts);
 }

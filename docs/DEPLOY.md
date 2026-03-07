@@ -9,7 +9,7 @@ The goal in this phase is not a full production deployment.
 The intent is to:
 
 - bring up the infrastructure with Pulumi
-- deploy PHPSage on the server using the same Docker approach that works locally
+- deploy PHPSage on the server without breaking the local Docker workflow
 - leave a dev version accessible for external review
 - postpone GitHub Actions until the manual flow is stable
 
@@ -34,7 +34,7 @@ Application deployment happens inside the server:
 
 - clone or update the repository in `/opt/phpsage`
 - create the application `.env`
-- run `docker compose up --build -d`
+- run Docker Compose with a server-specific override file
 
 ### GitHub Actions
 
@@ -57,9 +57,9 @@ This guide assumes the infrastructure phase is already solved:
 
 ## Deployment Decision For This Phase
 
-The server will run the same services currently defined in `docker-compose.yml`.
+The server will run the same application services currently defined in `docker-compose.yml`, but server-specific routing will live in a separate compose file.
 
-That means keeping the current dev-environment behavior for now:
+That means keeping the current dev-environment services for now:
 
 - `phpsage-server`
 - `phpsage-web`
@@ -69,6 +69,50 @@ That means keeping the current dev-environment behavior for now:
 - `ollama`
 
 This is not the final production approach, but it is the simplest way to expose a reviewable version of the project.
+
+The key decision is to keep environment-specific behavior split across compose files:
+
+- `docker-compose.yml` stays focused on local development
+- `docker-compose.server.yml` will contain server-only behavior
+
+This avoids breaking local access on `5173` while still allowing clean external access on `80/443` in Hetzner.
+
+## Compose Strategy
+
+### Local
+
+The base file remains the local development entrypoint:
+
+- web exposed on `5173`
+- API exposed on `8080`
+- Swagger exposed on `8081`
+
+Local usage remains:
+
+```bash
+docker compose up --build
+```
+
+### Server
+
+The server will use a second compose file, expected to be named `docker-compose.server.yml`.
+
+That file should:
+
+- add Traefik
+- expose only `80` and `443` on the host
+- route `/` to the web service running internally on `5173`
+- route `/api` and `/healthz` to the server running internally on `8080`
+- optionally route `/docs` to Swagger
+- avoid exposing `5173`, `8080`, and `8081` directly on the public interface
+
+Expected server command:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d
+```
+
+This keeps the local workflow unchanged while giving the server a proper public entrypoint through Traefik.
 
 ## Environment Variables
 
@@ -88,7 +132,7 @@ That file must not be copied to the server to run PHPSage.
 
 The PHPSage `.env` file must exist on the server.
 
-It is required because `docker compose` and `docker-compose.yml` use it to start the application services.
+It is required because `docker compose`, `docker-compose.yml`, and the future `docker-compose.server.yml` use it to start the application services.
 
 Operational rule:
 
@@ -169,7 +213,7 @@ Then fill in the real values required by the application for whichever AI/RAG mo
 
 ```bash
 cd /opt/phpsage
-docker compose up --build -d
+docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d
 ```
 
 ### 6. Verify The Services
@@ -180,6 +224,8 @@ curl http://127.0.0.1:8080/healthz
 curl http://127.0.0.1:8080/api/ai/health
 ```
 
+Once Traefik is in place, also verify public access through the domain on `80/443` rather than through direct dev ports.
+
 ## Manual Application Update
 
 When you push changes to `main`, the manual deployment flow will be:
@@ -188,27 +234,44 @@ When you push changes to `main`, the manual deployment flow will be:
 ssh root@SERVER_IP
 cd /opt/phpsage
 git pull origin main
-docker compose up --build -d
+docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d
 ```
 
 ## External Access In This Phase
 
-In this dev phase, the decision is to open in the firewall the same ports already published by `docker-compose.yml`:
+In this dev phase, the decision is to expose the application externally through Traefik on standard ports:
 
-- `5173` for the UI
+- `80` for HTTP
+- `443` for HTTPS / Cloudflare / Zero Trust
+
+Internally, the application can continue using:
+
+- `5173` for the web service
 - `8080` for the API
 - `8081` for Swagger
 
-This simplifies external access for review, at the cost of a more relaxed security posture than the original baseline.
+This keeps local behavior intact while avoiding direct public exposure of development ports.
 
 ## Current Recommendation
 
 For a dev version that is easily accessible to the professor, the best next iteration is:
 
 1. keep manual application deployment outside Pulumi
-2. open ports `5173`, `8080`, and `8081` in infrastructure
-3. do not introduce GHCR yet
-4. do not introduce GitHub Actions yet
+2. keep the firewall on `22`, `80`, and `443`
+3. add Traefik through `docker-compose.server.yml`
+4. do not introduce GHCR yet
+5. do not introduce GitHub Actions yet
+
+## Can We Start Working?
+
+Yes. The current decisions are coherent enough to start implementation.
+
+At this point, the next concrete work item is clear:
+
+1. create `docker-compose.server.yml`
+2. add Traefik routing for web, API, and docs
+3. keep `docker-compose.yml` unchanged for local development
+4. deploy manually on the server and validate domain access through `80/443`
 
 ## Later Phase
 
@@ -222,6 +285,7 @@ That workflow should not change the deployment model. It should only automate it
 - SSH access working
 - repository cloned into `/opt/phpsage`
 - real `.env` created on the server
-- `docker compose up --build -d` working
+- `docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d` working
 - health checks passing inside the server
-- external access validated on `5173`, `8080`, and `8081`
+- external access validated through `80/443`
+- local development still working on `5173`, `8080`, and `8081`
