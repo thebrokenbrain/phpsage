@@ -52,10 +52,11 @@ async function loadActiveSource({
   setActiveSourceError: (value: string | null) => void;
 }): Promise<void> {
   try {
-    const url = new URL(`${apiBase}/api/runs/${runId}/source`);
-    url.searchParams.set("file", filePath);
+    const requestUrl = apiBase
+      ? new URL(`/api/runs/${runId}/source?file=${encodeURIComponent(filePath)}`, apiBase).toString()
+      : `/api/runs/${runId}/source?file=${encodeURIComponent(filePath)}`;
 
-    const response = await fetch(url.toString());
+    const response = await fetch(requestUrl);
     if (!response.ok) {
       setActiveSourceContent(null);
       const errorBody = await response.json().catch(() => null) as { error?: string } | null;

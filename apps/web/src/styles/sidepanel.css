@@ -150,18 +150,18 @@
 
 .run-delete-button {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 26px;
-  min-width: 26px;
-  min-height: 26px;
+  top: 13px;
+  right: 13px;
+  width: 18px;
+  min-width: 18px;
+  min-height: 18px;
   padding: 0;
   border: 1px solid #fecaca;
   border-radius: 999px;
   background: #fff5f5;
   color: #b91c1c;
   z-index: 1;
-  font-size: 12px;
+  font-size: 9px;
 }
 
 .run-delete-button:hover:not(:disabled) {
