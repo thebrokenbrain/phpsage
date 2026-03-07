@@ -14,6 +14,7 @@ DEPLOY_PORT="${PHPSAGE_DEPLOY_PORT:-22}"
 DEPLOY_HOST="${PHPSAGE_DEPLOY_HOST:-}"
 DEPLOY_SOURCE="${PHPSAGE_DEPLOY_SOURCE:-git}"
 DEPLOY_REMOTE="${PHPSAGE_DEPLOY_REMOTE:-$(git -C "$ROOT_DIR" remote get-url origin)}"
+DEPLOY_WAIT_SECONDS="${PHPSAGE_DEPLOY_WAIT_SECONDS:-30}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -215,6 +216,11 @@ fi
 echo "Deploy host: $DEPLOY_HOST"
 echo "Deploy path: $DEPLOY_PATH"
 echo "Deploy source: $DEPLOY_SOURCE"
+
+if [[ "$DEPLOY_WAIT_SECONDS" -gt 0 ]]; then
+  echo "Waiting ${DEPLOY_WAIT_SECONDS}s before SSH checks..."
+  sleep "$DEPLOY_WAIT_SECONDS"
+fi
 
 check_ssh_host_key
 
