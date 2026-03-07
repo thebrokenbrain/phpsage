@@ -2,7 +2,6 @@ services:
   phpsage-cli:
     profiles:
       - tools
-    image: phpsage-dev:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,7 +9,6 @@ services:
     command: ["npm", "run", "build"]
 
   phpsage-server:
-    image: phpsage-dev:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -35,7 +33,6 @@ services:
       - ./data:/workspace/data
 
   phpsage-web:
-    image: phpsage-dev:latest
     build:
       context: .
       dockerfile: Dockerfile
