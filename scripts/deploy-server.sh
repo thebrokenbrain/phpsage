@@ -31,6 +31,20 @@ require_file() {
   fi
 }
 
+is_ipv4_address() {
+  local value="$1"
+  [[ "$value" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]
+}
+
+remove_known_host_entry() {
+  if [[ "$DEPLOY_PORT" == "22" ]]; then
+    ssh-keygen -R "$DEPLOY_HOST" >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  ssh-keygen -R "[$DEPLOY_HOST]:$DEPLOY_PORT" >/dev/null 2>&1 || true
+}
+
 read_env_value() {
   local env_file="$1"
   local key="$2"
@@ -89,10 +103,20 @@ check_ssh_host_key() {
   fi
 
   if grep -q "REMOTE HOST IDENTIFICATION HAS CHANGED" <<<"$output"; then
+    if is_ipv4_address "$DEPLOY_HOST"; then
+      echo "SSH host key mismatch detected for $DEPLOY_HOST; refreshing the stale known_hosts entry for this IP and retrying once." >&2
+      remove_known_host_entry
+      ssh $(ssh_base_args) "$(ssh_target)" true >/dev/null 2>&1 && return 0
+    fi
+
     echo "SSH host key mismatch detected for $DEPLOY_HOST." >&2
     echo "This usually means the server was reprovisioned and your local known_hosts entry is stale." >&2
     echo "Review the new fingerprint, then refresh the entry with:" >&2
-    echo "  ssh-keygen -R '$DEPLOY_HOST'" >&2
+    if [[ "$DEPLOY_PORT" == "22" ]]; then
+      echo "  ssh-keygen -R '$DEPLOY_HOST'" >&2
+    else
+      echo "  ssh-keygen -R '[$DEPLOY_HOST]:$DEPLOY_PORT'" >&2
+    fi
     echo "After that, run make deploy/app again." >&2
     exit 1
   fi
@@ -202,6 +226,7 @@ pulumi_stack_output() {
 require_command docker
 require_command git
 require_command ssh
+require_command ssh-keygen
 require_command scp
 require_command tar
 
