@@ -197,7 +197,6 @@ export function App() {
         activeRagBackend={activeRagBackend}
         ragStatus={ragStatus}
         ragProgressPercent={ragProgressPercent}
-        isRunDetailLoading={isRunDetailLoading}
         viewMode={viewMode}
         loading={loading}
         onChangeViewMode={setViewMode}

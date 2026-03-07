@@ -10,7 +10,6 @@ interface TopbarProps {
   activeRagBackend: "filesystem" | "qdrant" | null;
   ragStatus: "on" | "processing" | "off" | null;
   ragProgressPercent: number | null;
-  isRunDetailLoading: boolean;
   viewMode: ViewMode;
   loading: boolean;
   onChangeViewMode: (mode: ViewMode) => void;
@@ -25,7 +24,6 @@ export function Topbar({
   activeRagBackend,
   ragStatus,
   ragProgressPercent,
-  isRunDetailLoading,
   viewMode,
   loading,
   onChangeViewMode,
@@ -61,7 +59,6 @@ export function Topbar({
             </>
           )}
         </div>
-        {isRunDetailLoading && <span className="meta">syncing run…</span>}
       </div>
 
       <div className="topbar-group toolbar-group">
