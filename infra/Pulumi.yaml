@@ -1,0 +1,7 @@
+name: phpsage
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+main: src
+description: Infraestructura para phpsage gestionada con Pulumi

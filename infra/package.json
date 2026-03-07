@@ -1,0 +1,21 @@
+{
+  "name": "phpsage-iac",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pulumi IaC phpsage project",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "preview": "pulumi preview",
+    "up": "pulumi up",
+    "destroy": "pulumi destroy"
+  },
+  "dependencies": {
+    "@pulumi/cloudflare": "^6.7.1",
+    "@pulumi/hcloud": "^1.24.0",
+    "@pulumi/pulumi": "^3.225.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -16,11 +16,17 @@ dist/
 build/
 coverage/
 *.tsbuildinfo
+bin/
+obj/
 
 # Environment / local overrides
 .env
 .env.*
 !.env.example
+.pulumi/
+.pulumi-state/
+Pulumi.*.yaml.backup
+Pulumi.*.yaml.bak
 
 # Runtime data
 data/runs/*.json

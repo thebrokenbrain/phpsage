@@ -15,6 +15,10 @@ PHPSage provides a modern PHP static-analysis experience:
 
 Implemented today:
 
+- Infrastructure:
+  - Pulumi project under `infra/`
+  - Hetzner server, firewall and SSH key registration
+  - Cloudflare DNS and optional Zero Trust
 - CLI:
   - `phpsage app`
   - `phpsage phpstan analyse <path>` (+ watch, timeout, json summary)
@@ -73,6 +77,7 @@ Mandatory README sections:
 - End-to-end operation via Docker Compose.
 - Do not require host-only dependencies for normal product operation.
 - Keep smoke scripts operational when changing provider/environment wiring.
+- Keep infrastructure automation isolated under `infra/` and reproducible with its documented `docker-only` workflow.
 
 ## 7) Definition of Done (Phase Summary)
 

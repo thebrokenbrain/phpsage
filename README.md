@@ -25,6 +25,7 @@ Comandos principales del CLI:
 - React + Vite + TypeScript en frontend.
 - Docker + Docker Compose para ejecución reproducible.
 - Qdrant (opcional) y backend filesystem para RAG.
+- Pulumi + TypeScript en `infra/` para infraestructura como código.
 
 ## c) Instalación y ejecución
 
@@ -46,6 +47,12 @@ Opcional para desarrollo local fuera de Docker:
 
 ```bash
 cp .env.example .env
+```
+
+Si también vas a desplegar infraestructura, crea además el archivo de entorno de `infra/`:
+
+```bash
+cp infra/.env.example infra/.env
 ```
 
 ### Configuración de `.env`
@@ -115,6 +122,19 @@ Scripts útiles de smoke/reindex:
 ./scripts/reindex-rag.sh --wait
 ```
 
+### Infraestructura como código
+
+La infraestructura de PHPSage forma parte del monorepo en `infra/` y se gestiona con Pulumi en un flujo `docker-only`.
+
+Desde ese directorio se provisionan:
+
+- servidor Hetzner
+- firewall base
+- DNS en Cloudflare
+- Zero Trust opcional
+
+La guía operativa completa está en `infra/README.md`.
+
 ## d) Estructura del proyecto
 
 ```text
@@ -123,6 +143,7 @@ phpsage/
     cli/
     server/
     web/
+  infra/
   packages/
     shared/
   docs/
@@ -144,6 +165,7 @@ Descripción por directorio:
 - `apps/cli`: interfaz de línea de comandos (`app`, `phpstan analyse`, `rag ingest`).
 - `apps/server`: API HTTP y orquestación del ciclo de vida de runs + endpoints IA/RAG.
 - `apps/web`: interfaz React/Vite con Dashboard, Insights e Issue navigation.
+- `infra`: proyecto Pulumi para Hetzner, Cloudflare y bootstrap base del servidor.
 - `packages/shared`: contratos/tipos compartidos y utilidades puras (por ejemplo parser de salida PHPStan).
 - `docs`: documentación funcional y técnica (`API.md`, `UX.md`, `openapi.yaml`).
 - `examples`: proyectos PHP de ejemplo para pruebas y smoke.
@@ -201,3 +223,4 @@ Descripción por directorio:
 - Contrato API (manual): `docs/API.md`
 - Contrato OpenAPI: `docs/openapi.yaml`
 - Contrato UX: `docs/UX.md`
+- Infraestructura: `infra/README.md`
