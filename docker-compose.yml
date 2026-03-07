@@ -37,6 +37,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    environment:
+      VITE_DEV_PROXY_TARGET: http://phpsage-server:8080
     depends_on:
       phpsage-server:
         condition: service_healthy

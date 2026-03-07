@@ -17,7 +17,7 @@ import { loadSidepanelWidth } from "./utils/sidepanel-width.js";
 import { getIssueKey } from "./utils/app-helpers.js";
 import { parseUiStateFromUrl } from "./utils/url-ui-state.js";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 const SIDEPANEL_DEFAULT_WIDTH = 420;
 const SIDEPANEL_MIN_WIDTH = 280;

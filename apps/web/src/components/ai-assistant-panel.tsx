@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { AiExplainResponse, AiLlmDebugPayload, AiSuggestFixResponse, AiUsage, RunIssue } from "../types.js";
+import { filterDuplicateAiRecommendations } from "../utils/app-helpers.js";
 
 interface AiAssistantPanelProps {
   activeIssue: RunIssue | null;
@@ -18,6 +19,9 @@ export function AiAssistantPanel({
 }: AiAssistantPanelProps) {
   const [showDebugPayloads, setShowDebugPayloads] = useState(false);
   const hasDebugPayloads = Boolean(explain?.debug || suggestFix?.debug);
+  const filteredRecommendations = explain
+    ? filterDuplicateAiRecommendations(explain.explanation, explain.recommendations)
+    : [];
 
   useEffect(() => {
     if (!hasDebugPayloads) {
@@ -80,9 +84,9 @@ export function AiAssistantPanel({
             </div>
           </div>
           <div className="ai-rich-text">{renderAiRichText(explain.explanation, "explain")}</div>
-          {explain.recommendations.length > 0 && (
+          {filteredRecommendations.length > 0 && (
             <ul>
-              {explain.recommendations.map((recommendation) => (
+              {filteredRecommendations.map((recommendation) => (
                 <li key={recommendation}>{renderAiInlineText(recommendation, `recommendation-${recommendation}`)}</li>
               ))}
             </ul>
