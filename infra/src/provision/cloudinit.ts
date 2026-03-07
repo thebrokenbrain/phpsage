@@ -1,6 +1,6 @@
 const REQUIRED_PACKAGES = [
   "docker.io",
-  "docker-compose-plugin",
+  "docker-compose-v2",
   "git",
   "curl",
   "wget",

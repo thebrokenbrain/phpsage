@@ -15,6 +15,7 @@ DEPLOY_HOST="${PHPSAGE_DEPLOY_HOST:-}"
 DEPLOY_SOURCE="${PHPSAGE_DEPLOY_SOURCE:-git}"
 DEPLOY_REMOTE="${PHPSAGE_DEPLOY_REMOTE:-$(git -C "$ROOT_DIR" remote get-url origin)}"
 DEPLOY_WAIT_SECONDS="${PHPSAGE_DEPLOY_WAIT_SECONDS:-0}"
+DEPLOY_CLOUD_INIT_TIMEOUT_SECONDS="${PHPSAGE_DEPLOY_CLOUD_INIT_TIMEOUT_SECONDS:-300}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -111,7 +112,36 @@ scp_file() {
 }
 
 detect_remote_compose_command() {
-  ssh_cmd "if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif docker-compose version >/dev/null 2>&1; then printf 'docker-compose'; elif command -v apt-get >/dev/null 2>&1; then apt-get update >/dev/null 2>&1 && (apt-get install -y docker-compose-plugin >/dev/null 2>&1 || apt-get install -y docker-compose >/dev/null 2>&1) && if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif docker-compose version >/dev/null 2>&1; then printf 'docker-compose'; else echo 'Docker Compose installation succeeded but no compose command is available.' >&2; exit 1; fi; else echo 'No Docker Compose command found on remote host.' >&2; exit 1; fi"
+  ssh_cmd "if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif docker-compose version >/dev/null 2>&1; then printf 'docker-compose'; elif command -v apt-get >/dev/null 2>&1; then export DEBIAN_FRONTEND=noninteractive && apt-get update >/dev/null 2>&1 && (apt-get install -y docker-compose-v2 >/dev/null 2>&1 || apt-get install -y docker-compose-plugin >/dev/null 2>&1 || apt-get install -y docker-compose >/dev/null 2>&1) && if docker compose version >/dev/null 2>&1; then printf 'docker compose'; elif docker-compose version >/dev/null 2>&1; then printf 'docker-compose'; else echo 'Docker Compose installation succeeded but no compose command is available.' >&2; exit 1; fi; else echo 'No Docker Compose command found on remote host.' >&2; exit 1; fi"
+}
+
+wait_for_remote_cloud_init() {
+  local timeout_seconds="$1"
+  local started_at
+  started_at="$(date +%s)"
+
+  while true; do
+    local status_output
+    status_output="$(ssh_cmd "cloud-init status 2>/dev/null || true")"
+
+    if grep -q "status: done" <<<"$status_output"; then
+      return 0
+    fi
+
+    if grep -q "status: error" <<<"$status_output"; then
+      echo "Remote cloud-init finished with errors; continuing with deploy checks." >&2
+      ssh_cmd "tail -n 80 /var/log/cloud-init-output.log || true" >&2
+      return 0
+    fi
+
+    if (( $(date +%s) - started_at >= timeout_seconds )); then
+      echo "Timed out waiting for cloud-init after ${timeout_seconds}s." >&2
+      ssh_cmd "cloud-init status || true" >&2
+      return 1
+    fi
+
+    sleep 5
+  done
 }
 
 stream_worktree_snapshot() {
@@ -223,6 +253,9 @@ if [[ "$DEPLOY_WAIT_SECONDS" -gt 0 ]]; then
 fi
 
 check_ssh_host_key
+
+echo "Waiting for remote cloud-init to finish..."
+wait_for_remote_cloud_init "$DEPLOY_CLOUD_INIT_TIMEOUT_SECONDS"
 
 REMOTE_COMPOSE_COMMAND="$(detect_remote_compose_command)"
 
