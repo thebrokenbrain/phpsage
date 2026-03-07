@@ -68,6 +68,10 @@ class InMemoryRunRepository implements RunRepository {
     this.runs.set(run.runId, run);
   }
 
+  public async deleteById(runId: string): Promise<boolean> {
+    return this.runs.delete(runId);
+  }
+
   public async findById(runId: string): Promise<RunRecord | null> {
     return this.runs.get(runId) ?? null;
   }

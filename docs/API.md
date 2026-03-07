@@ -48,6 +48,10 @@ Implemented and active in `apps/server/src/interfaces/http-server.ts`.
   - `200`: full run record
   - `404`: `{ "error": "Run not found" }`
 
+- `DELETE /api/runs/:runId`
+  - `204`: run deleted
+  - `404`: `{ "error": "Run not found" }`
+
 - `POST /api/runs/start`
   - body:
     - `targetPath: string` (required)

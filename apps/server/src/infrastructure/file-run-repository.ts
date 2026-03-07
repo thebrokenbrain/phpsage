@@ -1,5 +1,5 @@
 // This file persists run records into local JSON files under data/runs.
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RunRecord, RunSummary } from "../domain/run.js";
 import { toRunSummary } from "../domain/run.js";
@@ -12,6 +12,21 @@ export class FileRunRepository implements RunRepository {
     await mkdir(this.runsDirectoryPath, { recursive: true });
     const filePath = this.getRunFilePath(run.runId);
     await writeFile(filePath, `${JSON.stringify(run, null, 2)}\n`, "utf-8");
+  }
+
+  public async deleteById(runId: string): Promise<boolean> {
+    const filePath = this.getRunFilePath(runId);
+
+    try {
+      await unlink(filePath);
+      return true;
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        return false;
+      }
+
+      throw error;
+    }
   }
 
   public async findById(runId: string): Promise<RunRecord | null> {

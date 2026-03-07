@@ -1,4 +1,5 @@
 // This component renders the runs explorer and file tree, keeping App focused on orchestration.
+import { AppIcon } from "./app-icon.js";
 import type { RunSummary } from "../types.js";
 import type { RunFileTreeRow } from "../utils/run-file-tree.js";
 
@@ -10,7 +11,9 @@ interface SidepanelProps {
   visibleFileTreeRows: RunFileTreeRow[];
   collapsedDirectories: Set<string>;
   selectedFilePath: string | null;
+  deletingRunId: string | null;
   onSelectRun: (runId: string) => void;
+  onDeleteRun: (runId: string) => void;
   onToggleDirectory: (path: string) => void;
   onSelectFile: (path: string) => void;
 }
@@ -23,7 +26,9 @@ export function Sidepanel({
   visibleFileTreeRows,
   collapsedDirectories,
   selectedFilePath,
+  deletingRunId,
   onSelectRun,
+  onDeleteRun,
   onToggleDirectory,
   onSelectFile
 }: SidepanelProps) {
@@ -37,17 +42,34 @@ export function Sidepanel({
       <h3 className="section-title">Runs</h3>
       <div className="item-list">
         {runs.map((run) => (
-          <button
-            key={run.runId}
-            className={`item-button ${run.runId === selectedRunId ? "active" : ""}`}
-            onClick={() => onSelectRun(run.runId)}
-          >
-            <div className="run-head">
-              <span className="run-title">{run.runId.slice(0, 8)}</span>
-              <span className={`run-status ${run.status}`}>{run.status}</span>
-            </div>
-            <div className="run-path" title={run.targetPath}>{run.targetPath}</div>
-          </button>
+          <div key={run.runId} className={`run-item ${run.runId === selectedRunId ? "active" : ""}`}>
+            <button
+              className={`item-button ${run.runId === selectedRunId ? "active" : ""}`}
+              onClick={() => onSelectRun(run.runId)}
+            >
+              <div className="run-head">
+                <span className="run-title">{run.runId.slice(0, 8)}</span>
+                <span className={`run-status ${run.status}`}>{run.status}</span>
+              </div>
+              <div className="run-path" title={run.targetPath}>{run.targetPath}</div>
+            </button>
+            <button
+              type="button"
+              className="run-delete-button"
+              aria-label={`Delete run ${run.runId.slice(0, 8)}`}
+              title="Delete run"
+              disabled={deletingRunId === run.runId}
+              onClick={() => {
+                if (!window.confirm(`Delete run ${run.runId.slice(0, 8)}?`)) {
+                  return;
+                }
+
+                onDeleteRun(run.runId);
+              }}
+            >
+              <AppIcon name="delete" />
+            </button>
+          </div>
         ))}
       </div>
 

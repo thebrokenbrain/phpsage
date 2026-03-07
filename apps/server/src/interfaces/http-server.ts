@@ -193,6 +193,18 @@ export function createHttpServer(
     }
 
     const runIdFromPath = getRunIdFromPath(requestUrl.pathname);
+    if (method === "DELETE" && runIdFromPath) {
+      const deleted = await runService.delete(runIdFromPath);
+      if (!deleted) {
+        writeJson(response, 404, { error: "Run not found" });
+        return;
+      }
+
+      response.statusCode = 204;
+      response.end();
+      return;
+    }
+
     if (method === "GET" && runIdFromPath) {
       const run = await runService.getById(runIdFromPath);
       if (!run) {

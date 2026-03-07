@@ -51,7 +51,9 @@ export function App() {
     isLlmAvailable,
     activeAiProvider,
     activeAiModel,
-    handleStartRun
+    deletingRunId,
+    handleStartRun,
+    handleDeleteRun
   } = useRunsRuntime({
     apiBase: API_BASE,
     initialRunId: initialUrlState.runId,
@@ -207,7 +209,11 @@ export function App() {
           visibleFileTreeRows={visibleFileTreeRows}
           collapsedDirectories={collapsedDirectories}
           selectedFilePath={selectedFilePath}
+          deletingRunId={deletingRunId}
           onSelectRun={(runId) => setSelectedRunId(runId)}
+          onDeleteRun={(runId) => {
+            void handleDeleteRun(runId);
+          }}
           onToggleDirectory={handleToggleDirectory}
           onSelectFile={handleSelectFile}
         />

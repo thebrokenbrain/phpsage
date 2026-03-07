@@ -23,6 +23,10 @@ class InMemoryRunRepository implements RunRepository {
     this.runs.set(run.runId, run);
   }
 
+  public async deleteById(runId: string): Promise<boolean> {
+    return this.runs.delete(runId);
+  }
+
   public async findById(runId: string): Promise<RunRecord | null> {
     return this.runs.get(runId) ?? null;
   }
@@ -1081,6 +1085,41 @@ test("GET /api/runs/:runId returns run details and 404 for missing run", async (
     assert.equal(detail.logs[0]?.message, "hello");
     assert.equal(detail.issues.length, 1);
     assert.equal(detail.issues[0]?.file, "src/file.php");
+  } finally {
+    await httpServer.close();
+    rmSync(workspaceDir, { recursive: true, force: true });
+  }
+});
+
+test("DELETE /api/runs/:runId removes run and returns 404 for missing run", async () => {
+  const httpServer = await startTestHttpServer();
+  const workspaceDir = mkdtempSync(join(tmpdir(), "phpsage-http-delete-"));
+  const targetPath = join(workspaceDir, "project");
+  mkdirSync(targetPath, { recursive: true });
+
+  try {
+    const startResponse = await fetch(`${httpServer.baseUrl}/api/runs/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ targetPath })
+    });
+    assert.equal(startResponse.status, 201);
+    const startedRun = (await startResponse.json()) as { runId: string };
+
+    const deleteResponse = await fetch(`${httpServer.baseUrl}/api/runs/${startedRun.runId}`, {
+      method: "DELETE"
+    });
+    assert.equal(deleteResponse.status, 204);
+
+    const detailResponse = await fetch(`${httpServer.baseUrl}/api/runs/${startedRun.runId}`);
+    assert.equal(detailResponse.status, 404);
+
+    const missingDeleteResponse = await fetch(`${httpServer.baseUrl}/api/runs/missing`, {
+      method: "DELETE"
+    });
+    assert.equal(missingDeleteResponse.status, 404);
   } finally {
     await httpServer.close();
     rmSync(workspaceDir, { recursive: true, force: true });

@@ -121,6 +121,13 @@
   gap: 10px;
 }
 
+.run-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
 .item-button {
   width: 100%;
   text-align: left;
@@ -142,6 +149,21 @@
 .sidepanel .item-button:hover:not(:disabled) {
   border-color: var(--border-strong);
   background: #f8fafc;
+}
+
+.run-delete-button {
+  align-self: stretch;
+  min-width: 42px;
+  padding: 0 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #b91c1c;
+}
+
+.run-delete-button:hover:not(:disabled) {
+  border-color: #fca5a5;
+  background: #fee2e2;
 }
 
 .run-title {

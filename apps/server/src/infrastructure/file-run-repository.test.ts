@@ -54,3 +54,21 @@ test("lists summaries sorted by createdAt descending", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("deletes existing run files and returns false for missing run", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "phpsage-run-repo-"));
+  try {
+    const repository = new FileRunRepository(directory);
+    await repository.save(createRunRecord({ runId: "run-delete" }));
+
+    const deleted = await repository.deleteById("run-delete");
+    const missingDeleted = await repository.deleteById("run-delete");
+    const found = await repository.findById("run-delete");
+
+    assert.equal(deleted, true);
+    assert.equal(missingDeleted, false);
+    assert.equal(found, null);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

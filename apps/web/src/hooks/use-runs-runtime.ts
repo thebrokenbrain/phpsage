@@ -25,7 +25,9 @@ interface UseRunsRuntimeResult {
   isLlmAvailable: boolean | null;
   activeAiProvider: string | null;
   activeAiModel: string | null;
+  deletingRunId: string | null;
   handleStartRun: () => Promise<void>;
+  handleDeleteRun: (runId: string) => Promise<void>;
 }
 
 export function useRunsRuntime({
@@ -47,6 +49,7 @@ export function useRunsRuntime({
   const [isLlmAvailable, setIsLlmAvailable] = useState<boolean | null>(null);
   const [activeAiProvider, setActiveAiProvider] = useState<string | null>(null);
   const [activeAiModel, setActiveAiModel] = useState<string | null>(null);
+  const [deletingRunId, setDeletingRunId] = useState<string | null>(null);
 
   const runDetailRequestRef = useRef(0);
   const aiHealthFailureCountRef = useRef(0);
@@ -234,6 +237,34 @@ export function useRunsRuntime({
     }
   }
 
+  async function handleDeleteRun(runId: string): Promise<void> {
+    setDeletingRunId(runId);
+
+    try {
+      const response = await fetch(`${apiBase}/api/runs/${runId}`, {
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        throw new Error(`Run delete failed (${response.status})`);
+      }
+
+      setRuns((currentRuns) => currentRuns.filter((run) => run.runId !== runId));
+      if (selectedRunId === runId) {
+        setSelectedRunId(null);
+        setSelectedRun(null);
+        setRunFiles([]);
+        onRunSelectionCleared?.();
+      }
+
+      await refreshRuns();
+      setError(null);
+    } catch (unknownError) {
+      setError(formatError(unknownError));
+    } finally {
+      setDeletingRunId(null);
+    }
+  }
+
   return {
     runs,
     selectedRunId,
@@ -246,6 +277,8 @@ export function useRunsRuntime({
     isLlmAvailable,
     activeAiProvider,
     activeAiModel,
-    handleStartRun
+    deletingRunId,
+    handleStartRun,
+    handleDeleteRun
   };
 }

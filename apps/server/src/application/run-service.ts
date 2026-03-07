@@ -67,6 +67,10 @@ export class RunService {
     return this.runRepository.findById(runId);
   }
 
+  public async delete(runId: string): Promise<boolean> {
+    return this.runRepository.deleteById(runId);
+  }
+
   public async list(): Promise<RunSummary[]> {
     return this.runRepository.listSummaries();
   }
