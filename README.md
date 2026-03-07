@@ -49,6 +49,8 @@ Opcional para desarrollo local fuera de Docker:
 cp .env.example .env
 ```
 
+Si prefieres ir directo al flujo Docker local, `make local/up` y `make local/reset` crean `.env` automáticamente a partir de `.env.example` cuando aún no existe.
+
 Si también vas a desplegar infraestructura, crea además el archivo de entorno de `infra/`:
 
 ```bash
@@ -157,7 +159,7 @@ Resumen del flujo:
 - `make infra/up`: provisiona o actualiza la infraestructura con Pulumi usando el flujo `docker-only`.
 - `make infra/destroy`: destruye los recursos provisionados del stack `dev` con Pulumi. No elimina el stack de Pulumi Cloud.
 - `make deploy/app`: obtiene la IP pública desde Pulumi, conecta por SSH, sincroniza el código del repositorio público desde GitHub en `/opt/phpsage`, copia el `.env` local y los certificados referenciados desde ese `.env`, y levanta Docker Compose en el servidor. No añade espera previa por defecto.
-- `make deploy/all`: ejecuta ambos pasos de forma secuencial y añade una espera de 30 segundos entre `infra/up` y el despliegue de app para dejar margen a que SSH termine de levantar en una máquina recién provisionada.
+- `make deploy/all`: ejecuta ambos pasos de forma secuencial, añade una espera inicial de 30 segundos y después deja que el script de despliegue espere activamente a que `cloud-init` termine en la máquina recién provisionada antes de continuar.
 
 Separación recomendada:
 
@@ -178,6 +180,12 @@ Requisitos para `make deploy/app`:
 - acceso SSH al host provisionado
 - repositorio público accesible desde el servidor o `PHPSAGE_DEPLOY_SOURCE=local` si quieres forzar el árbol local actual
 - certificados en `certificates/` si usas Cloudflare `Full (strict)`
+
+Comportamiento de robustez del deploy:
+
+- si el host remoto acaba de ser reprovisionado y mantiene la misma IP, el script detecta el cambio de huella SSH
+- cuando `PHPSAGE_DEPLOY_HOST` es una IP literal, elimina automáticamente la entrada obsoleta de `known_hosts` y reintenta una vez
+- además espera a que `cloud-init` termine antes de intentar resolver Docker Compose en el servidor
 
 ### Infraestructura como código
 
