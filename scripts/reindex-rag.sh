@@ -50,17 +50,25 @@ if [ "${WAIT_MODE}" = "--wait" ]; then
     files_total="$(printf '%s\n' "${body}" | sed -nE 's/.*"filesTotal":([0-9]+).*/\1/p')"
     chunks_processed="$(printf '%s\n' "${body}" | sed -nE 's/.*"chunksProcessed":([0-9]+).*/\1/p')"
     chunks_total="$(printf '%s\n' "${body}" | sed -nE 's/.*"chunksTotal":([0-9]+).*/\1/p')"
+    skipped="$(printf '%s\n' "${body}" | sed -nE 's/.*"skipped":(true|false).*/\1/p')"
+    skip_reason="$(printf '%s\n' "${body}" | sed -nE 's/.*"skipReason":"([^"]+)".*/\1/p')"
 
     progress_percent="${progress_percent:-0}"
     files_processed="${files_processed:-0}"
     files_total="${files_total:-0}"
     chunks_processed="${chunks_processed:-0}"
     chunks_total="${chunks_total:-0}"
+    skipped="${skipped:-false}"
+    skip_reason="${skip_reason:-}"
 
     echo "[reindex-rag] poll[${i}] status=${status} progress=${progress_percent}% files=${files_processed}/${files_total} chunks=${chunks_processed}/${chunks_total}"
 
     if [ "${status}" = "completed" ]; then
-      echo "[reindex-rag] Completed successfully"
+      if [ "${skipped}" = "true" ]; then
+        echo "[reindex-rag] Completed successfully: unchanged, skipped${skip_reason:+ (${skip_reason})}"
+      else
+        echo "[reindex-rag] Completed successfully"
+      fi
       printf '%s\n' "${body}"
       exit 0
     fi

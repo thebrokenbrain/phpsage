@@ -483,12 +483,17 @@ components:
           type: string
     AiIngestStats:
       type: object
-      required: [filesIndexed, chunksIndexed]
+      required: [filesIndexed, chunksIndexed, skipped, skipReason]
       properties:
         filesIndexed:
           type: integer
         chunksIndexed:
           type: integer
+        skipped:
+          type: boolean
+        skipReason:
+          type: string
+          nullable: true
     AiIngestProgress:
       type: object
       required: [filesProcessed, filesTotal, chunksProcessed, chunksTotal, progressPercent]

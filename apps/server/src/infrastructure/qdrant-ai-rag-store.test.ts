@@ -78,6 +78,8 @@ test("QdrantAiRagStore reports ingest progress while upserting chunks", async ()
 
     assert.equal(stats.filesIndexed, 2);
     assert.equal(stats.chunksIndexed, 2);
+    assert.equal(stats.skipped, false);
+    assert.equal(stats.skipReason, null);
     assert.deepEqual(qdrant.upsertedPoints, [1, 1]);
     assert.ok(progress[0] === 0);
     assert.ok(progress.includes(50));
@@ -88,7 +90,10 @@ test("QdrantAiRagStore reports ingest progress while upserting chunks", async ()
       secondProgress.push(snapshot.progressPercent);
     });
 
-    assert.deepEqual(secondStats, stats);
+    assert.equal(secondStats.filesIndexed, 2);
+    assert.equal(secondStats.chunksIndexed, 2);
+    assert.equal(secondStats.skipped, true);
+    assert.equal(secondStats.skipReason, "Corpus unchanged");
     assert.deepEqual(qdrant.upsertedPoints, [1, 1]);
     assert.deepEqual(secondProgress, [100]);
   } finally {

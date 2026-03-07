@@ -24,6 +24,8 @@ test("indexes regular files recursively and computes chunk count", async () => {
 
     assert.equal(stats.filesIndexed, 2);
     assert.equal(stats.chunksIndexed, 4);
+    assert.equal(stats.skipped, false);
+    assert.equal(stats.skipReason, null);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -46,6 +48,8 @@ test("ignores configured directories", async () => {
 
     assert.equal(stats.filesIndexed, 1);
     assert.equal(stats.chunksIndexed, 1);
+    assert.equal(stats.skipped, false);
+    assert.equal(stats.skipReason, null);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -63,7 +67,7 @@ test("reports completed progress snapshot when filesystem ingest finishes", asyn
       progressSnapshots.push(progress.progressPercent);
     });
 
-    assert.deepEqual(stats, { filesIndexed: 1, chunksIndexed: 1 });
+    assert.deepEqual(stats, { filesIndexed: 1, chunksIndexed: 1, skipped: false, skipReason: null });
     assert.deepEqual(progressSnapshots, [100]);
   } finally {
     await rm(directory, { recursive: true, force: true });

@@ -7,7 +7,9 @@ export class NoopAiIngestProcessor implements AiIngestProcessor {
   public async ingest(_targetPath: string): Promise<AiIngestStats> {
     return {
       filesIndexed: 0,
-      chunksIndexed: 0
+      chunksIndexed: 0,
+      skipped: false,
+      skipReason: null
     };
   }
 }

@@ -95,7 +95,7 @@ Implemented and active in `apps/server/src/interfaces/http-server.ts`.
   - `404`: `{ "error": "Ingest job not found" }`
 
 - `GET /api/ai/ingest/:jobId`
-  - `200`: job detail with `progress.filesProcessed`, `progress.filesTotal`, `progress.chunksProcessed`, `progress.chunksTotal`, `progress.progressPercent`
+  - `200`: job detail with `progress.filesProcessed`, `progress.filesTotal`, `progress.chunksProcessed`, `progress.chunksTotal`, `progress.progressPercent` and `stats.skipped`, `stats.skipReason`
   - `404`: `{ "error": "Ingest job not found" }`
 
 Notes:

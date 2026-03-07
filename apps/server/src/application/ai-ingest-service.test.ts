@@ -30,7 +30,9 @@ class SuccessProcessor implements AiIngestProcessor {
     await delay(5);
     return {
       filesIndexed: 2,
-      chunksIndexed: 7
+      chunksIndexed: 7,
+      skipped: false,
+      skipReason: null
     };
   }
 }
@@ -63,7 +65,9 @@ class ProgressProcessor implements AiIngestProcessor {
 
     return {
       filesIndexed: 2,
-      chunksIndexed: 4
+      chunksIndexed: 4,
+      skipped: false,
+      skipReason: null
     };
   }
 }
@@ -97,7 +101,7 @@ test("AiIngestService marks job as completed and stores stats", async () => {
   assert.ok(completed.startedAt);
   assert.ok(completed.finishedAt);
   assert.equal(completed.progress.progressPercent, 100);
-  assert.deepEqual(completed.stats, { filesIndexed: 2, chunksIndexed: 7 });
+  assert.deepEqual(completed.stats, { filesIndexed: 2, chunksIndexed: 7, skipped: false, skipReason: null });
 });
 
 test("AiIngestService marks job as failed when processor throws", async () => {

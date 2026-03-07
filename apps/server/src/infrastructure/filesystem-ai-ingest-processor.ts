@@ -47,11 +47,21 @@ export class FilesystemAiIngestProcessor implements AiIngestProcessor {
         chunksIndexed += child.chunksIndexed;
       }
 
-      return { filesIndexed, chunksIndexed };
+      return {
+        filesIndexed,
+        chunksIndexed,
+        skipped: false,
+        skipReason: null
+      };
     }
 
     if (!entryStats.isFile() || entryStats.size > MAX_FILE_SIZE_BYTES) {
-      return { filesIndexed: 0, chunksIndexed: 0 };
+      return {
+        filesIndexed: 0,
+        chunksIndexed: 0,
+        skipped: false,
+        skipReason: null
+      };
     }
 
     const content = await readFile(path, "utf-8");
@@ -59,7 +69,9 @@ export class FilesystemAiIngestProcessor implements AiIngestProcessor {
 
     return {
       filesIndexed: 1,
-      chunksIndexed: Math.max(1, Math.ceil(lineCount / LINES_PER_CHUNK))
+      chunksIndexed: Math.max(1, Math.ceil(lineCount / LINES_PER_CHUNK)),
+      skipped: false,
+      skipReason: null
     };
   }
 }

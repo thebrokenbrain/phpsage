@@ -5,6 +5,8 @@ export type AiIngestJobStatus = "queued" | "running" | "completed" | "failed";
 export interface AiIngestStats {
   readonly filesIndexed: number;
   readonly chunksIndexed: number;
+  readonly skipped: boolean;
+  readonly skipReason: string | null;
 }
 
 export interface AiIngestProgress {

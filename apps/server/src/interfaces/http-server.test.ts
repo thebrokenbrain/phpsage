@@ -46,14 +46,21 @@ class InMemoryRunRepository implements RunRepository {
 }
 
 class DeterministicAiIngestProcessor implements AiIngestProcessor {
-  public async ingest(targetPath: string): Promise<{ filesIndexed: number; chunksIndexed: number }> {
+  public async ingest(targetPath: string): Promise<{
+    filesIndexed: number;
+    chunksIndexed: number;
+    skipped: boolean;
+    skipReason: string | null;
+  }> {
     if (targetPath === "/workspace/non-existent-target") {
       throw new Error("Target path does not exist");
     }
 
     return {
       filesIndexed: 1,
-      chunksIndexed: 1
+      chunksIndexed: 1,
+      skipped: false,
+      skipReason: null
     };
   }
 }
@@ -180,7 +187,7 @@ test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId retur
         chunksTotal: number;
         progressPercent: number;
       };
-      stats: { filesIndexed: number; chunksIndexed: number } | null;
+      stats: { filesIndexed: number; chunksIndexed: number; skipped: boolean; skipReason: string | null } | null;
     };
 
     assert.ok(createdPayload.jobId.length > 0);
@@ -198,7 +205,7 @@ test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId retur
       progress: {
         progressPercent: number;
       };
-      stats: { filesIndexed: number; chunksIndexed: number } | null;
+      stats: { filesIndexed: number; chunksIndexed: number; skipped: boolean; skipReason: string | null } | null;
     };
 
     assert.equal(readPayload.jobId, createdPayload.jobId);
@@ -206,7 +213,7 @@ test("POST /api/ai/ingest creates ingest job and GET /api/ai/ingest/:jobId retur
     assert.match(readPayload.status, /queued|running|completed/);
     assert.ok(readPayload.progress.progressPercent >= 0);
     if (readPayload.status === "completed") {
-      assert.deepEqual(readPayload.stats, { filesIndexed: 0, chunksIndexed: 0 });
+      assert.deepEqual(readPayload.stats, { filesIndexed: 0, chunksIndexed: 0, skipped: false, skipReason: null });
       assert.equal(readPayload.progress.progressPercent, 100);
     }
   } finally {

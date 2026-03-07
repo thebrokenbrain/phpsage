@@ -69,7 +69,11 @@ export class QdrantAiRagStore implements AiRagRetriever {
         cachedState.stats.chunksIndexed,
         cachedState.stats.chunksIndexed
       ));
-      return cachedState.stats;
+      return {
+        ...cachedState.stats,
+        skipped: true,
+        skipReason: "Corpus unchanged"
+      };
     }
 
     await this.ensureCollection();
@@ -108,7 +112,9 @@ export class QdrantAiRagStore implements AiRagRetriever {
 
     const stats = {
       filesIndexed: documents.length,
-      chunksIndexed: totalChunks
+      chunksIndexed: totalChunks,
+      skipped: false,
+      skipReason: null
     };
 
     await this.ingestStateStore?.save(stateKey, {

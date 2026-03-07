@@ -35,7 +35,11 @@ test("saves and retrieves ingest job by id", async () => {
 
   try {
     const repository = new FileAiIngestJobRepository(directory);
-    const job = createJob({ jobId: "job-1", status: "completed", stats: { filesIndexed: 3, chunksIndexed: 8 } });
+    const job = createJob({
+      jobId: "job-1",
+      status: "completed",
+      stats: { filesIndexed: 3, chunksIndexed: 8, skipped: false, skipReason: null }
+    });
 
     await repository.save(job);
     const found = await repository.findById("job-1");
@@ -43,7 +47,7 @@ test("saves and retrieves ingest job by id", async () => {
     assert.ok(found);
     assert.equal(found?.jobId, "job-1");
     assert.equal(found?.status, "completed");
-    assert.deepEqual(found?.stats, { filesIndexed: 3, chunksIndexed: 8 });
+    assert.deepEqual(found?.stats, { filesIndexed: 3, chunksIndexed: 8, skipped: false, skipReason: null });
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
