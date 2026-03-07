@@ -13,6 +13,7 @@ import { RunService } from "../application/run-service.js";
 import { InMemoryAiIngestJobRepository } from "../infrastructure/in-memory-ai-ingest-job-repository.js";
 import { NoopAiIngestProcessor } from "../infrastructure/noop-ai-ingest-processor.js";
 import type { RunRecord, RunSummary } from "../domain/run.js";
+import type { AiIngestProcessor } from "../ports/ai-ingest-processor.js";
 import type { RunRepository } from "../ports/run-repository.js";
 import { RunSourceReader } from "../infrastructure/run-source-reader.js";
 
@@ -44,12 +45,30 @@ class InMemoryRunRepository implements RunRepository {
   }
 }
 
-async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Promise<void> }> {
+class DeterministicAiIngestProcessor implements AiIngestProcessor {
+  public async ingest(targetPath: string): Promise<{ filesIndexed: number; chunksIndexed: number }> {
+    if (targetPath === "/workspace/non-existent-target") {
+      throw new Error("Target path does not exist");
+    }
+
+    return {
+      filesIndexed: 1,
+      chunksIndexed: 1
+    };
+  }
+}
+
+async function startTestHttpServer(options?: {
+  aiIngestProcessor?: AiIngestProcessor;
+}): Promise<{ baseUrl: string; close: () => Promise<void> }> {
   const runService = new RunService(new InMemoryRunRepository());
   const runSourceReader = new RunSourceReader();
-  const aiIngestService = new AiIngestService(new InMemoryAiIngestJobRepository(), new NoopAiIngestProcessor());
-  const aiExplainService = new AiExplainService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
-  const aiSuggestFixService = new AiSuggestFixService(process.env.PHPSAGE_AI_PROVIDER?.trim() || "fallback");
+  const aiIngestService = new AiIngestService(
+    new InMemoryAiIngestJobRepository(),
+    options?.aiIngestProcessor ?? new NoopAiIngestProcessor()
+  );
+  const aiExplainService = new AiExplainService(process.env.AI_PROVIDER?.trim() || "fallback");
+  const aiSuggestFixService = new AiSuggestFixService(process.env.AI_PROVIDER?.trim() || "fallback");
   const server = createHttpServer(runService, runSourceReader, aiIngestService, aiExplainService, aiSuggestFixService);
 
   await new Promise<void>((resolveStart) => {
@@ -76,6 +95,28 @@ async function startTestHttpServer(): Promise<{ baseUrl: string; close: () => Pr
       });
     }
   };
+}
+
+async function waitForIngestJobStatus(
+  baseUrl: string,
+  jobId: string,
+  expectedStatus: "completed" | "failed"
+): Promise<void> {
+  const deadline = Date.now() + 1000;
+
+  while (Date.now() < deadline) {
+    const response = await fetch(`${baseUrl}/api/ai/ingest/${jobId}`);
+    assert.equal(response.status, 200);
+
+    const payload = (await response.json()) as { status: string };
+    if (payload.status === expectedStatus) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  assert.fail(`Timed out waiting for ingest job ${jobId} to reach status ${expectedStatus}`);
 }
 
 async function startHealthProbeServer(statusCode: number = 200): Promise<{ url: string; close: () => Promise<void> }> {
@@ -260,24 +301,33 @@ test("GET /api/ai/ingest returns recent ingest jobs with limit", async () => {
 });
 
 test("GET /api/ai/ingest filters jobs by status", async () => {
-  const httpServer = await startTestHttpServer();
+  const httpServer = await startTestHttpServer({
+    aiIngestProcessor: new DeterministicAiIngestProcessor()
+  });
 
   try {
-    await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+    const completedCreateResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ targetPath: "/workspace/examples/php-sample" })
     });
+    assert.equal(completedCreateResponse.status, 202);
+    const completedJob = (await completedCreateResponse.json()) as { jobId: string };
 
-    await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
+    const failedCreateResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({ targetPath: "/workspace/non-existent-target" })
     });
+    assert.equal(failedCreateResponse.status, 202);
+    const failedJob = (await failedCreateResponse.json()) as { jobId: string };
+
+    await waitForIngestJobStatus(httpServer.baseUrl, completedJob.jobId, "completed");
+    await waitForIngestJobStatus(httpServer.baseUrl, failedJob.jobId, "failed");
 
     const failedResponse = await fetch(`${httpServer.baseUrl}/api/ai/ingest?status=failed&limit=10`);
     assert.equal(failedResponse.status, 200);
@@ -335,8 +385,8 @@ test("POST /api/ai/explain validates missing issueMessage", async () => {
 });
 
 test("POST /api/ai/explain returns fallback explanation payload", async () => {
-  const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
-  process.env.PHPSAGE_AI_PROVIDER = "openai";
+  const previousProvider = process.env.AI_PROVIDER;
+  process.env.AI_PROVIDER = "openai";
 
   const httpServer = await startTestHttpServer();
 
@@ -378,9 +428,9 @@ test("POST /api/ai/explain returns fallback explanation payload", async () => {
   } finally {
     await httpServer.close();
     if (previousProvider === undefined) {
-      delete process.env.PHPSAGE_AI_PROVIDER;
+      delete process.env.AI_PROVIDER;
     } else {
-      process.env.PHPSAGE_AI_PROVIDER = previousProvider;
+      process.env.AI_PROVIDER = previousProvider;
     }
   }
 });
@@ -406,8 +456,8 @@ test("POST /api/ai/suggest-fix validates missing issueMessage", async () => {
 });
 
 test("POST /api/ai/suggest-fix returns fallback payload without unsafe diff", async () => {
-  const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
-  process.env.PHPSAGE_AI_PROVIDER = "openai";
+  const previousProvider = process.env.AI_PROVIDER;
+  process.env.AI_PROVIDER = "openai";
 
   const httpServer = await startTestHttpServer();
 
@@ -451,22 +501,22 @@ test("POST /api/ai/suggest-fix returns fallback payload without unsafe diff", as
   } finally {
     await httpServer.close();
     if (previousProvider === undefined) {
-      delete process.env.PHPSAGE_AI_PROVIDER;
+      delete process.env.AI_PROVIDER;
     } else {
-      process.env.PHPSAGE_AI_PROVIDER = previousProvider;
+      process.env.AI_PROVIDER = previousProvider;
     }
   }
 });
 
 test("GET /api/ai/health returns disabled status when no provider is configured", async () => {
-  const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
+  const previousProvider = process.env.AI_PROVIDER;
   const previousModel = process.env.PHPSAGE_AI_MODEL;
   const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
   const previousHealthTimeout = process.env.AI_HEALTH_TIMEOUT_MS;
   const previousOpenAiBaseUrl = process.env.OPENAI_BASE_URL;
   const previousOllamaBaseUrl = process.env.OLLAMA_BASE_URL;
   const previousQdrantUrl = process.env.QDRANT_URL;
-  delete process.env.PHPSAGE_AI_PROVIDER;
+  delete process.env.AI_PROVIDER;
   delete process.env.PHPSAGE_AI_MODEL;
   delete process.env.OPENAI_API_KEY;
   process.env.AI_HEALTH_TIMEOUT_MS = "50";
@@ -503,9 +553,9 @@ test("GET /api/ai/health returns disabled status when no provider is configured"
   } finally {
     await httpServer.close();
     if (previousProvider === undefined) {
-      delete process.env.PHPSAGE_AI_PROVIDER;
+      delete process.env.AI_PROVIDER;
     } else {
-      process.env.PHPSAGE_AI_PROVIDER = previousProvider;
+      process.env.AI_PROVIDER = previousProvider;
     }
 
     if (previousModel === undefined) {
@@ -547,12 +597,12 @@ test("GET /api/ai/health returns disabled status when no provider is configured"
 });
 
 test("GET /api/ai/health returns enabled status with configured provider and model", async () => {
-  const previousProvider = process.env.PHPSAGE_AI_PROVIDER;
+  const previousProvider = process.env.AI_PROVIDER;
   const previousModel = process.env.PHPSAGE_AI_MODEL;
   const previousOpenAiApiKey = process.env.OPENAI_API_KEY;
   const previousOpenAiHealthUrl = process.env.OPENAI_HEALTH_URL;
   const previousHealthTimeout = process.env.AI_HEALTH_TIMEOUT_MS;
-  process.env.PHPSAGE_AI_PROVIDER = "openai";
+  process.env.AI_PROVIDER = "openai";
   process.env.PHPSAGE_AI_MODEL = "gpt-5-mini";
   process.env.OPENAI_API_KEY = "test-key";
   process.env.AI_HEALTH_TIMEOUT_MS = "200";
@@ -586,9 +636,9 @@ test("GET /api/ai/health returns enabled status with configured provider and mod
     await httpServer.close();
     await healthProbeServer.close();
     if (previousProvider === undefined) {
-      delete process.env.PHPSAGE_AI_PROVIDER;
+      delete process.env.AI_PROVIDER;
     } else {
-      process.env.PHPSAGE_AI_PROVIDER = previousProvider;
+      process.env.AI_PROVIDER = previousProvider;
     }
 
     if (previousModel === undefined) {

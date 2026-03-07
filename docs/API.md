@@ -11,8 +11,7 @@ Implemented and active in `apps/server/src/interfaces/http-server.ts`.
 ## Environment Notes
 
 - AI provider selection:
-  - `PHPSAGE_AI_PROVIDER`
-  - fallback legacy: `AI_PROVIDER`
+  - `AI_PROVIDER`
 - AI model:
   - `PHPSAGE_AI_MODEL`
   - provider fallback vars: `OPENAI_MODEL`, `OLLAMA_MODEL`

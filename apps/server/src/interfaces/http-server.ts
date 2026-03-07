@@ -330,7 +330,7 @@ export function createHttpServer(
 }
 
 async function getAiHealth(): Promise<AiHealthResponse> {
-  const providerFromEnv = process.env.PHPSAGE_AI_PROVIDER?.trim() || process.env.AI_PROVIDER?.trim();
+  const providerFromEnv = process.env.AI_PROVIDER?.trim();
   const openAiApiKey = process.env.OPENAI_API_KEY?.trim();
   const activeProvider = providerFromEnv && providerFromEnv.length > 0
     ? providerFromEnv
