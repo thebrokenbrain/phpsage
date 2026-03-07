@@ -97,7 +97,17 @@ docker compose up --build
 
 The server will use a second compose file, expected to be named `docker-compose.server.yml`.
 
-That file should:
+The first functional slice keeps this file intentionally small.
+
+Current slice scope:
+
+- add Traefik
+- expose `80` on the host
+- route `/` to the web service running internally on `5173`
+
+Later slices can extend it to cover API, docs, and HTTPS on `443`.
+
+That file should eventually:
 
 - add Traefik
 - expose only `80` and `443` on the host
@@ -133,6 +143,10 @@ That file must not be copied to the server to run PHPSage.
 The PHPSage `.env` file must exist on the server.
 
 It is required because `docker compose`, `docker-compose.yml`, and the future `docker-compose.server.yml` use it to start the application services.
+
+For the first Traefik slice, the server `.env` must also define:
+
+- `PHPSAGE_PUBLIC_HOST`
 
 Operational rule:
 
@@ -239,10 +253,15 @@ docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d
 
 ## External Access In This Phase
 
-In this dev phase, the decision is to expose the application externally through Traefik on standard ports:
+In this dev phase, the decision is to expose the application externally through Traefik on standard ports.
+
+For the first slice, only `80` is routed through Traefik so the web UI can be validated end-to-end.
+
+`443`, `/api`, and `/docs` can be added in later slices.
+
+Current public entrypoint:
 
 - `80` for HTTP
-- `443` for HTTPS / Cloudflare / Zero Trust
 
 Internally, the application can continue using:
 
@@ -259,8 +278,10 @@ For a dev version that is easily accessible to the professor, the best next iter
 1. keep manual application deployment outside Pulumi
 2. keep the firewall on `22`, `80`, and `443`
 3. add Traefik through `docker-compose.server.yml`
-4. do not introduce GHCR yet
-5. do not introduce GitHub Actions yet
+4. validate the web UI first on `80`
+5. add API, docs, and `443` in later slices
+6. do not introduce GHCR yet
+7. do not introduce GitHub Actions yet
 
 ## Can We Start Working?
 
@@ -269,9 +290,10 @@ Yes. The current decisions are coherent enough to start implementation.
 At this point, the next concrete work item is clear:
 
 1. create `docker-compose.server.yml`
-2. add Traefik routing for web, API, and docs
+2. add Traefik routing for the web service
 3. keep `docker-compose.yml` unchanged for local development
-4. deploy manually on the server and validate domain access through `80/443`
+4. deploy manually on the server and validate domain access through `80`
+5. extend routing in later slices
 
 ## Later Phase
 
@@ -285,7 +307,8 @@ That workflow should not change the deployment model. It should only automate it
 - SSH access working
 - repository cloned into `/opt/phpsage`
 - real `.env` created on the server
+- `PHPSAGE_PUBLIC_HOST` defined in the server `.env`
 - `docker compose -f docker-compose.yml -f docker-compose.server.yml up --build -d` working
 - health checks passing inside the server
-- external access validated through `80/443`
+- external access validated through `80`
 - local development still working on `5173`, `8080`, and `8081`

@@ -1,0 +1,18 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  phpsage-web:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.phpsage-web.rule=Host(`${PHPSAGE_PUBLIC_HOST}`)"
+      - "traefik.http.routers.phpsage-web.entrypoints=web"
+      - "traefik.http.services.phpsage-web.loadbalancer.server.port=5173"
