@@ -81,6 +81,8 @@ Levantar plataforma completa:
 docker compose up --build -d
 ```
 
+El stack por defecto levanta la API, la UI, Swagger, Qdrant y Ollama. El contenedor `phpsage-cli` queda como herramienta bajo demanda y no entra en `up` por defecto.
+
 En local, `ollama` ya no bloquea el arranque del resto del stack mientras termina de descargar el modelo. Esto evita falsos fallos de `docker compose up` en máquinas donde la primera descarga tarda más de lo esperado.
 
 Opcional (recomendado si vas a usar `AI_PROVIDER=ollama`): precargar el modelo localmente antes de arrancar todo.
@@ -118,7 +120,7 @@ curl http://localhost:8080/api/ai/health
 Ejecutar un análisis desde contenedor CLI:
 
 ```bash
-docker compose run --rm phpsage-cli phpsage phpstan analyse /workspace/examples/php-sample --docker --no-open
+docker compose run --rm --build phpsage-cli phpsage phpstan analyse /workspace/examples/php-sample --docker --no-open
 ```
 
 Persistencia de runs:

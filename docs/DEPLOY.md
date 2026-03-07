@@ -68,10 +68,11 @@ That means keeping the current dev-environment services for now:
 
 - `phpsage-server`
 - `phpsage-web`
-- `phpsage-cli`
 - `api-docs`
 - `qdrant`
 - `ollama`
+
+`phpsage-cli` remains available as an on-demand compose tool container, but it is not part of the default long-running stack started with `docker compose up`.
 
 This is not the final production approach, but it is the simplest way to expose a reviewable version of the project.
 

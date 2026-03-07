@@ -1,5 +1,7 @@
 services:
   phpsage-cli:
+    profiles:
+      - tools
     image: phpsage-dev:latest
     build:
       context: .
@@ -34,9 +36,6 @@ services:
 
   phpsage-web:
     image: phpsage-dev:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
     environment:
       VITE_DEV_PROXY_TARGET: http://phpsage-server:8080
     depends_on:
