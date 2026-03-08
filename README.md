@@ -175,7 +175,7 @@ curl http://localhost:8080/api/ai/health
 
 El flujo remoto está separado en dos fases: provisionar infraestructura y desplegar la aplicación en el cloud de Hetzner.
 
-### Provisionar infraestructura
+### Aprovisionar infraestructura
 
 La infraestructura vive en `infra/` y se gestiona con Pulumi. Desde la raíz del repositorio, el entrypoint operativo es:
 
@@ -244,17 +244,14 @@ En remoto, Traefik expone la aplicación por `80` y `443` y enruta web, API y do
 
 El sitio ideal para validar el comportamiento desplegado es:
 
-- `https://phpsage.nopingnogain.com`
+- [https://phpsage.nopingnogain.com](https://phpsage.nopingnogain.com)
 
 Ese entorno debe tomarse como referencia para comprobar:
 
-- que la UI carga correctamente en HTTPS
-- que el acceso queda filtrado por Cloudflare Zero Trust mediante OTP por correo
-- que los runs siguen siendo navegables
-- que la API responde bajo el mismo host
-- que la integración con OpenAI está operativa
-
-Si el objetivo es demostrar el estado real del proyecto sin levantar nada en local, esa es la URL que conviene usar primero.
+- que la UI carga correctamente.
+- que los runs funcionan.
+- que la API responde correctamente.
+- que la integración con OpenAI está operativa.
 
 ## Variables de configuración
 

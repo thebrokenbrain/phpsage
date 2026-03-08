@@ -10,8 +10,8 @@ PHPSage es una herramienta web para desarrolladores PHP que toma la salida de [P
 
 En lugar de trabajar directamente con la salida en texto plano de PHPStan, PHPSage ofrece:
 
-- una **interfaz web** para navegar los resultados del análisis, los archivos afectados y el código fuente.
-- una **capa de IA opcional** que explica cada issue detectado y propone correcciones concretas.
+- una **interfaz web** para navegar por los resultados del análisis, los archivos afectados y el código fuente.
+- una **capa de IA opcional** que explica cada issue detectada y propone correcciones concretas.
 - un **sistema RAG** (Retrieval-Augmented Generation) que enriquece las respuestas del modelo con documentación específica de errores PHPStan.
 - una **CLI** para lanzar análisis y gestionar la ingesta de documentación.
 - una **API HTTP** que gestiona el ciclo de vida de los análisis y expone las funcionalidades de IA.
@@ -20,7 +20,7 @@ En lugar de trabajar directamente con la salida en texto plano de PHPStan, PHPSa
 
 PHPSage está orientado a:
 
-- **desarrolladores PHP** que usan PHPStan y quieren entender mejor sus resultados sin depender solo de la lectura directa del output.
+- **desarrolladores PHP** que usan PHPStan y quieren entender mejor sus resultados sin depender solo de la lectura directa del output del comando.
 - **equipos de desarrollo** que quieren una vista centralizada y navegable de los problemas detectados en su código.
 - **revisores técnicos y profesores** que necesitan evaluar la calidad de un proyecto PHP de forma rápida.
 - **cualquier persona** que quiera explorar cómo combinar análisis estático con asistencia de IA en un proyecto real.

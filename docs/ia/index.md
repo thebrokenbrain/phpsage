@@ -2,7 +2,7 @@
 
 Esta sección recoge los prompts, instrucciones y contratos operativos que se utilizaron durante la construcción de PHPSage con apoyo de IA.
 
-No describe el producto final desde la perspectiva del usuario, sino el marco de trabajo que guio la implementación, las reglas de consistencia y los contratos de trabajo usados durante el desarrollo.
+No describe el producto final desde la perspectiva del usuario, sino el marco de trabajo que guió la implementación, las reglas de consistencia y los contratos de trabajo usados durante el desarrollo.
 
 ## Contenido
 
