@@ -1,3 +1,6 @@
+# DEPLOY.md
+
+````markdown
 # PHPSage Deploy
 
 Deployment guide for the dev version of PHPSage running on infrastructure provisioned with Pulumi.
@@ -81,7 +84,7 @@ The key decision is to keep environment-specific behavior split across compose f
 - `docker-compose.yml` stays focused on local development
 - `docker-compose.server.yml` will contain server-only behavior
 
-This avoids breaking local access on `5173` while still allowing clean external access on `80/443` in Hetzner.
+This avoids breaking local development access on `5173`, `8080`, and `8081` while still keeping the public server surface limited to `80/443` in Hetzner.
 
 ## Compose Strategy
 
@@ -89,9 +92,9 @@ This avoids breaking local access on `5173` while still allowing clean external 
 
 The base file remains the local development entrypoint:
 
-- web exposed on `5173`
-- API exposed on `8080`
-- Swagger exposed on `8081`
+- web exposed locally on `5173`
+- API exposed locally on `8080`
+- Swagger exposed locally on `8081`
 
 Local usage remains:
 
@@ -114,6 +117,8 @@ Current slice scope:
 - route `/api` and `/healthz` to the server running internally on `8080` through TLS
 - route `/docs` to Swagger running internally on `8080` in the `api-docs` container through TLS
 - load a certificate and private key for Cloudflare Full (strict)
+
+The important distinction is that `5173`, `8080`, and `8081` are internal or local service ports. They are not additional public firewall openings on the Hetzner server.
 
 For reliability, Traefik is configured with a file provider and fixed routes instead of Docker label autodiscovery.
 
@@ -400,7 +405,7 @@ Current public entrypoint:
 - `80` for HTTP to HTTPS redirection
 - `443` for HTTPS
 
-Internally, the application can continue using:
+Internal application ports:
 
 - `5173` for the web service
 - `8080` for the API
@@ -453,3 +458,4 @@ That workflow should not change the deployment model. It should only automate it
 - `/api` and `/healthz` validated through Traefik on `443`
 - `/docs` validated through Traefik on `443`
 - local development still working on `5173`, `8080`, and `8081`
+````

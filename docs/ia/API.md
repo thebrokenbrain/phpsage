@@ -1,3 +1,6 @@
+# API.md
+
+````markdown
 # API - PHPSage
 
 Living operational API contract.
@@ -148,4 +151,5 @@ When `AI_DEBUG_LLM_IO=true`, debug payload may include:
 
 ## Update Rule
 
-If endpoint behavior changes, update `docs/API.md` and `docs/openapi.yaml` in the same iteration.
+If endpoint behavior changes, update `docs/ia/API.md` and `docs/openapi.yaml` in the same iteration.
+````

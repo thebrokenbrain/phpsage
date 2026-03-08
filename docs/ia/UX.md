@@ -1,3 +1,6 @@
+# UX.md
+
+````markdown
 # UX - PHPSage
 
 User experience contract for current implementation.
@@ -90,3 +93,4 @@ When backend debug is enabled (`AI_DEBUG_LLM_IO=true`) and payload is available:
 - Clear state visibility (running/finished, errors, AI status)
 - Minimal friction to re-run analyses
 - Safe-by-default AI patch behavior
+````

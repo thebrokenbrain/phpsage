@@ -1,3 +1,6 @@
+# AGENTS.md
+
+````markdown
 # AGENTS.md - PHPSage
 
 Execution guide for incremental development with clean architecture, continuous validation, and end-to-end reproducibility.
@@ -60,9 +63,9 @@ Dependency rule: always point inward.
 Keep these always aligned with real behavior:
 
 - `README.md`
-- `docs/API.md`
+- `docs/ia/API.md`
 - `docs/openapi.yaml`
-- `docs/UX.md`
+- `docs/ia/UX.md`
 
 Mandatory README sections:
 
@@ -90,5 +93,6 @@ Mandatory README sections:
 Prioritize:
 
 - UX hardening and consistency for production-like workflows
-- API contract consistency across `docs/API.md` and `docs/openapi.yaml`
+- API contract consistency across `docs/ia/API.md` and `docs/openapi.yaml`
 - regression-safe improvements (tests + smokes for changed behavior)
+````

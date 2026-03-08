@@ -1,0 +1,102 @@
+site_name: PHPSage
+site_description: Documentación técnica de PHPSage — análisis estático de PHP enriquecido con IA
+site_url: https://thebrokenbrain.github.io/phpsage/
+repo_url: https://github.com/thebrokenbrain/phpsage
+repo_name: thebrokenbrain/phpsage
+
+theme:
+  name: material
+  language: es
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Cambiar a modo oscuro
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Cambiar a modo claro
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+
+nav:
+  - Inicio: index.md
+  - Qué es PHPSage:
+    - Visión general: project-overview/index.md
+    - Qué es PHPStan: project-overview/phpstan.md
+    - Qué aporta PHPSage: project-overview/value-proposition.md
+  - Primeros pasos:
+    - Inicio rápido: getting-started/index.md
+    - Demo: getting-started/demo.md
+    - Ejecutar un análisis: getting-started/run-analysis.md
+    - Variables de configuración: getting-started/configuration.md
+  - Arquitectura:
+    - Visión general: architecture/index.md
+    - Estructura del monorepo: architecture/monorepo.md
+    - IA y RAG: architecture/ai-rag.md
+  - Interfaz web:
+    - Comportamiento UX: ux/index.md
+  - API:
+    - Contrato funcional: api/index.md
+    - Especificación OpenAPI: api/openapi.md
+  - Despliegue:
+    - Guía de despliegue: deployment/index.md
+    - Infraestructura (Pulumi): deployment/infrastructure.md
+  - Desarrollo asistido por IA:
+    - Visión general: ia/index.md
+    - AGENTS.md: ia/AGENTS.md
+    - API.md: ia/API.md
+    - UX.md: ia/UX.md
+    - DEPLOY.md: ia/DEPLOY.md
+  - Problemas encontrados y cómo se solucionaron: problems-and-solutions.md
+  - Próximos pasos: next-steps.md
+  - Agradecimientos: acknowledgements.md
+  - Referencia:
+    - Corpus PHPStan para RAG: reference/phpstan-corpus.md
+    - Comandos Make: reference/makefile.md
+    - Scripts auxiliares: reference/scripts.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search:
+      lang: es
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/thebrokenbrain/phpsage

@@ -43,6 +43,9 @@ temp/
 # Local notes (never commit)
 DOUBTS.md
 
+# MkDocs generated site
+site/
+
 # Python cache (if any tooling is added later)
 __pycache__/
 *.pyc

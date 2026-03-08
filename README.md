@@ -39,7 +39,7 @@ Para ello, el proyecto agrupa en un mismo monorepo las piezas necesarias para tr
 - una API que gestiona el ciclo de vida de los runs y la integración con IA
 - una UI web para navegar logs, issues, archivos y código fuente
 - un paquete compartido con contratos y utilidades comunes
-- una capa de infraestructura como código para el entorno remoto
+- una capa de infraestructura como código para publicar y operar el entorno remoto de demostración
 
 El flujo principal es este:
 
@@ -95,6 +95,10 @@ PHPSage dispone de una instancia desplegada y accesible para revisión:
 
 - `https://phpsage.nopingnogain.com`
 
+La documentación pública del proyecto está disponible en:
+
+- `https://thebrokenbrain.github.io/phpsage/`
+
 Ese entorno debe considerarse la demostración principal del proyecto. No es una URL prevista para el futuro ni un entorno teórico: es una web ya publicada, accesible por HTTPS y operativa sobre el cloud de Hetzner.
 
 Para un profesor o revisor, ese es el punto de entrada más directo para comprobar que el sistema está efectivamente desplegado y funcionando fuera del entorno local.
@@ -116,6 +120,10 @@ Se ha protegido de esta forma porque esa instancia está conectada a una cuenta 
 - Make
 
 Para levantar PHPSage en local no necesitas instalar Node.js ni dependencias del proyecto en el host.
+
+La documentación de MkDocs se ejecuta aparte y no forma parte del stack principal definido en `docker-compose.yml`.
+
+La versión publicada de esta documentación puede servirse desde GitHub Pages, separada del despliegue funcional de la demo.
 
 ### Arranque rápido
 
@@ -146,6 +154,7 @@ make local/up
 make local/reset
 make local/down
 make local/destroy
+make docs/build
 ```
 
 Uso recomendado:
@@ -266,7 +275,7 @@ El proyecto puede arrancar en local solo con el contenido base de `.env.example`
 | `OLLAMA_MODEL` | Modelo por defecto en Ollama | `llama3.2` |
 | `OPENAI_BASE_URL` | Endpoint base para OpenAI compatible | `https://api.openai.com` |
 | `OPENAI_API_KEY` | Credencial para OpenAI | obligatorio si usas OpenAI |
-| `OPENAI_MODEL` | Modelo usado con OpenAI | `gpt-4o-mini` |
+| `OPENAI_MODEL` | Modelo usado con OpenAI | `gpt-5.4` |
 | `AI_HEALTH_TIMEOUT_MS` | Timeout de probes de salud IA | `5000` |
 | `AI_DEBUG_LLM_IO` | Expone payloads LLM en respuestas de debug | `true` o `false` |
 | `AI_RAG_BACKEND` | Backend de recuperación de contexto | `filesystem` o `qdrant` |
@@ -310,9 +319,11 @@ phpsage/
   scripts/
   .env.example
   docker-compose.yml
+  docker-compose.docs.yml
   docker-compose.server.yml
   Dockerfile
   Makefile
+  mkdocs.yml
   package.json
 ```
 
@@ -332,8 +343,10 @@ Descripción de carpetas y ficheros principales:
 - `certificates/`: certificados TLS locales para despliegues remotos con HTTPS. Debe mantenerse fuera de git.
 - `.env.example`: plantilla base de configuración de la aplicación.
 - `docker-compose.yml`: stack local principal para desarrollo y validación.
+- `docker-compose.docs.yml`: stack aislado para servir y construir la documentación con MkDocs.
 - `docker-compose.server.yml`: override para exponer la aplicacion en remoto mediante Traefik.
 - `Makefile`: entrypoints operativos para local, infraestructura y despliegue.
+- `mkdocs.yml`: configuración de navegación y build de la documentación técnica.
 
 ## e. Funcionalidades principales
 
@@ -358,8 +371,4 @@ make deploy/app
 
 ## g. Documentación complementaria
 
-- `docs/API.md`: contrato funcional de la API.
-- `docs/openapi.yaml`: especificación OpenAPI.
-- `docs/UX.md`: comportamiento y decisiones principales de la interfaz.
-- `docs/DEPLOY.md`: detalles del despliegue remoto.
-- `infra/README.md`: operativa de la infraestructura como código.
+- https://thebrokenbrain.github.io/phpsage/

@@ -1,11 +1,12 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
-.PHONY: help ensure/env infra/image infra/deps infra/preview infra/up infra/destroy deploy/app deploy/all local/up local/reset local/down local/destroy
+.PHONY: help ensure/env infra/image infra/deps infra/preview infra/up infra/destroy deploy/app deploy/all local/up local/reset local/down local/destroy docs/serve docs/build
 
 ROOT_DIR := $(CURDIR)
 INFRA_DIR := $(ROOT_DIR)/infra
 DEPLOY_SCRIPT := $(ROOT_DIR)/scripts/deploy-server.sh
+DOCS_COMPOSE_FILE := docker-compose.docs.yml
 
 define INFRA_DOCKER_RUN
 cd $(INFRA_DIR) && docker run --rm -i \
@@ -31,6 +32,8 @@ help:
 	@printf '  %-16s %s\n' 'local/destroy' 'Remove local project containers, networks, volumes, and project-built images'
 	@printf '  %-16s %s\n' 'deploy/app' 'Deploy the application to the provisioned server over SSH'
 	@printf '  %-16s %s\n' 'deploy/all' 'Provision infra and then deploy the application'
+	@printf '  %-16s %s\n' 'docs/serve' 'Serve MkDocs documentation locally on port 8000'
+	@printf '  %-16s %s\n' 'docs/build' 'Build MkDocs documentation into site/'
 
 ensure/env:
 	@if [ ! -f .env ] && [ -f .env.example ]; then \
@@ -71,3 +74,9 @@ deploy/app:
 
 deploy/all: infra/up
 	PHPSAGE_DEPLOY_WAIT_SECONDS=30 bash $(DEPLOY_SCRIPT)
+
+docs/serve:
+	docker compose -f $(DOCS_COMPOSE_FILE) run --rm --service-ports mkdocs serve -f /docs/mkdocs.yml -a 0.0.0.0:8000
+
+docs/build:
+	docker compose -f $(DOCS_COMPOSE_FILE) run --rm mkdocs build

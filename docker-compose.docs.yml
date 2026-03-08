@@ -1,0 +1,9 @@
+services:
+  mkdocs:
+    image: squidfunk/mkdocs-material:9.5.18
+    working_dir: /docs
+    volumes:
+      - .:/docs
+    ports:
+      - "8000:8000"
+      - "35729:35729"
