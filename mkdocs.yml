@@ -59,6 +59,7 @@ nav:
     - AGENTS.md: ia/AGENTS.md
     - API.md: ia/API.md
     - UX.md: ia/UX.md
+    - INFRA.md: ia/INFRA.md
     - DEPLOY.md: ia/DEPLOY.md
   - Problemas encontrados y cómo se solucionaron: problems-and-solutions.md
   - Próximos pasos: next-steps.md

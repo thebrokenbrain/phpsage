@@ -1,7 +1,7 @@
 # DEPLOY.md
 
 ````markdown
-# PHPSage Deploy
+# Deploy - PHPSage
 
 Deployment guide for the dev version of PHPSage running on infrastructure provisioned with Pulumi.
 

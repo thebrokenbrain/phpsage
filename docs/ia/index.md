@@ -40,6 +40,14 @@ No describe el producto final desde la perspectiva del usuario, sino el marco de
 
 	[:octicons-arrow-right-24: Ver contenido](DEPLOY.md)
 
+- **INFRA.md**
+
+	---
+
+	Contrato de infraestructura como código para la provisión base con Pulumi, Hetzner y Cloudflare en esta fase del proyecto.
+
+	[:octicons-arrow-right-24: Ver contenido](INFRA.md)
+
 </div>
 
-Esta documentación se conserva porque forma parte de la trazabilidad real del proyecto y ayuda a entender cómo se tomaron decisiones de arquitectura, despliegue y experiencia de usuario durante el proceso de construcción.
+Esta documentación se conserva porque forma parte de la trazabilidad real del proyecto y ayuda a entender cómo se tomaron decisiones de arquitectura, infraestructura, despliegue y experiencia de usuario durante el proceso de construcción.
