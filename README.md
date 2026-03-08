@@ -48,7 +48,7 @@ El flujo principal es este:
 
 La documentación del proyecto está disponible en:
 
-- `https://thebrokenbrain.github.io/phpsage/`
+- [https://thebrokenbrain.github.io/phpsage/](https://thebrokenbrain.github.io/phpsage/)
 
 ## b. Stack tecnológico utilizado
 
