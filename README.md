@@ -38,8 +38,6 @@ Para ello, el proyecto agrupa en un mismo monorepo las piezas necesarias para tr
 - una CLI para lanzar análisis y tareas de ingest de RAG
 - una API que gestiona el ciclo de vida de los runs y la integración con IA
 - una UI web para navegar logs, issues, archivos y código fuente
-- un paquete compartido con contratos y utilidades comunes
-- una capa de infraestructura como código para publicar y operar el entorno remoto de demostración
 
 El flujo principal es este:
 
@@ -48,11 +46,9 @@ El flujo principal es este:
 3. El server persiste el run y expone logs, resultados y ficheros asociados.
 4. La UI permite inspeccionar el run y, si la IA está activa, pedir explicaciones o sugerencias de fix.
 
-Comandos principales del producto:
+La documentación del proyecto está disponible en:
 
-- `phpsage app`
-- `phpsage phpstan analyse <path>`
-- `phpsage rag ingest`
+- `https://thebrokenbrain.github.io/phpsage/`
 
 ## b. Stack tecnológico utilizado
 
@@ -94,10 +90,6 @@ Comandos principales del producto:
 PHPSage dispone de una instancia desplegada y accesible para revisión:
 
 - `https://phpsage.nopingnogain.com`
-
-La documentación pública del proyecto está disponible en:
-
-- `https://thebrokenbrain.github.io/phpsage/`
 
 Ese entorno debe considerarse la demostración principal del proyecto. No es una URL prevista para el futuro ni un entorno teórico: es una web ya publicada, accesible por HTTPS y operativa sobre el cloud de Hetzner.
 
@@ -372,3 +364,4 @@ make deploy/app
 ## g. Documentación complementaria
 
 - https://thebrokenbrain.github.io/phpsage/
+- https://github.com/phpstan/phpstan

@@ -14,6 +14,8 @@ La navegación y el estado se sincronizan con la URL donde es relevante.
 
 ## Dashboard
 
+![Vista Dashboard de PHPSage](../assets/images/image-03.png)
+
 El Dashboard es la vista principal y ofrece:
 
 ### Lista de runs
@@ -41,6 +43,8 @@ Cuando se selecciona un run, el panel muestra:
 
 ## Insights
 
+![Vista Insights de PHPSage](../assets/images/image-04.png)
+
 La vista Insights muestra estadísticas del run seleccionado:
 
 ### KPIs
@@ -57,6 +61,8 @@ La vista Insights muestra estadísticas del run seleccionado:
 - Lista de identificadores con enlaces a la documentación de PHPStan cuando el identificador es conocido.
 
 ## Issue
+
+![Vista Issue de PHPSage](../assets/images/image-05.png)
 
 La vista Issue se activa al seleccionar un issue concreto y muestra:
 
