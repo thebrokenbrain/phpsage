@@ -89,7 +89,7 @@ La documentación del proyecto está disponible en:
 
 PHPSage dispone de una instancia desplegada y accesible para revisión:
 
-- `https://phpsage.nopingnogain.com`
+- [https://phpsage.nopingnogain.com](https://phpsage.nopingnogain.com)
 
 Ese entorno debe considerarse la demostración principal del proyecto. No es una URL prevista para el futuro ni un entorno teórico: es una web ya publicada, accesible por HTTPS y operativa sobre el cloud de Hetzner.
 
@@ -364,4 +364,5 @@ make deploy/app
 ## g. Documentación complementaria
 
 - https://thebrokenbrain.github.io/phpsage/
+- [Slides del proyecto (PDF)](docs/slides.pdf)
 - https://github.com/phpstan/phpstan
